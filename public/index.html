@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{businessName}} · Mobile bike service in {{serviceArea}}</title>
+  <meta name="description" content="{{description}}">
+  <meta property="og:title" content="{{businessName}}: {{tagline}}">
+  <meta property="og:description" content="{{description}}">
+  <meta name="theme-color" content="#1c2321">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/js/common.js" defer></script>
+  <script src="/js/site.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="20" r="5.5"/><circle cx="24" cy="20" r="5.5"/><path d="M8 20l5-9h8l3 9M13 11l3.5 9H8M21 11l-4.5 9M11 8h4M19 8h3l-1 3"/></svg>
+        </span>
+        <span>{{businessName}}</span>
+      </a>
+      <nav class="nav" aria-label="Main">
+        <a href="#services">Services</a>
+        <a href="#how">How it works</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn btn-sm" href="#book">Book a service</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="eyebrow">Mobile bike service · {{serviceArea}}</p>
+          <h1>Your bike, fixed at your door.</h1>
+          <p class="lead">{{description}}</p>
+          <div class="hero-cta">
+            <a class="btn btn-lg" href="#book">Book a service</a>
+            <a class="btn btn-ghost btn-lg" href="#services">See prices</a>
+          </div>
+          <ul class="checklist" id="highlights"></ul>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <svg viewBox="0 0 400 340" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <g stroke="currentColor" stroke-width="11">
+              <circle cx="100" cy="226" r="66"/>
+              <circle cx="304" cy="226" r="66"/>
+            </g>
+            <g stroke="currentColor" stroke-width="3" opacity=".35">
+              <path d="M100 160v132M34 226h132M53 179l94 94M53 273l94-94"/>
+              <path d="M304 160v132M238 226h132M257 179l94 94M257 273l94-94"/>
+            </g>
+            <g stroke="var(--accent)" stroke-width="12">
+              <path d="M100 226l100 0 82-92H172l28 92M100 226l72-92"/>
+              <path d="M282 134l22 92"/>
+            </g>
+            <g stroke="currentColor" stroke-width="11">
+              <path d="M150 112h48"/>
+              <path d="M172 134l-8-22"/>
+              <path d="M282 134l-8-34h30"/>
+            </g>
+            <circle cx="200" cy="226" r="16" fill="var(--bg)" stroke="currentColor" stroke-width="7"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="services">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Services and prices</h2>
+          <p>Prices include labour and travel within {{serviceArea}}. Parts are charged at cost, and we always ask before fitting anything.</p>
+        </div>
+        <div class="services-grid" id="services-grid"></div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>How it works</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <h3>Book online</h3>
+            <p>Pick a service and a two-hour window that suits you. It takes about two minutes.</p>
+          </li>
+          <li>
+            <h3>We come to you</h3>
+            <p>We arrive in a fully equipped van at your home, office or courtyard. You don't even need to be there.</p>
+          </li>
+          <li>
+            <h3>Ride away</h3>
+            <p>We email you when the job's done, with a list of the work. You pay afterwards.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="book">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Book a service</h2>
+          <p>Choose what you need and when. You'll get an email straight away, and you can message us about your booking at any time.</p>
+        </div>
+
+        <div class="booking-layout" id="booking-layout">
+          <form class="card" id="booking-form" novalidate>
+            <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <fieldset class="step">
+              <legend><span class="step-num">1</span> Choose a service</legend>
+              <div class="choice-grid" id="service-choices" data-field="serviceId"></div>
+            </fieldset>
+
+            <fieldset class="step">
+              <legend><span class="step-num">2</span> Tell us about your bike</legend>
+              <div class="field-grid">
+                <label class="field span-2" data-field="bikeType">
+                  <span>Type of bike</span>
+                  <select name="bikeType" required>
+                    <option value="">Choose…</option>
+                  </select>
+                </label>
+                <label class="field span-2">
+                  <span>Brand <span class="optional">(optional)</span></span>
+                  <input name="bikeBrand" maxlength="60" placeholder="e.g. Trek, Larry vs Harry">
+                </label>
+                <label class="field span-2">
+                  <span>Model <span class="optional">(optional)</span></span>
+                  <input name="bikeModel" maxlength="60">
+                </label>
+                <label class="field span-6">
+                  <span>What needs doing? <span class="optional">(optional)</span></span>
+                  <textarea name="problem" maxlength="2000" rows="3" placeholder="Strange noises, gears slipping, soft brakes, anything you'd like us to look at"></textarea>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="step">
+              <legend><span class="step-num">3</span> Pick a day and time</legend>
+              <div data-field="date">
+                <div class="calendar" id="calendar" aria-label="Available days">
+                  <p class="hint">Loading available days…</p>
+                </div>
+              </div>
+              <div class="slots" id="slots" data-field="slot" hidden>
+                <span class="field"><span id="slots-label">Available times</span></span>
+                <div class="slot-grid" id="slot-grid"></div>
+              </div>
+            </fieldset>
+
+            <fieldset class="step">
+              <legend><span class="step-num">4</span> Where to find you</legend>
+              <div class="field-grid">
+                <label class="field span-6" data-field="name">
+                  <span>Full name</span>
+                  <input name="name" autocomplete="name" maxlength="100" required>
+                </label>
+                <label class="field span-3" data-field="email">
+                  <span>Email</span>
+                  <input name="email" type="email" autocomplete="email" maxlength="200" required>
+                </label>
+                <label class="field span-3" data-field="phone">
+                  <span>Phone</span>
+                  <input name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="+45" required>
+                </label>
+                <label class="field span-6" data-field="address">
+                  <span>Street address</span>
+                  <input name="address" autocomplete="street-address" maxlength="200" placeholder="Street, number, floor" required>
+                </label>
+                <label class="field span-2" data-field="postcode">
+                  <span>Postcode</span>
+                  <input name="postcode" autocomplete="postal-code" inputmode="numeric" maxlength="12" required>
+                </label>
+                <label class="field span-4">
+                  <span>City</span>
+                  <input name="city" autocomplete="address-level2" maxlength="80">
+                </label>
+                <label class="field span-6">
+                  <span>How do we find the bike? <span class="optional">(optional)</span></span>
+                  <textarea name="accessNotes" maxlength="1000" rows="2" placeholder="e.g. Blue cargo bike in the back courtyard, gate code 1234"></textarea>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="form-footer">
+              <label class="check" data-field="consent">
+                <input type="checkbox" name="consent">
+                <span>I agree that {{businessName}} can store my details to handle this booking and contact me about it. <a href="/privacy" target="_blank">Privacy notice</a></span>
+              </label>
+              <div class="alert alert-error" id="form-error" role="alert" hidden></div>
+              <button class="btn btn-lg" type="submit" id="submit-btn">Request booking</button>
+            </div>
+          </form>
+
+          <aside class="card summary" aria-live="polite">
+            <h3>Your booking</h3>
+            <dl id="summary"></dl>
+          </aside>
+        </div>
+
+        <div class="card success-card" id="booking-success" hidden tabindex="-1">
+          <div class="success-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          </div>
+          <h2 id="success-title">Booking received</h2>
+          <p class="lead" id="success-text" style="margin-inline:auto"></p>
+          <p><a class="btn btn-lg" id="success-link" href="#">View your booking</a></p>
+          <p class="hint">Keep the link from the email. You can use it to message us or cancel.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="wrap narrow">
+        <h2>Questions</h2>
+        <div class="faq" id="faq-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <span>© {{year}} {{businessName}} · {{serviceArea}}</span>
+      <span id="footer-contact"></span>
+      <a href="/privacy">Privacy</a>
+    </div>
+  </footer>
+</body>
+</html>
