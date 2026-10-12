@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Neighbor – My account</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="demo" role="note">Mock site with sample data, saved only in this browser. Passwords are not checked. <a href="#" id="reset-demo">Reset demo data</a></div>
+<header><div class="wrap">
+  <a class="logo" href="index.html">The<br>Neighbor</a>
+  <nav>
+    <a href="index.html#private">Services</a>
+    <a class="pill" href="index.html#book">Book a Bike Service</a>
+    <button class="pill ghost" id="out" type="button" hidden>Sign out</button>
+  </nav>
+</div></header>
+
+<main class="wrap page">
+  <section id="login">
+    <h2 id="lt">Welcome back</h2>
+    <p class="sub">See your bookings, repair records, bikes and recommendations in one place.</p>
+    <div class="seg" role="group" aria-label="Account action">
+      <button type="button" id="m1" aria-pressed="true">Log in</button>
+      <button type="button" id="m2" aria-pressed="false">Create account</button>
+    </div>
+    <div class="narrow" style="margin:0 0 32px">
+      <form class="box" id="lf" novalidate>
+        <label for="le">Email</label><input type="email" id="le" autocomplete="email">
+        <label for="lp">Password</label><input type="password" id="lp" autocomplete="current-password">
+        <p class="err" id="e-l" role="alert"></p>
+        <button class="pill" type="submit">Log in</button>
+        <p class="det">Forgot your password? In the real site, a reset link is emailed to you.</p>
+      </form>
+      <form class="box" id="sf" novalidate hidden>
+        <label for="sn">Name</label><input type="text" id="sn" autocomplete="name">
+        <div class="row">
+          <div><label for="se">Email</label><input type="email" id="se" autocomplete="email"></div>
+          <div><label for="sp">Phone</label><input type="tel" id="sp" autocomplete="tel"></div>
+        </div>
+        <label for="sw">Password <small>(at least 8 characters)</small></label><input type="password" id="sw" autocomplete="new-password">
+        <p class="err" id="e-s" role="alert"></p>
+        <button class="pill" type="submit">Create account</button>
+        <p class="det">Bookings you already made with this email are added to your account. Business accounts are set up by us after a consultation.</p>
+      </form>
+    </div>
+    <h3>Or look around with a demo account</h3>
+    <div class="choice">
+      <button type="button" data-demo="anna@example.com"><b>Private customer</b><span>Anna Jensen: two bikes, service history, recommendations</span></button>
+      <button type="button" data-demo="hotel@example.com"><b>Business customer</b><span>Hotel ABC: 8 bikes on the Standard plan, monthly reports</span></button>
+      <button type="button" data-demo="owner@example.com"><b>Owner</b><span>The Neighbor's dashboard: bookings, leads, visits, reports</span></button>
+    </div>
+  </section>
+
+  <section id="app" hidden>
+    <h2 id="hi"></h2>
+    <p class="sub" id="hs"></p>
+    <div class="tabs" id="tabs" role="navigation" aria-label="Account sections"></div>
+    <div id="view"></div>
+  </section>
+</main>
+
+<footer class="small"><div class="wrap">The Neighbor · Rørsangervej 45, København · <a href="index.html">Home</a></div></footer>
+
+<script src="js/mock-backend.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/account.js"></script>
+</body>
+</html>

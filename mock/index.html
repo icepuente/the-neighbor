@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Neighbor – Mobile bike maintenance in Copenhagen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="demo" role="note">Mock site. Everything is saved only in this browser. <a href="#" id="reset-demo">Reset demo data</a></div>
+
+<div id="consent" class="dialog" role="dialog" aria-modal="true" aria-labelledby="ct" hidden>
+  <div class="box">
+    <h2 id="ct">Before you continue</h2>
+    <p>We only use your details to arrange your bike service.</p>
+    <label class="cb"><input type="checkbox" id="c1"><span>I agree that The Neighbor may process my personal data for my booking.</span></label>
+    <label class="cb"><input type="checkbox" id="c2"><span>I accept the terms and conditions.</span></label>
+    <button class="pill" id="cok" type="button" disabled>Continue</button>
+  </div>
+</div>
+
+<div id="rules" class="dialog" role="dialog" aria-modal="true" aria-labelledby="rt" hidden>
+  <div class="box">
+    <h2 id="rt">Travel</h2>
+    <ul id="rl"></ul>
+    <button class="pill" id="rclose" type="button">Got it</button>
+  </div>
+</div>
+
+<header><div class="wrap">
+  <a class="logo" href="#top">The<br>Neighbor</a>
+  <nav>
+    <a href="#business">For businesses</a><a href="#private">For private customers</a><a href="#faq">FAQ</a>
+    <a href="account.html" id="acct-link">Log in</a>
+    <a class="pill" href="#book">Book a service</a>
+  </nav>
+</div></header>
+
+<main id="top">
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <h1>Your bikes, always ready to ride.</h1>
+        <p class="lead">A mobile bike mechanic who comes to you, for businesses and private customers in Copenhagen.</p>
+      </div>
+      <div class="choose">
+        <a href="#business"><div><b>I manage a fleet</b><span>Monthly plans from 250 DKK per bike</span></div><span class="go" aria-hidden="true">→</span></a>
+        <a href="#private"><div><b>I have my own bike</b><span>Service at your door from 199 DKK</span></div><span class="go" aria-hidden="true">→</span></a>
+      </div>
+    </section>
+  </div>
+
+  <section class="band" aria-label="Why The Neighbor"><div class="wrap">
+    <ul class="points">
+      <li><b>We come to you</b>No hauling bikes to a workshop.</li>
+      <li><b>Clear prices</b>Fixed plans. Extras only after you say yes.</li>
+      <li><b>Clear reports</b>See which bikes are ready to ride.</li>
+      <li><b>One person</b>Talk directly to your mechanic.</li>
+    </ul>
+  </div></section>
+
+  <!-- Businesses -->
+  <section class="sec" id="business"><div class="wrap">
+    <h2 class="t">For businesses</h2>
+    <p class="sub">Keep your fleet ready for guests and staff, without hiring a mechanic.</p>
+    <div class="plans" id="plan-cards"></div>
+    <div class="after">
+      <span>Parts and bigger repairs are extra. We always ask first.</span>
+      <details>
+        <summary>What's not included?</summary>
+        <ul class="chips"><li>Inner tubes</li><li>Tires</li><li>Chains</li><li>Cassettes</li><li>Brake pads</li><li>Wheel repairs</li><li>Hydraulic brakes</li><li>Suspension</li><li>Major drivetrain work</li><li>Emergency repairs</li></ul>
+      </details>
+    </div>
+    <p class="who">For hotels, hostels, rentals, offices, property managers and <a href="#consult" data-ctype="Municipality / public organization">public fleets</a>.</p>
+  </div></section>
+
+  <section class="band" id="consult"><div class="wrap split">
+    <div>
+      <h2 class="t">How it works</h2>
+      <ol class="flow"><li>Free consultation</li><li>Fleet check</li><li>Pick a plan</li><li>Monthly visits</li></ol>
+      <div class="paper mini tw" style="margin-top:24px">
+        <h3>Sample monthly report</h3>
+        <table class="rep"><thead><tr><th>Bike</th><th>Status</th><th>Action</th></tr></thead><tbody>
+          <tr><td>#001</td><td class="st">Ready</td><td>–</td></tr>
+          <tr><td>#002</td><td class="st attention">Attention</td><td>Brake adjustment</td></tr>
+          <tr><td>#003</td><td class="st repair">Repair needed</td><td>Inner tube</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div>
+      <form class="box" id="cf" novalidate>
+        <h2>Book a free consultation</h2>
+        <p>No commitment. We'll call you back.</p>
+        <div class="row"><div><label for="cname">Name</label><input type="text" id="cname" autocomplete="name"></div><div><label for="ccomp">Company</label><input type="text" id="ccomp" autocomplete="organization"></div></div>
+        <div class="row"><div><label for="cemail">Email</label><input type="email" id="cemail" autocomplete="email"></div><div><label for="ctel">Phone</label><input type="tel" id="ctel" autocomplete="tel"></div></div>
+        <div class="row"><div><label for="ctype">Type</label><select id="ctype"></select></div><div><label for="cnum">Bikes</label><select id="cnum"></select></div></div>
+        <div class="row"><div><label for="cdate">Preferred date</label><input type="date" id="cdate"></div><div><label for="ctime">Time</label><select id="ctime"></select></div></div>
+        <label for="cmsg">Message <small>(optional)</small></label><textarea id="cmsg" rows="2"></textarea>
+        <p class="err" id="e-c" role="alert"></p>
+        <button class="pill" type="submit">Send request</button>
+      </form>
+      <div class="box" id="cdone" hidden>
+        <h2>Request sent</h2>
+        <p class="ok" id="cok-msg"></p>
+        <div class="sum" id="csum"></div>
+        <button class="alt" id="cagain" type="button">New request</button>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- Private customers -->
+  <section class="sec" id="private"><div class="wrap">
+    <h2 class="t">For private customers</h2>
+    <p class="sub">We service your bike where it is. Parts are extra.</p>
+    <div class="prices">
+      <a href="#book" data-pre="one-time"><b>One-time service</b><p class="price">199 DKK</p><span>Inspection and adjustment</span></a>
+      <a href="#book" data-pre="monthly"><b>Monthly check-up</b><p class="price">79 DKK<small> / month</small></p><span>One visit every month</span></a>
+      <a href="#book" data-pre="premium-monthly"><b>Premium monthly</b><p class="price">99 DKK<small> / month</small></p><span>Monthly visit, priority booking</span></a>
+    </div>
+    <ol class="flow"><li>Book online</li><li>We arrive</li><li>Ride away</li></ol>
+
+    <div id="book" class="narrow" style="margin-top:28px">
+      <form class="box" id="f" novalidate>
+        <h2>Book a service</h2>
+        <p class="det" id="signed-in" hidden></p>
+
+        <h3 class="step first">1. What <small>choose one or more</small></h3>
+        <span class="lb" id="sl" hidden>Services</span>
+        <button type="button" class="acc" id="sacc" aria-expanded="false" aria-controls="svcs" aria-labelledby="sl saccv"><span id="saccv">Select services</span></button>
+        <div id="svcs" hidden></div>
+        <p class="err" id="e-services"></p>
+        <label for="bike">Bike</label><select id="bike"></select>
+
+        <h3 class="step">2. When</h3>
+        <div class="row">
+          <div><label for="date">Date</label><input type="date" id="date"></div>
+          <div><span class="lb" id="tl">Arrival</span><button type="button" class="acc" id="acc" aria-expanded="false" aria-controls="slots" aria-labelledby="tl accv"><span id="accv">Select a time</span></button></div>
+        </div>
+        <div class="slots" id="slots" hidden></div>
+        <p class="err" id="e-date"></p>
+        <p class="err" id="e-arrival"></p>
+
+        <h3 class="step">3. Where &amp; who</h3>
+        <label for="addr">Address</label>
+        <input type="text" id="addr" autocomplete="street-address" placeholder="Street, number, postcode">
+        <div class="row">
+          <div><label for="name">Name</label><input type="text" id="name" autocomplete="name"></div>
+          <div><label for="tel">Phone</label><input type="tel" id="tel" autocomplete="tel"></div>
+        </div>
+        <label for="email">Email</label>
+        <input type="email" id="email" autocomplete="email">
+        <label for="note">Anything we should know? <small>(required for special repairs)</small></label>
+        <textarea id="note" rows="2" placeholder="e.g. rear brake squeals"></textarea>
+        <p class="err" id="e-note"></p>
+        <p class="err" id="e-form" role="alert"></p>
+        <button class="pill" type="submit">See price</button>
+      </form>
+
+      <div class="box" id="co" hidden>
+        <h2>Your price</h2>
+        <p class="det" id="codet"></p>
+        <table class="tbl" id="tbl"></table>
+        <div id="notes"></div>
+        <p class="err" id="e-confirm" role="alert"></p>
+        <button class="pill" id="confirm" type="button">Confirm booking</button>
+        <button class="alt" id="back" type="button">Change</button>
+      </div>
+
+      <div class="box" id="done" hidden>
+        <h2>Booked!</h2>
+        <p class="ok" id="done-msg"></p>
+        <div class="sum" id="sum"></div>
+        <p id="done-acct"></p>
+        <button class="alt" id="again" type="button">New booking</button>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- About and FAQ -->
+  <section class="band" id="faq"><div class="wrap split">
+    <div>
+      <h2 class="t">About</h2>
+      <p class="quote">You don't need a workshop. You need a neighbor who knows bikes.</p>
+      <p class="sub">The owner does every job personally, with the tools in the van.</p>
+    </div>
+    <div class="faq">
+      <details class="card"><summary>Are parts included?</summary><p>No. Parts and bigger repairs are extra, and we always ask before doing them.</p></details>
+      <details class="card"><summary>Do you come to us?</summary><p>Yes. All work is done at your location.</p></details>
+      <details class="card"><summary>Is there a minimum number of bikes?</summary><p>No. Premium is for fleets of up to 35 bikes.</p></details>
+      <details class="card"><summary>What's in preventive maintenance?</summary><p>Brakes, gears, tyre pressure, chain, safety check and basic adjustments.</p></details>
+      <details class="card"><summary>Can I see my service history?</summary><p>Yes. Your account shows bookings, history, your bikes and our recommendations.</p></details>
+    </div>
+  </div></section>
+</main>
+
+<footer class="compact"><div class="wrap">
+  <span>The Neighbor · Rørsangervej 45, København · <a href="mailto:hello@example.com">hello@example.com</a></span>
+  <span><a href="account.html">My account</a><a href="#top">Terms</a><a href="#top">Privacy</a></span>
+</div></footer>
+
+<script src="js/mock-backend.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>
