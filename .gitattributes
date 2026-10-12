@@ -1,0 +1,3 @@
+# Check out text files with LF on every platform. deploy.sh rsyncs the working
+# tree to a Linux server, so CRLF from a Windows checkout breaks the scripts.
+* text=auto eol=lf
