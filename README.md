@@ -1,65 +1,152 @@
-# Bike booking
+# the-neighbor
 
-Booking website for a mobile bike service. Customers pick a service, a day and a two-hour slot, and enter their details. They get an email straight away. You manage bookings and email customers from `/admin`.
+A small, self-hosted booking site for a mobile bike repair service. Customers pick a service, a day and a two-hour slot, then enter their bike and address details. You manage everything from a password-protected admin page, and both sides get email at each step.
 
-**Live:** https://book.icepuente.com · **Admin:** https://book.icepuente.com/admin
+It's one Node process with a SQLite file. There's no frontend build step, no external database and no third-party booking service. All business details (name, prices, opening hours, FAQ) live in one JSON file.
 
-## How it works
+Running at **[book.icepuente.com](https://book.icepuente.com)** as "Spoke & Go".
 
-- **Customers** book on `/`. Each booking gets a private page (`/b/<token>`, linked in every email) where they can see its status, message you, or cancel.
-- **You** get an email for every new booking, customer message and cancellation. Reply to a notification email to answer the customer directly from Gmail.
-- **Admin** (`/admin`): confirm, complete or cancel bookings, move them to a new time, keep private notes, block days off, export CSV, and email the customer using quick templates. Status changes can send the customer an email automatically, and confirmations include a calendar invite (.ics).
-- Bookings start as **pending** until you confirm them. Set `"autoConfirm": true` in `config/site.json` to confirm them automatically.
-- A slot holds `slotCapacity` active bookings (default 1). Customers can't double-book a slot.
+## Features
 
-## Customising
+### For customers
 
-Everything business-specific is in [`config/site.json`](config/site.json): name, service area, services and prices, slots, opening days, booking window, FAQ, and admin message templates. On the server the file is mounted read-only into the container, so after editing it just restart:
+- Book a service, date and time slot. The calendar only shows open days and free slots.
+- Get a confirmation email straight away, with a link to a private booking page (`/b/<token>`).
+- From that page, check the booking's status, message the mechanic, or cancel.
 
-```bash
-ssh deploy@192.168.0.223 'cd /opt/bike-booking && docker compose restart app'
-```
+### For the owner (`/admin`)
 
-(Or edit it locally and run `./deploy.sh`.)
+- See every booking, filter and search them, and confirm, complete, cancel or reschedule it.
+- Keep private notes on a booking.
+- Email a customer from the dashboard using reusable templates ("On my way", "Running late", …).
+- Block off whole days (holidays, sick days).
+- Export bookings as CSV.
+- Get an email for every new booking, customer message and cancellation. Replying to the email reaches the customer directly.
+- Confirmation emails include a calendar invite (`.ics`).
 
-## Running locally
+### Under the hood
+
+- Bookings start as `pending` until confirmed, or set `autoConfirm` to skip that step.
+- Slot capacity is enforced, so a slot can't be double-booked.
+- Booking, messaging and login endpoints are rate-limited. Responses have security headers via Helmet, and the admin session cookie is signed.
+- Booking pages and the admin page are marked `noindex` and excluded in `robots.txt`.
+
+## Stack
+
+- Node.js 20+ (22 in Docker), Express 5
+- SQLite via `better-sqlite3` (WAL mode)
+- Nodemailer for SMTP
+- Plain HTML, CSS and JavaScript in `public/`, no bundler
+- Docker Compose, plus an optional Cloudflare Tunnel for public access
+
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Without `SMTP_HOST`, emails are printed to the console. The admin password defaults to `admin` in development (see `.env.example`).
+Open http://localhost:3000 for the site and http://localhost:3000/admin for the dashboard. The admin password is `admin` in development.
+
+If `SMTP_HOST` isn't set, emails are printed to the console instead of being sent, so you can test the whole flow without a mail server. Data is stored in `data/bookings.db`, which is created automatically.
+
+## Configuration
+
+### Business settings: `config/site.json`
+
+Everything specific to the business is in [`config/site.json`](config/site.json):
+
+| Key | What it controls |
+|---|---|
+| `businessName`, `tagline`, `description`, `serviceArea` | Text shown on the site and in emails |
+| `contactEmail`, `contactPhone` | Public contact details (the email falls back to `OWNER_EMAIL`) |
+| `refPrefix` | Prefix for booking references, e.g. `SG-…` |
+| `timezone`, `locale`, `currency`, `currencyLocale` | Date, time and price formatting |
+| `services` | Services offered: `id`, `name`, `price`, `duration`, `description` |
+| `slots`, `openDays`, `slotCapacity` | Time slots, open weekdays (0 = Sunday) and bookings allowed per slot |
+| `minLeadDays`, `bookingWindowDays` | How soon, and how far ahead, customers can book |
+| `autoConfirm` | Skip the `pending` state |
+| `postcodePattern`, `postcodeHint` | Postcode validation (a regex) and the hint shown with it |
+| `highlights`, `bikeTypes`, `faq` | Content shown on the landing page and booking form |
+| `messageTemplates` | Admin email templates. Supports `{firstName}`, `{date}`, `{time}`, `{ref}`, `{price}` and `{service}` |
+
+Set `SITE_CONFIG=/path/to/site.json` to load the file from somewhere else.
+
+### Environment variables
+
+Copy [`.env.example`](.env.example) to `.env`:
+
+| Variable | Required in production | Notes |
+|---|---|---|
+| `PUBLIC_URL` | yes* | Base URL used in email links. With `https://`, cookies are marked secure and HSTS is turned on |
+| `ADMIN_PASSWORD` | **yes** | Admin login, e.g. from `openssl rand -base64 18` |
+| `SESSION_SECRET` | **yes** | Signs the admin session cookie, e.g. from `openssl rand -hex 32`. Changing it signs every admin out |
+| `OWNER_EMAIL` | recommended | Where notifications are sent, and the Reply-To address on customer emails |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | for email | Any SMTP provider. Gmail works with an app password |
+| `MAIL_FROM_ADDRESS` | no | Sender address. Defaults to `SMTP_USER` |
+| `PORT` | no | Defaults to `3000` |
+| `DATA_DIR` | no | Where `bookings.db` is stored. Defaults to `./data` |
+
+\* Defaults to `http://localhost:PORT`, which won't work in emails sent from a real deployment.
+
+When `NODE_ENV=production`, the server won't start if `ADMIN_PASSWORD` or `SESSION_SECRET` is missing.
 
 ## Deployment
 
-| | |
-|---|---|
-| Host | Proxmox LXC 114 `bike-booking`, `192.168.0.223` (Debian 13, Docker) |
-| App dir | `/opt/bike-booking` (user `deploy`) |
-| Containers | `app` (Node 22, port 3000 on localhost only) and `cloudflared` (tunnel) |
-| Public access | Cloudflare Tunnel `bike-booking` → `book.icepuente.com`. No router ports opened. |
-| Data | SQLite at `/opt/bike-booking/data/bookings.db` |
-| Backups | Nightly at 03:15 to `/opt/bike-booking/backups` (30 days), plus the weekly Proxmox vzdump of CT 114 |
-| Email | Gmail SMTP (`/opt/bike-booking/.env.smtp`) |
-| Secrets | `/opt/bike-booking/.env` (`ADMIN_PASSWORD`, `SESSION_SECRET`), mode 600 |
+The included `docker-compose.yml` runs two containers:
 
-Deploy changes:
+- **`app`**: the Node server, listening on `127.0.0.1:3000` only. `./data` holds the database, and `./config` is mounted read-only, so editing `site.json` only needs `docker compose restart app`.
+- **`cloudflared`**: a Cloudflare Tunnel that makes the site public without opening any router ports.
 
 ```bash
-./deploy.sh
+cp .env.example .env              # then fill in the secrets
+mkdir -p data cloudflared
+# Create a tunnel with `cloudflared tunnel create <name>`, then put its
+# credentials and a config.yml (see cloudflared.example.yml) in ./cloudflared
+docker compose up -d --build
 ```
 
-Show the admin password:
+Not using Cloudflare? Remove the `cloudflared` service and put any reverse proxy (Caddy, nginx, Traefik) in front of port 3000. The app trusts `X-Forwarded-*` headers from loopback and private-network addresses.
 
-```bash
-ssh deploy@192.168.0.223 'grep ADMIN_PASSWORD /opt/bike-booking/.env'
+Other tools included:
+
+- [`deploy.sh`](deploy.sh) copies the project to a server with rsync and rebuilds it there: `./deploy.sh user@host`.
+- [`scripts/backup.sh`](scripts/backup.sh) is a nightly SQLite backup for cron. It keeps 30 days of gzipped backups.
+- `GET /healthz` is the health check used by Docker.
+
+The production setup and runbook for book.icepuente.com are in [`docs/operations.md`](docs/operations.md).
+
+## Project layout
+
+```text
+server.js            Express app: pages, static files, security headers
+config/site.json     Business settings
+src/
+  config.js          Loads env vars and site.json
+  db.js              SQLite schema and setup
+  bookings.js        Creating, updating and querying bookings
+  schedule.js        Availability: open days, slots, capacity, closed dates
+  emails.js          Email templates
+  mailer.js          SMTP transport (or console output in development)
+  notify.js          Which emails go out on which events
+  ics.js             Calendar invites
+  http.js            Rate limiting and request helpers
+  routes/public.js   /api: config, availability, bookings, messages, cancellation
+  routes/admin.js    /api/admin: login, booking management, closed dates, CSV export
+public/              Landing page, booking page, admin page, privacy page, JS, CSS
 ```
 
-Logs:
+## API
 
-```bash
-ssh deploy@192.168.0.223 'cd /opt/bike-booking && docker compose logs -f --tail 100'
-```
+Public endpoints:
 
-To change the admin password, edit `ADMIN_PASSWORD` in `.env` and run `docker compose up -d app`. Changing `SESSION_SECRET` signs out every admin session.
+| Method | Path | |
+|---|---|---|
+| `GET` | `/api/config` | Public site config |
+| `GET` | `/api/availability` | Open dates and free slots |
+| `POST` | `/api/bookings` | Create a booking (10 per hour per IP) |
+| `GET` | `/api/bookings/:token` | View a booking |
+| `POST` | `/api/bookings/:token/messages` | Message the owner |
+| `POST` | `/api/bookings/:token/cancel` | Cancel |
+
+Admin endpoints are under `/api/admin/*` and need a signed-in session. Login is limited to 10 attempts per 15 minutes.
