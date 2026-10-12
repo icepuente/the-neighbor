@@ -1,0 +1,243 @@
+# Plan: The Neighbor on Firebase
+
+Status: draft, 2026-10-12. Nothing in this plan has been built or paid for yet. A clickable mock of
+the result lives in [`mock/`](../mock/) (see [The mock site](#the-mock-site)).
+
+## 1. What the documents ask for
+
+Three documents were provided:
+
+| Document | What it is |
+|---|---|
+| `The_Neighbor_–_Bicycle_maintenance_for_businesses_and_private_customers.html` | The new public landing page, including a booking flow and a business consultation form |
+| `The Neighbor – My account (preview).html` | A customer account area with sample data, for private and business customers |
+| `Your first chat with Claude - Claude.pdf` | A print of an earlier version of the same landing page; no extra content |
+
+Together they describe a new brand, **The Neighbor**, a one-person mobile bicycle mechanic based at
+Rørsangervej 45, København, with two kinds of customer.
+
+**Business customers** (hotels, hostels, rentals, offices, property managers, tourism companies,
+municipalities) buy a per-bike monthly plan:
+
+| Plan | Price | Includes |
+|---|---|---|
+| Basic | 250 DKK / bike / month | Initial checklist and fleet report (once, at contract start), preventive maintenance, basic safety inspection |
+| Standard | 300 DKK / bike / month | Initial checklist and report, **monthly check-up and monthly service report**, preventive maintenance |
+| Premium | 350 DKK / bike / month | Monthly check-up and report, priority service and reporting, discounted inner-tube repairs. **Max 35 bikes** |
+
+Parts and repairs outside the plan are always extra, and the customer is told the price before any
+extra work. Businesses start with a **consultation request** (name, company, email, phone, company
+type, number of bikes, preferred date and time, message).
+
+**Private customers** book a visit online:
+
+| Service | Price |
+|---|---|
+| One-Time Bike Service | 199 DKK |
+| Monthly Bike Check-Up | 79 DKK / month |
+| Premium Monthly Check-Up | 99 DKK / month (adds priority booking) |
+| Bike check-up | 269 DKK |
+| Change tube | 149 DKK |
+| Special repair | price by agreement; a problem description is required |
+
+Pricing rules in the booking flow:
+
+- Booking **two or more one-off services** together gives a **10% combo discount** on those services.
+- Monthly services are shown as a separate monthly amount.
+- **Travel** costs **2.5 DKK per km** from the base, up to **18 km one way**, and is confirmed with the
+  customer before the visit.
+- Arrival times are **10:00–15:30 in 30-minute steps**, from today onward.
+- A **consent popup** must be accepted first: data processing for the booking, and the company terms.
+
+**The account area** shows:
+
+- *Private customer:* overview (bikes, services this year, total spent), service **history** (work
+  done, parts used, mechanic's notes, photos, itemised cost including travel), **my bikes** (frame,
+  gears, brakes, tyres, usage, last service) and **recommendations** ("do soon" / "plan ahead", with
+  a reason and a due date).
+- *Business customer:* plan summary and next visit, a **monthly fleet report** (each bike *Ready*,
+  *Attention* or *Repair needed*, with an action and the mechanic's note, selectable by month) and a
+  **fleet list** grouped by location.
+
+### The gap
+
+Both HTML documents end with **"Send by email"**: the booking and the consultation are turned into a
+`mailto:` link, so nothing is stored, nothing is validated server-side, and the account area runs on
+hard-coded sample data. The backend has to supply:
+
+1. Storing bookings and consultation requests, with confirmation emails. The booking form needs an
+   **email field** for this; the document's form only asks for name, phone and address.
+2. Customer accounts (sign-up, log-in, password reset) with two roles, plus an owner/admin role.
+3. Per-customer records: bikes, service history with photos, recommendations.
+4. Business companies, their fleets and monthly reports.
+5. Tools for the owner to enter all of the above from a phone, on site.
+6. Server-side price calculation (combo discount, travel by distance).
+7. Consent records and GDPR basics (data in the EU, export and deletion).
+8. Later: recurring billing for the monthly plans.
+
+## 2. What exists today, and what carries over
+
+The repo is the **Spoke & Go** booking site: one Express process with SQLite, an admin page, email
+via SMTP, and a Cloudflare Tunnel to a Proxmox container. Relevant pieces:
+
+| Today | Carries over? |
+|---|---|
+| `bookings`, `messages`, `closed_dates` tables (`src/db.js`) | The shape carries over to Firestore collections (see section 4) |
+| Slot and capacity rules (`src/schedule.js`, `checkSlot`) | Logic ports into the booking Cloud Function |
+| Email templates (`src/emails.js`) and notification rules (`src/notify.js`) | Port almost as-is into Functions |
+| Calendar invites (`src/ics.js`) | Ports as-is |
+| Private booking page `/b/<token>`, cancel and message | Becomes part of the account area; token links stay for guests |
+| Admin page: status changes, reschedule, notes, templates, closed days, CSV | Becomes the owner dashboard, extended with service records, recommendations and fleet reports |
+| `config/site.json` | Becomes a `config/site` document plus a `services` collection, editable without a deploy |
+| Express server, SQLite file, Docker, Cloudflare Tunnel, `deploy.sh` | **Retired** once Firebase is live |
+
+## 3. Target architecture
+
+```text
+Browser (static HTML/CSS/JS, no build step, as today)
+  │  Firebase JS SDK
+  ├── Firebase Authentication ── email + password, email verification, password reset
+  ├── Cloud Firestore ────────── customers read their own data, enforced by security rules
+  ├── Cloud Storage ──────────── service photos (owner uploads, customer reads own)
+  └── Cloud Functions ────────── anything that must be trusted:
+        createBooking            validate, price, check capacity, write booking, send emails
+        createConsultation       store the lead, email the owner
+        cancelBooking, message   the existing guest-token actions
+        setRole / inviteCompany  admin-only: roles and business invites (custom claims)
+        onServiceRecordCreated   email "your bike is done" with the summary
+        monthly report job       scheduled; opens next month's report for Standard/Premium fleets
+Firebase Hosting ─────────────── serves the site on the .dk domain (DNS stays on Cloudflare)
+```
+
+**Why Functions for writes.** Prices, capacity and travel must not be trusted from the browser.
+Customers only ever *read* through security rules; every customer-side write goes through a Function.
+The owner's dashboard writes directly, guarded by an `admin` custom claim.
+
+**Region.** Firestore, Functions and Storage all in one EU region, e.g. `europe-west1` (Belgium) or
+`europe-north1` (Finland). Keeping customer data in the EU covers the GDPR basics and matches the
+privacy text the site already has.
+
+**Email.** Port `src/mailer.js` (Nodemailer) into Functions with the same SMTP setup. The alternative
+is Firebase's *Trigger Email* extension, but porting keeps the existing templates and tests. Sending
+from an address on the new .dk domain needs SPF and DKIM records on Cloudflare.
+
+## 4. Data model (Firestore)
+
+```text
+config/site                 businessName, base address, kmRate 2.5, maxKm 18, comboOff 0.10,
+                            arrival window 10:00–16:00 step 30, minLeadDays, closed weekdays
+services/{id}               name, price | null, monthly: bool, description, active, sort
+plans/{basic|standard|premium}
+                            pricePerBike, includes[], maxBikes (premium: 35), monthlyReport: bool
+
+users/{uid}                 role: private | business | admin, name, email, phone, address,
+                            companyId?, consent { data, terms, version, at }, createdAt
+users/{uid}/bikes/{bikeId}  name, type, year, size, frame, gears, brakes, tyres, colour, usage
+
+companies/{companyId}       name, type, plan, pricePerBike, contact, address, memberUids[],
+                            nextVisit, status: lead | active | ended
+companies/{id}/bikes/{bikeId}
+                            number "#001", type, location, year, size, gears, brakes
+companies/{id}/reports/{yyyy-mm}
+                            month, visitDate, counts { ready, attention, repair },
+                            entries { bikeId: { status, action, note } }
+
+bookings/{id}               ref "TN-1042", status pending | confirmed | completed | cancelled,
+                            customerUid?, guestToken, services[{ id, name, price, monthly }],
+                            date, arrival "10:30", bikeType | bikeId, address, distanceKm,
+                            pricing { oneOff, comboDiscount, monthly, travel, total },
+                            note, consent { data, terms, version, at }, createdAt
+bookings/{id}/messages/{id} direction in | out, body, emailStatus, createdAt  (as today)
+
+serviceRecords/{id}         ownerUid | companyId, bikeId, bookingId?, date, title,
+                            work[], parts[{ name, price }], notes, photos[storage paths],
+                            cost { service, parts, travel, total }
+recommendations/{id}        ownerUid | companyId, bikeId, title, urgency soon | later,
+                            reason, dueBy, status open | done
+consultations/{id}          name, company, email, phone, companyType, bikes, preferredDate,
+                            preferredTime, message, status new | contacted | won | lost
+subscriptions/{id}          customerUid | companyId, planOrService, price, bikes?, status, startDate
+closedDates/{yyyy-mm-dd}    reason
+```
+
+**Money** is stored as whole kroner (integers), with discounts rounded when they are calculated, so
+stored totals never carry floating-point remainders.
+
+**Security rules, in short.** A private customer reads `users/{uid}` and its subcollections, and
+`bookings`, `serviceRecords` and `recommendations` where `ownerUid == uid`. A business member reads
+its company and its subcollections when `companyId` matches the custom claim. `admin` reads and
+writes everything. No client writes to `bookings`, `consultations` or prices.
+
+## 5. Site structure
+
+| Page | Who | Built from |
+|---|---|---|
+| `/` landing, booking, consultation | everyone | landing-page document; "Send by email" is replaced by a real submit |
+| `/account` | signed-in customers | account-preview document, plus **upcoming bookings** |
+| `/b/<token>` | guests with a booking link | today's booking page, restyled |
+| `/admin` | owner | today's admin page, plus the new tools below |
+| `/privacy`, `/terms` | everyone | the footer's legal links, which today go nowhere |
+
+New owner tools: consultation leads, companies and plans, fleet bikes, **log a visit** (work, parts,
+notes, photos, recommendations, in one phone-friendly form) and **monthly fleet reports** (one row
+per bike, a status in one tap).
+
+## 6. Phases
+
+Each phase ends with something usable, so it can stop at any point.
+
+1. **Foundations.** Firebase project in the chosen EU region; Blaze plan with a budget alert; Hosting
+   on a Firebase subdomain; the new design and content; consent popup; `createBooking` and
+   `createConsultation` Functions with emails. *Result: the public site works end to end and stores
+   everything.*
+2. **Owner dashboard on Firebase.** Port today's admin features (statuses, reschedule, notes,
+   messages, closed days, CSV) and add consultation leads.
+3. **Private accounts.** Sign-up and log-in, linking past guest bookings by verified email; history,
+   bikes and recommendations; the owner's "log a visit" form with photo upload.
+4. **Business accounts.** Invite-only company accounts, fleets, monthly reports, the scheduled report
+   job, and a printable or PDF report.
+5. **Go live on the .dk domain.** Cloudflare DNS: TXT ownership record and A record to Firebase
+   Hosting. Decide what happens to book.icepuente.com, then retire the Express app, SQLite, Docker and
+   the tunnel.
+6. **Billing (later).** Recurring payment for monthly plans, via Stripe (Firebase extension) or
+   MobilePay Recurring, or by manual invoice until volume justifies it.
+
+## 7. Costs and accounts
+
+- **Blaze plan required.** Cloud Functions and (since 3 February 2026) Cloud Storage only work on the
+  pay-as-you-go Blaze plan, which needs a payment card. Blaze keeps the no-cost quotas (for example
+  50,000 Firestore reads and 20,000 writes per day), so at this scale the bill should be close to zero.
+  Set a budget alert on day one.
+- **Google Maps APIs** (if used for travel distance) are paid and switch the project to Blaze
+  automatically.
+- **Domain:** a .dk name from a Danish registrar (Cloudflare Registrar does not sell .dk), with DNS on
+  Cloudflare.
+
+## 8. Open decisions
+
+These are listed so they can be settled one at a time; the mock assumes the first option in each.
+
+1. **Guest booking or account required?** Mock: guests can book; an account is optional and picks up
+   their bookings.
+2. **Travel fee:** owner confirms it manually (as the documents say today), an estimate by postcode,
+   or live distance from a maps API (paid). Also: is the 2.5 DKK per km charged one way or for the
+   round trip? The documents do not say. Mock: a rough postcode estimate, one way, confirmed by the
+   owner.
+3. **Arrival times and capacity:** one visit per 30-minute arrival time, or block time by service
+   length. Mock: one visit per arrival time.
+4. **Business accounts:** invite-only, created by the owner after the consultation (mock), or
+   self-service sign-up.
+5. **Payments:** manual invoice first (mock), then Stripe or MobilePay.
+6. **Hosting:** Firebase Hosting (recommended, one deploy) or Cloudflare Pages for the static files.
+7. **Language:** English only (as the documents), or Danish and English.
+8. **The live Spoke & Go site:** kept, redirected, or shut down when The Neighbor launches.
+9. **Opening days:** the documents give arrival times (10:00–15:30) but not which weekdays are open.
+   Mock: every day except the closed dates the owner sets.
+
+## The mock site
+
+[`mock/`](../mock/) is a static, clickable version of the finished site. It has no Firebase and no
+server: a small fake backend (`mock/js/mock-backend.js`) stores data in the browser's `localStorage`
+using the collections in section 4, so a booking made on the landing page shows up in the account
+area and the owner dashboard. Open `mock/index.html` directly in a browser. Sample data comes from
+the account-preview document (Anna Jensen and Hotel ABC). A "Reset demo data" link restores it.
