@@ -196,9 +196,10 @@ Each phase ends with something usable, so it can stop at any point.
    bikes and recommendations; the owner's "log a visit" form with photo upload.
 4. **Business accounts.** Invite-only company accounts, fleets, monthly reports, the scheduled report
    job, and a printable or PDF report.
-5. **Go live on the .dk domain.** Cloudflare DNS: TXT ownership record and A record to Firebase
-   Hosting. Decide what happens to book.icepuente.com, then retire the Express app, SQLite, Docker and
-   the tunnel.
+5. **Go live on the .dk domain.** The Neighbor is hosted separately from the current server, on its
+   own .dk domain: Cloudflare DNS with a TXT ownership record and an A record to the host (Firebase
+   Hosting, per decision 6). book.icepuente.com gets no redirect. Then retire the Express app,
+   SQLite, Docker and the tunnel.
 6. **Billing (later).** Recurring payment for monthly plans, via Stripe (Firebase extension) or
    MobilePay Recurring, or by manual invoice until volume justifies it.
 
@@ -230,7 +231,10 @@ These are listed so they can be settled one at a time; the mock assumes the firs
 5. **Payments:** manual invoice first (mock), then Stripe or MobilePay.
 6. **Hosting:** Firebase Hosting (recommended, one deploy) or Cloudflare Pages for the static files.
 7. **Language:** English only (as the documents), or Danish and English.
-8. **The live Spoke & Go site:** kept, redirected, or shut down when The Neighbor launches.
+8. **The live Spoke & Go site.** *Decided 2026-10-12:* The Neighbor replaces it in this repo, and is
+   hosted elsewhere on its own .dk domain. There is **no redirect** from book.icepuente.com. Still
+   open: when the old site is switched off, and whether any existing Spoke & Go bookings need to be
+   carried over or simply finished on the old site.
 9. **Opening days:** the documents give arrival times (10:00–15:30) but not which weekdays are open.
    Mock: every day except the closed dates the owner sets.
 
