@@ -113,6 +113,10 @@ Firebase Hosting ─────────────── serves the site o
 Customers only ever *read* through security rules; every customer-side write goes through a Function.
 The owner's dashboard writes directly, guarded by an `admin` custom claim.
 
+**One codebase, two environments.** The site reads its Firebase settings from a small config file,
+so the same files can run against the production project or a separate demo project (phase 7). The
+demo build also turns on a "demo" banner and sends no real email.
+
 **Region.** Firestore, Functions and Storage all in one EU region, e.g. `europe-west1` (Belgium) or
 `europe-north1` (Finland). Keeping customer data in the EU covers the GDPR basics and matches the
 privacy text the site already has.
@@ -188,8 +192,9 @@ Each phase ends with something usable, so it can stop at any point.
 
 1. **Foundations.** Firebase project in the chosen EU region; Blaze plan with a budget alert; Hosting
    on a Firebase subdomain; the new design and content; consent popup; `createBooking` and
-   `createConsultation` Functions with emails. *Result: the public site works end to end and stores
-   everything.*
+   `createConsultation` Functions with emails. Also a small proof of concept for the phase 7 demo:
+   the emulators behind nginx and the tunnel, reached over HTTPS. *Result: the public site works end
+   to end and stores everything.*
 2. **Owner dashboard on Firebase.** Port today's admin features (statuses, reschedule, notes,
    messages, closed days, CSV) and add consultation leads.
 3. **Private accounts.** Sign-up and log-in, linking past guest bookings by verified email; history,
@@ -198,10 +203,23 @@ Each phase ends with something usable, so it can stop at any point.
    job, and a printable or PDF report.
 5. **Go live on the .dk domain.** The Neighbor is hosted separately from the current server, on its
    own .dk domain: Cloudflare DNS with a TXT ownership record and an A record to the host (Firebase
-   Hosting, per decision 6). book.icepuente.com gets no redirect. Then retire the Express app,
-   SQLite, Docker and the tunnel.
+   Hosting, per decision 6). book.icepuente.com gets no redirect. Then retire the Express app and
+   SQLite. The home server's Cloudflare Tunnel stays, for the demo in phase 7.
 6. **Billing (later).** Recurring payment for monthly plans, via Stripe (Firebase extension) or
    MobilePay Recurring, or by manual invoice until volume justifies it.
+7. **Demo copy on the home server.** An example of the finished site, for demonstration, at
+   **book.icepuente.com** on Alec's home server, running on the **Firebase emulators** (decision
+   10), through the existing Cloudflare Tunnel. Sample data (Anna Jensen, Hotel ABC and so on) is
+   loaded with `--import` and restored by a scheduled restart; no real customer data, no real email.
+   It goes live after Spoke & Go is switched off, since it takes over that hostname.
+
+   **Prove it early.** The emulators speak plain HTTP, while book.icepuente.com is HTTPS through
+   Cloudflare, and browsers block HTTPS pages from calling HTTP addresses. The likely setup is one
+   nginx in front: it serves the site and forwards each emulator's paths (Auth, Firestore,
+   Functions, Storage each use distinct URL paths) on the same HTTPS hostname, with the site's
+   Firebase settings pointed at that hostname over HTTPS instead of the emulator defaults. Each SDK's
+   support for that (Storage especially) must be confirmed with a small proof of concept during
+   phase 1, not discovered at the end.
 
 ## 7. Costs and accounts
 
@@ -237,6 +255,11 @@ These are listed so they can be settled one at a time; the mock assumes the firs
    carried over or simply finished on the old site.
 9. **Opening days:** the documents give arrival times (10:00–15:30) but not which weekdays are open.
    Mock: every day except the closed dates the owner sets.
+10. **Demo on the home server (phase 7).** *Decided 2026-10-12:* the **Firebase emulators** on the
+    home server (Java 11+, Node and the Firebase CLI, run in Docker alongside cloudflared), at
+    **book.icepuente.com** once Spoke & Go is switched off. No cloud project or billing for the demo.
+    Considered and not chosen: a separate demo Firebase project, and a browser-only demo like the
+    mock. Open risk: the HTTPS proof of concept described in phase 7.
 
 ## The mock site
 
