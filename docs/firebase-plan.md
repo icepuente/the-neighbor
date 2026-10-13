@@ -100,7 +100,8 @@ Browser (static HTML/CSS/JS, no build step, as today)
   ├── Cloud Firestore ────────── customers read their own data, enforced by security rules
   ├── Cloud Storage ──────────── service photos (owner uploads, customer reads own)
   └── Cloud Functions ────────── anything that must be trusted:
-        createBooking            validate, price, check capacity, write booking, send emails
+        quoteBooking             full price incl. travel (Maps Routes API), shown before confirming
+        createBooking            validate, re-price, check time blocks, write booking, send emails
         createConsultation       store the lead, email the owner
         cancelBooking, message   the existing guest-token actions
         setRole / inviteCompany  admin-only: roles and business invites (custom claims)
@@ -128,9 +129,10 @@ from an address on the new .dk domain needs SPF and DKIM records on Cloudflare.
 ## 4. Data model (Firestore)
 
 ```text
-config/site                 businessName, base address, kmRate 2.5, maxKm 18, comboOff 0.10,
-                            arrival window 10:00–16:00 step 30, minLeadDays, closed weekdays
-services/{id}               name, price | null, monthly: bool, description, active, sort
+config/site                 businessName, base address, kmRate 2.5 (one way), maxKm 18,
+                            comboOff 0.10, open Mon–Sat, hours 08:30–15:30 step 30, minLeadDays
+services/{id}               name { da, en }, price | null, monthly: bool, durationMin,
+                            description { da, en }, active, sort
 plans/{basic|standard|premium}
                             pricePerBike, includes[], maxBikes (premium: 35), monthlyReport: bool
 
@@ -227,39 +229,59 @@ Each phase ends with something usable, so it can stop at any point.
   pay-as-you-go Blaze plan, which needs a payment card. Blaze keeps the no-cost quotas (for example
   50,000 Firestore reads and 20,000 writes per day), so at this scale the bill should be close to zero.
   Set a budget alert on day one.
-- **Google Maps APIs** (if used for travel distance) are paid and switch the project to Blaze
-  automatically.
+- **Google Maps** (decision 2): Routes API "Compute Routes Essentials" and Places Autocomplete each
+  include **10,000 free requests a month**, then about $5 and $2.83 per 1,000 (Google's price list,
+  updated 2026-10-08). At a one-person business's booking volume that is expected to be free. Using
+  Maps APIs in the project switches it to Blaze automatically, which Functions need anyway.
 - **Domain:** a .dk name from a Danish registrar (Cloudflare Registrar does not sell .dk), with DNS on
   Cloudflare.
 
-## 8. Open decisions
+## 8. Decisions
 
-These are listed so they can be settled one at a time; the mock assumes the first option in each.
+Decided 2026-10-13 unless marked otherwise. Open items are at the end.
 
-1. **Guest booking or account required?** Mock: guests can book; an account is optional and picks up
-   their bookings.
-2. **Travel fee:** owner confirms it manually (as the documents say today), an estimate by postcode,
-   or live distance from a maps API (paid). Also: is the 2.5 DKK per km charged one way or for the
-   round trip? The documents do not say. Mock: a rough postcode estimate, one way, confirmed by the
-   owner.
-3. **Arrival times and capacity:** one visit per 30-minute arrival time, or block time by service
-   length. Mock: one visit per arrival time.
-4. **Business accounts:** invite-only, created by the owner after the consultation (mock), or
-   self-service sign-up.
-5. **Payments:** manual invoice first (mock), then Stripe or MobilePay.
-6. **Hosting:** Firebase Hosting (recommended, one deploy) or Cloudflare Pages for the static files.
-7. **Language:** English only (as the documents), or Danish and English.
+1. **Booking without an account: yes.** Guests can book, but must always give name, phone, email
+   and address. The booking form has two options: **Remember me** (saves the contact details in
+   this browser for next time) and **Create an account** (adds a password and creates the account
+   with the booking). Earlier guest bookings join an account created later with the same email.
+2. **Travel fee: exact driving distance.** 2.5 DKK per km, **one way**, from the base to the
+   customer's address, using the Google Maps Routes API, with address autocomplete so the address
+   is exact. The distance is calculated in a Cloud Function, so the Maps key stays private and the
+   price cannot be altered in the browser. The customer sees the **full order total, travel
+   included, before confirming** the booking. Addresses beyond 18 km are refused.
+3. **Capacity: each job blocks its own length.** A booking blocks its service duration plus travel,
+   so a long job cannot overlap the next booking (one mechanic). Needs a duration per service
+   (open item A).
+4. **Business accounts: invite-only at launch.** The owner creates the company account after the
+   consultation and the contact gets an invite email. Self-service sign-up for businesses comes
+   later.
+5. **Payments: manual invoice at launch.** Online payment (Stripe, MobilePay or similar) is added
+   later; the booking data keeps a payment status so that fits in without changes.
+6. **Hosting:** *still open.* Firebase Hosting (recommended, one deploy) or Cloudflare Pages.
+7. **Language: Danish and English.** All site text lives in one translation file per language, with
+   a language switch in the header. Default language is open item C.
 8. **The live Spoke & Go site.** *Decided 2026-10-12:* The Neighbor replaces it in this repo, and is
    hosted elsewhere on its own .dk domain. There is **no redirect** from book.icepuente.com. Still
    open: when the old site is switched off, and whether any existing Spoke & Go bookings need to be
-   carried over or simply finished on the old site.
-9. **Opening days:** the documents give arrival times (10:00–15:30) but not which weekdays are open.
-   Mock: every day except the closed dates the owner sets.
+   carried over or simply finished on the old site. *Decided 2026-10-13:* existing Spoke & Go
+   bookings finish on the old site; it is switched off when the demo is ready to take over
+   book.icepuente.com.
+9. **Opening days: Monday to Saturday, 08:30–15:30.** Closed on Sundays. The owner can still block
+   single days. Whether 15:30 is the last arrival or the end of the working day is open item B.
 10. **Demo on the home server (phase 7).** *Decided 2026-10-12:* the **Firebase emulators** on the
     home server (Java 11+, Node and the Firebase CLI, run in Docker alongside cloudflared), at
     **book.icepuente.com** once Spoke & Go is switched off. No cloud project or billing for the demo.
     Considered and not chosen: a separate demo Firebase project, and a browser-only demo like the
     mock. Open risk: the HTTPS proof of concept described in phase 7.
+
+**Still open**
+
+- **A. Service durations.** How long each service takes (for example one-time service 1 hour, bike
+  check-up 1.5 hours), and how much travel time to allow between jobs. Decision 3 needs these.
+- **B. 15:30:** the last arrival time, or the time work must be finished by?
+- **C. Default language:** Danish or English for a first-time visitor (the switch remembers the
+  visitor's choice after that).
+- **D. Hosting** (decision 6).
 
 ## The mock site
 
@@ -268,3 +290,7 @@ server: a small fake backend (`mock/js/mock-backend.js`) stores data in the brow
 using the collections in section 4, so a booking made on the landing page shows up in the account
 area and the owner dashboard. Open `mock/index.html` directly in a browser. Sample data comes from
 the account-preview document (Anna Jensen and Hotel ABC). A "Reset demo data" link restores it.
+
+The mock was built before the 2026-10-13 decisions. It still uses 10:00–15:30 arrivals every day,
+one booking per arrival time, a rough postcode travel estimate and English only, and it has no
+"Remember me" or "Create an account" options on the booking form.
