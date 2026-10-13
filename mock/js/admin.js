@@ -189,7 +189,7 @@
 
     const date = input('date', pre ? pre.date : util.today());
     const title = input('text', pre ? pre.services.map((s) => s.name).join(' + ') : '');
-    const price = input('number', pre ? pre.pricing.oneOff - pre.pricing.comboDiscount : '');
+    const price = input('number', pre ? pre.pricing.oneOff - (pre.pricing.discount || 0) : '');
     const travel = input('number', pre && pre.pricing.travel != null ? pre.pricing.travel : 35);
     const work = input('textarea');
     work.placeholder = 'One line per job, e.g.\nBrakes adjusted\nChain cleaned and lubricated';

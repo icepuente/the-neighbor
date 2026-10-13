@@ -42,14 +42,30 @@
   // Price plus the owner's time estimate, e.g. "199 kr. · ca. 20–25 min."
   const svcDetail = (s) => priceLabel(s) + (s.mins ? ' · ' + t('svc.time', { m: s.mins }) : '');
 
-  // ---- Private service cards (one-off services; monthly plans have their own line) ----
-  SERVICES.filter((s) => !s.monthly).forEach((s) => {
+  // ---- Private service cards (one-off services) ----
+  for (const s of SERVICES.filter((x) => !x.monthly)) {
     const a = h('a');
     a.href = '#book';
     a.dataset.pre = s.id;
-    A(a, h('b', '', svcName(s)), h('p', 'price', dkk(s.price)), h('span', '', s.mins ? t('svc.time', { m: s.mins }) : t('svc.parts')));
+    const sub = [t('svc.time', { m: s.mins }), s.tubeIncluded ? t('svc.tubeIncl') : null].filter(Boolean).join(' · ');
+    A(a, h('b', '', svcName(s)), h('p', 'price', dkk(s.price)), h('span', '', sub));
     $('svc-cards').appendChild(a);
-  });
+  }
+
+  // ---- Subscription cards: The Neighbor Care and Care Plus ----
+  for (const [id, n] of [['monthly', 4], ['premium-monthly', 4]]) {
+    const s = SERVICES.find((x) => x.id === id);
+    const card = h('div', 'paper plan');
+    const price = h('p', 'price', `${dkk(s.price)} `);
+    price.appendChild(h('small', '', t('perMonth')));
+    const ul = h('ul');
+    for (let i = 1; i <= n; i++) ul.appendChild(h('li', '', t(`care.${id}.${i}`)));
+    const pick = h('a', 'pill', t('care.pick', { name: svcName(s) }));
+    pick.href = '#book';
+    pick.dataset.pre = id;
+    A(card, h('h3', '', svcName(s)), price, ul, pick);
+    $('care-cards').appendChild(card);
+  }
 
   // ---- Booking form ----
   SERVICES.forEach((s) => {
@@ -194,7 +210,7 @@
       return r;
     };
     q.services.forEach((s) => add(svcName(s), priceLabel(s)));
-    if (q.comboDiscount) add(t('co.combo'), '−' + dkk(q.comboDiscount));
+    if (q.discount) add(t(`co.discount.${q.discountReason}`), `−${dkk(q.discount)}`);
     const rulesBtn = h('button', 'lnk', t('co.travel'));
     rulesBtn.type = 'button';
     rulesBtn.onclick = openRules;
@@ -211,7 +227,8 @@
     const note = (x) => notes.appendChild(h('div', 'note', x));
     note(t('co.visit', { min: q.workMin }));
     if (q.special) note(t('co.noteSpecial'));
-    if (q.oneOffCount === 1) note(t('co.noteCombo'));
+    if (!q.discount && q.oneOffCount === 1 && q.services.some((s) => s.id === 'bike-check')) note(t('co.noteCombo'));
+    if (q.monthly) note(t('care.terms'));
     notes.appendChild(h('p', 'det', t('co.mockTravel')));
     $('e-confirm').textContent = '';
   }
@@ -246,7 +263,7 @@
     $('done-msg').textContent = t('done.msg', { ref: b.ref, email: b.email }) + (madeAccount ? ' ' + t('done.account') : '');
     $('sum').textContent = [
       ...b.services.map((s) => `${svcName(s)}: ${priceLabel(s)}`),
-      b.pricing.comboDiscount ? `${t('co.combo')}: −${dkk(b.pricing.comboDiscount)}` : null,
+      b.pricing.discount ? `${t(`co.discount.${b.pricing.discountReason}`)}: −${dkk(b.pricing.discount)}` : null,
       `${t('co.travel')}: ${t('co.travelVal', { amount: dkk(b.pricing.travel), km: b.pricing.distanceKm })}`,
       `${t('sum.total')}: ${dkk(b.pricing.total)}`,
       '',

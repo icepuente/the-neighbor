@@ -6,7 +6,7 @@
   'use strict';
 
   // v2: the owner's service list of 2026-10-13. A new key replaces stale sample data in old browsers.
-  const KEY = 'neighbor-mock-v2';
+  const KEY = 'neighbor-mock-v3';
   const SESSION = 'neighbor-mock-session';
 
   const CONFIG = {
@@ -15,31 +15,34 @@
     base: 'Rørsangervej 45, København',
     kmRate: 2.5,
     maxKm: 18,
-    comboOff: 0.1,
+    // 5% off the whole order when The Neighbor Bike Check is booked with other services, or for Care
+    // Plus members. The two never stack: an order gets at most one 5%.
+    comboOff: 0.05,
+    carePlusOff: 0.05,
+    subscriptionMinMonths: 3,
     // Open Monday to Saturday. Work starts from 08:30 and must be finished by 15:30.
     openFrom: 8 * 60 + 30,
     workEnd: 15 * 60 + 30,
     startStep: 30,
     closedWeekdays: [0],
-    // A booking takes at most 45 minutes of work; travel comes on top. The travel gap between jobs is
-    // still a placeholder (plan, open item A).
+    // A booking takes at most 45 minutes of work; travel comes on top, with 15 minutes between jobs.
     maxWorkMin: 45,
     travelBufferMin: 15,
     consentVersion: '2026-10',
   };
 
   // The owner's service list (2026-10-13). durationMin is the top of the owner's range, so the
-  // calendar never runs short; `mins` is the range shown to customers. Diagnostics has no time yet.
+  // calendar never runs short; `mins` is the range shown to customers.
   const SERVICES = [
     { id: 'bike-check', name: 'The Neighbor Bike Check', da: 'The Neighbor Cykeltjek', price: 199, monthly: false, durationMin: 25, mins: '20–25' },
-    { id: 'puncture', name: 'Puncture Fix', da: 'Punkteringsreparation', price: 199, monthly: false, durationMin: 20, mins: '15–20' },
+    { id: 'puncture', name: 'Puncture Fix', da: 'Punkteringsreparation', price: 199, monthly: false, durationMin: 20, mins: '15–20', tubeIncluded: true },
     { id: 'brakes', name: 'Brake Adjustment', da: 'Bremsejustering', price: 129, monthly: false, durationMin: 15, mins: '15' },
     { id: 'gears', name: 'Gear Adjustment', da: 'Gearjustering', price: 129, monthly: false, durationMin: 15, mins: '15' },
     { id: 'chain', name: 'Chain Service', da: 'Kædeservice', price: 149, monthly: false, durationMin: 15, mins: '15' },
-    { id: 'diagnostics', name: 'Diagnostics', da: 'Fejlfinding', price: 299, monthly: false, durationMin: 30, mins: null, needsNote: true },
-    // Monthly plans from the original documents; kept until the owner says whether they stay.
-    { id: 'monthly', name: 'Monthly Bike Check-Up', da: 'Månedligt eftersyn', price: 79, monthly: true, durationMin: 25, mins: '20–25' },
-    { id: 'premium-monthly', name: 'Premium Monthly Check-Up', da: 'Premium månedligt eftersyn', price: 99, monthly: true, durationMin: 25, mins: '20–25' },
+    { id: 'diagnostics', name: 'Diagnostics', da: 'Fejlfinding', price: 299, monthly: false, durationMin: 20, mins: '15–20', needsNote: true },
+    // Subscriptions: one check-up visit a month (it does not roll over), minimum 3 months.
+    { id: 'monthly', name: 'The Neighbor Care', da: 'The Neighbor Care', price: 79, monthly: true, durationMin: 25, mins: '20–25' },
+    { id: 'premium-monthly', name: 'Neighbor Care Plus', da: 'Neighbor Care Plus', price: 99, monthly: true, durationMin: 25, mins: '20–25' },
   ];
   const svc = (id) => SERVICES.find((s) => s.id === id);
 
@@ -64,11 +67,11 @@
   }
   const today = () => isoDate(new Date());
   function addDays(date, n) {
-    const d = new Date(date + 'T12:00:00');
+    const d = new Date(`${date}T12:00:00`);
     d.setDate(d.getDate() + n);
     return isoDate(d);
   }
-  const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   const toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
   // Every start time in the day, ignoring bookings; used for the consultation form.
   function arrivalTimes() {
@@ -79,10 +82,15 @@
   // The first open day on or after `date` (seed data must not land on a Sunday).
   function nextOpenDay(date) {
     let d = date;
-    while (CONFIG.closedWeekdays.includes(new Date(d + 'T12:00:00').getDay())) d = addDays(d, 1);
+    while (CONFIG.closedWeekdays.includes(new Date(`${d}T12:00:00`).getDay())) d = addDays(d, 1);
     return d;
   }
-  const uid = (p) => p + '-' + Math.random().toString(36).slice(2, 9);
+  const uid = (p) => `${p}-${Math.random().toString(36).slice(2, 9)}`;
+  function addMonths(date, n) {
+    const d = new Date(`${date}T12:00:00`);
+    d.setMonth(d.getMonth() + n);
+    return isoDate(d);
+  }
 
   // ---- Sample data (from the account-preview document) ----
   function seed() {
@@ -103,7 +111,7 @@
     const sep = {};
     const oct = {};
     fleet.forEach((f, i) => {
-      const id = 'cb' + (i + 1);
+      const id = `cb${i + 1}`;
       companyBikes[id] = { number: f[0], type: f[1], location: f[2], year: f[3], size: f[4], gears: f[5], brakes: f[6] };
       sep[id] = { status: f[7][0], action: f[7][1], note: f[7][2] };
       oct[id] = { status: f[8][0], action: f[8][1], note: f[8][2] };
@@ -139,8 +147,8 @@
         k4: { ownerUid: 'u-anna', bikeId: 'b2', title: 'Annual full check', urgency: 'later', reason: 'The last full check was in June 2026.', dueBy: 'By June 2027', status: 'open' },
       },
       bookings: {
-        bk1: { ref: 'TN-1041', status: 'confirmed', customerUid: 'u-anna', guestToken: 'tok-anna1', services: [svc('bike-check')], date: open(6), arrival: '10:30', ...block(25), bike: 'Pelago Brinkeby', address: 'Fuglebakkevej 12, 2000 Frederiksberg', name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56', note: 'Front brake feels soft.', pricing: { oneOff: 199, comboDiscount: 0, monthly: 0, travel: 13, distanceKm: 5, total: 212 }, createdAt: addDays(t, -3) },
-        bk2: { ref: 'TN-1042', status: 'pending', customerUid: null, guestToken: 'tok-mikkel', services: [svc('puncture'), svc('chain')], date: open(2), arrival: '13:00', ...block(35), bike: 'Road', address: 'Jagtvej 120, 2200 København N', name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77', note: '', pricing: { oneOff: 348, comboDiscount: 35, monthly: 0, travel: 13, distanceKm: 5, total: 326 }, createdAt: addDays(t, -1) },
+        bk1: { ref: 'TN-1041', status: 'confirmed', customerUid: 'u-anna', guestToken: 'tok-anna1', services: [svc('bike-check')], date: open(6), arrival: '10:30', ...block(25), bike: 'Pelago Brinkeby', address: 'Fuglebakkevej 12, 2000 Frederiksberg', name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56', note: 'Front brake feels soft.', pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, distanceKm: 5, total: 212 }, createdAt: addDays(t, -3) },
+        bk2: { ref: 'TN-1042', status: 'pending', customerUid: null, guestToken: 'tok-mikkel', services: [svc('puncture'), svc('chain')], date: open(2), arrival: '13:00', ...block(35), bike: 'Road', address: 'Jagtvej 120, 2200 København N', name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77', note: '', pricing: { oneOff: 348, discount: 0, discountReason: null, monthly: 0, travel: 13, distanceKm: 5, total: 361 }, createdAt: addDays(t, -1) },
       },
       consultations: {
         l1: { name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'sofie@example.com', phone: '+45 22 33 44 55', companyType: 'Hostel', bikes: '16–35', preferredDate: open(4), preferredTime: '11:00', message: 'We rent 20 city bikes to guests and need monthly checks.', status: 'new', createdAt: addDays(t, -1) },
@@ -200,8 +208,9 @@
       if (auth.exists(email)) return { error: 'exists' };
       const u = store.add('users', { role: 'private', name, email, phone: phone || '', address: address || '', createdAt: today() });
       // Guest bookings made with this email become part of the new account.
-      store.list('bookings', (b) => !b.customerUid && b.email.toLowerCase() === email.toLowerCase())
-        .forEach((b) => store.update('bookings', b.id, { customerUid: u.id }));
+      for (const b of store.list('bookings', (x) => !x.customerUid && x.email.toLowerCase() === email.toLowerCase())) {
+        store.update('bookings', b.id, { customerUid: u.id });
+      }
       sendMail(email, 'Welcome to The Neighbor', `Hi ${name},\n\nYour account is ready. Please confirm your email address.`);
       localStorage.setItem(SESSION, u.id);
       return { user: u };
@@ -222,13 +231,25 @@
     return 30;
   }
 
+  // A Care Plus subscription that is not cancelled, held by the signed-in customer.
+  function hasCarePlus(user) {
+    return !!user && store.list('subscriptions', (s) => s.customerUid === user.id && s.service === 'premium-monthly' && s.status !== 'cancelled').length > 0;
+  }
+
   function quote(serviceIds, address) {
     const sel = serviceIds.map(svc).filter(Boolean);
     const priced = sel.filter((s) => s.price != null);
     const oneOffs = priced.filter((s) => !s.monthly);
     const oneOff = oneOffs.reduce((a, s) => a + s.price, 0);
+    // Combo: the Bike Check plus at least one other service. Repairs without the Bike Check are not
+    // a combo. Care Plus: 5% off paid services, from the booking that starts the subscription on.
+    const combo = oneOffs.some((s) => s.id === 'bike-check') && oneOffs.length > 1;
+    const carePlus = sel.some((s) => s.id === 'premium-monthly') || hasCarePlus(auth.current());
+    let discountReason = null;
+    if (oneOff > 0 && carePlus) discountReason = 'carePlus';
+    else if (oneOff > 0 && combo) discountReason = 'combo';
     // Money is kept in whole kroner so stored totals never carry floating-point remainders.
-    const comboDiscount = oneOffs.length > 1 ? Math.round(oneOff * CONFIG.comboOff) : 0;
+    const discount = discountReason ? Math.round(oneOff * CONFIG[`${discountReason}Off`]) : 0;
     const monthly = priced.filter((s) => s.monthly).reduce((a, s) => a + s.price, 0);
     const distanceKm = estimateKm(address);
     const travel = distanceKm == null ? null : Math.round(distanceKm * CONFIG.kmRate);
@@ -241,18 +262,19 @@
       needsNote: sel.some((s) => s.needsNote),
       oneOffCount: oneOffs.length,
       oneOff,
-      comboDiscount,
+      discount,
+      discountReason,
       monthly,
       distanceKm,
       travel,
       special: sel.some((s) => s.price == null),
-      total: oneOff - comboDiscount + (travel || 0),
+      total: oneOff - discount + (travel || 0),
     };
   }
 
   // Why a day is closed: 'sunday' (closed weekday), 'closed' (blocked by the owner), or null.
   function closedReason(date) {
-    if (CONFIG.closedWeekdays.includes(new Date(date + 'T12:00:00').getDay())) return 'sunday';
+    if (CONFIG.closedWeekdays.includes(new Date(`${date}T12:00:00`).getDay())) return 'sunday';
     return col('closedDates')[date] ? 'closed' : null;
   }
 
@@ -272,11 +294,11 @@
   // Pages set <html lang>; Danish pages get Danish dates and "kr.", everything else English.
   const isDa = () => typeof document !== 'undefined' && document.documentElement.lang === 'da';
   const fmtDkk = (n) => Math.round(n).toLocaleString('da-DK') + (isDa() ? ' kr.' : ' DKK');
-  const fmtDate = (s, locale) => new Date(s + 'T12:00:00').toLocaleDateString(locale || (isDa() ? 'da-DK' : 'en-GB'), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const fmtDate = (s, locale) => new Date(`${s}T12:00:00`).toLocaleDateString(locale || (isDa() ? 'da-DK' : 'en-GB'), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
   function nextRef() {
     const n = store.list('bookings').map((b) => Number(b.ref.split('-')[1]) || 0);
-    return 'TN-' + (Math.max(1040, ...n) + 1);
+    return `TN-${Math.max(1040, ...n) + 1}`;
   }
 
   // Checks shared by the booking form and createBooking. Errors are codes; pages translate them.
@@ -329,13 +351,21 @@
         email: input.email,
         phone: input.phone,
         note: input.note || '',
-        pricing: { oneOff: q.oneOff, comboDiscount: q.comboDiscount, monthly: q.monthly, travel: q.travel, distanceKm: q.distanceKm, special: q.special, total: q.total },
+        pricing: { oneOff: q.oneOff, discount: q.discount, discountReason: q.discountReason, monthly: q.monthly, travel: q.travel, distanceKm: q.distanceKm, special: q.special, total: q.total },
         consent,
         createdAt: new Date().toISOString(),
       });
-      q.services.filter((s) => s.monthly).forEach((s) => store.add('subscriptions', {
-        customerUid: booking.customerUid, email: booking.email, service: s.id, price: s.price, status: 'pending', startDate: booking.date,
-      }));
+      // Start a subscription, unless this customer already has one for the plan (then this booking is
+      // simply their monthly visit). Minimum 3 months, then cancellable at any time.
+      for (const s of q.services.filter((x) => x.monthly)) {
+        const same = (x) => x.service === s.id && x.status !== 'cancelled'
+          && ((booking.customerUid && x.customerUid === booking.customerUid) || x.email.toLowerCase() === booking.email.toLowerCase());
+        if (store.list('subscriptions', same).length) continue;
+        store.add('subscriptions', {
+          customerUid: booking.customerUid, email: booking.email, service: s.id, price: s.price, status: 'pending',
+          startDate: booking.date, commitmentEnds: addMonths(booking.date, CONFIG.subscriptionMinMonths),
+        });
+      }
       const lines = q.services.map((s) => `- ${s.name}`).join('\n');
       sendMail(booking.email, `Booking received ${booking.ref}`,
         `Hi ${booking.name},\n\nThanks for booking with The Neighbor. We have received:\n${lines}\n\n${fmtDate(booking.date, 'en-GB')} at ${booking.arrival}\n${booking.address}\n\nWe will confirm your booking shortly.`);
@@ -388,7 +418,7 @@
       }
       if (v.bookingId) store.update('bookings', v.bookingId, { status: 'completed' });
       const to = v.ownerUid ? store.get('users', v.ownerUid).email : store.get('companies', v.companyId).email;
-      sendMail(to, `Service done: ${v.title}`, `Your bike has been serviced on ${fmtDate(v.date, 'en-GB')}.\n\nWork done:\n${v.work.map((w) => '- ' + w).join('\n')}\n\nSee the full record, photos and costs in My account.`);
+      sendMail(to, `Service done: ${v.title}`, `Your bike has been serviced on ${fmtDate(v.date, 'en-GB')}.\n\nWork done:\n${v.work.map((w) => `- ${w}`).join('\n')}\n\nSee the full record, photos and costs in My account.`);
       return rec;
     },
 
@@ -415,11 +445,11 @@
   };
 
   function monthLabel(m, locale) {
-    return new Date(m + '-01T12:00:00').toLocaleDateString(locale || (isDa() ? 'da-DK' : 'en-GB'), { month: 'long', year: 'numeric' });
+    return new Date(`${m}-01T12:00:00`).toLocaleDateString(locale || (isDa() ? 'da-DK' : 'en-GB'), { month: 'long', year: 'numeric' });
   }
   function counts(entries) {
     const c = { ready: 0, attention: 0, repair: 0 };
-    Object.values(entries || {}).forEach((e) => { c[e.status] = (c[e.status] || 0) + 1; });
+    for (const e of Object.values(entries || {})) c[e.status] = (c[e.status] || 0) + 1;
     return c;
   }
   function countLine(entries) {

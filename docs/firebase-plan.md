@@ -44,7 +44,8 @@ The one-off services above are replaced by the owner's own list (section 8, deci
 
 Pricing rules in the booking flow:
 
-- Booking **two or more one-off services** together gives a **10% combo discount** on those services.
+- Booking **two or more one-off services** together gives a **10% combo discount** on those services
+  (changed by decision 13 in section 8).
 - Monthly services are shown as a separate monthly amount.
 - **Travel** costs **2.5 DKK per km** from the base, up to **18 km one way**, and is confirmed with the
   customer before the visit.
@@ -265,8 +266,7 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
    minutes of work, and travel comes on top** (decided 2026-10-13), however many services are
    chosen. Work time is the sum of the chosen services' times (decision 11), using the top of each
    range. If that sum is over 45 minutes the booking is refused, and the customer is asked to drop
-   a service or book two visits. The travel gap between jobs is still a placeholder of 15 minutes
-   (open item A).
+   a service or book two visits. **15 minutes of travel** are left between jobs.
 4. **Business accounts: invite-only at launch.** The owner creates the company account after the
    consultation and the contact gets an invite email. Self-service sign-up for businesses comes
    later.
@@ -298,23 +298,44 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
     | Service | Price | Time | Includes |
     |---|---|---|---|
     | The Neighbor Bike Check | 199 DKK | ~20–25 min | Brake, gear, tyre, tyre pressure and chain checks; chain lubrication; main bolts; handlebar and saddle; quick safety check; recommendations for further repairs |
-    | Puncture Fix | 199 DKK | ~15–20 min | |
+    | Puncture Fix | 199 DKK | ~15–20 min | The tube is included at no extra charge |
     | Brake Adjustment | 129 DKK | ~15 min | Brake adjustment, performance check, test. Parts sold separately |
     | Gear Adjustment | 129 DKK | ~15 min | Shifting adjustment, cable adjustment, test |
     | Chain Service | 149 DKK | ~15 min | Inspection, lubrication, basic adjustment |
-    | Diagnostics | 299 DKK | *not given* | Parts are charged separately (except tube) |
+    | Diagnostics | 299 DKK | ~15–20 min | Parts are charged separately |
 
-    The calendar uses the top of each range (25, 20, 15, 15, 15). Diagnostics needs a problem
-    description, like the old special repair. The mock still offers the monthly check-ups from the
-    documents (79 and 99 DKK / month) until the owner says whether they stay (open item C).
+    The calendar uses the top of each range (25, 20, 15, 15, 15, 20). Diagnostics needs a problem
+    description, like the old special repair.
+12. **Subscriptions (owner's terms, 2026-10-13).** They replace the documents' monthly check-ups.
+    - **The Neighbor Care, 79 DKK / month:** one bike check-up a month (brake and gear inspection,
+      tyre and pressure check, chain inspection and lubrication, basic adjustments, general safety
+      check), at a time the customer chooses. Spare parts and major repairs are charged separately.
+    - **Neighbor Care Plus, 99 DKK / month:** everything in Care, plus priority scheduling, one
+      urgent appointment a month (for example a flat tyre: the owner aims to come the next day,
+      subject to availability), and 5% off standard paid services.
+    - **Minimum 3 months,** after which the customer can cancel at any time. The monthly check-up
+      does **not roll over** if unused.
+    - The idea: Care keeps a bike in good condition through regular maintenance; Care Plus adds
+      priority and quick help when something urgent happens.
+
+    Data: a subscription records its plan, start date and `commitmentEnds` (start + 3 months).
+    Booking the monthly visit when the customer already has that subscription does not start a
+    second one.
+13. **Discounts (2026-10-13).** **Combo discount: 5%** of the whole order, but only when **The
+    Neighbor Bike Check** is booked together with at least one other service; repairs booked
+    without the Bike Check get no combo discount. **Care Plus: 5%** off one-off services, from the
+    booking that starts the subscription onward. An order gets at most **one 5%**; the two do not
+    stack.
 
 ### Still open
 
-- **A. Travel gap.** How much time to leave between jobs for travel (placeholder: 15 minutes).
-- **B. Connecting to Jarvis.** *Done 2026-10-13:* the Windows PC connects to Jarvis.
-- **C. Monthly check-ups.** Do the 79 and 99 DKK / month plans from the documents stay?
-- **D. Diagnostics.** How long it takes (the mock uses 30 minutes), and what "except tube" means.
-- **E. Combo discount.** Does 10% off for two or more services still apply to the new list?
+- **A. Care Plus in the calendar.** How priority scheduling and the monthly urgent appointment
+  work when booking: for example times held back for Care Plus members, or allowing next-day
+  bookings only for them. The mock does not model either yet.
+- **B. A repair added to the monthly Care check-up.** Does it count as a combo (5% off) like the
+  Bike Check does? The mock says no.
+- *Done 2026-10-13:* the travel gap (15 minutes), the Diagnostics time and tube, the monthly plans,
+  the combo discount, and connecting the Windows PC to Jarvis.
 
 ## The mock site
 
@@ -328,6 +349,7 @@ The mock follows the 2026-10-13 decisions: Danish by default with a DA/EN switch
 Saturday with work finished by 15:30, bookings of at most 45 minutes that block their time plus a
 travel gap, "Remember me" and "Create an account" on the booking form, and the full price with
 travel shown before confirming. It also has the owner's six services with their prices and times,
-and refuses a booking whose services add up to more than 45 minutes. Stand-ins remain: travel is
-estimated from the postcode instead of Google Maps (the price page says so), and the travel gap
-and the Diagnostics time are placeholders. The owner dashboard is English only.
+the two Care subscriptions with their terms, the 5% combo and Care Plus discounts, and refuses a
+booking whose services add up to more than 45 minutes. One stand-in remains: travel is estimated
+from the postcode instead of Google Maps (the price page says so). The owner dashboard is English
+only.
