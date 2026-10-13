@@ -117,7 +117,7 @@ The owner's dashboard writes directly, guarded by an `admin` custom claim.
 
 **One codebase, two environments.** The site reads its Firebase settings from a small config file,
 so the same files run against the production project on Firebase, or against the Firebase emulators
-on Alec's home server, **Jarvis** (phase 7, decision 6). Nothing in the code may depend on
+on Alec's Proxmox home server (phase 7, decision 6). Nothing in the code may depend on
 Firebase Hosting specifically: rewrites and headers live in `firebase.json`, and the home server's
 nginx config mirrors them. The demo build also turns on a "demo" banner and sends no real email.
 
@@ -218,6 +218,12 @@ Each phase ends with something usable, so it can stop at any point.
    loaded with `--import` and restored by a scheduled restart; no real customer data, no real email.
    It goes live after Spoke & Go is switched off, since it takes over that hostname.
 
+   **Deployed through Jarvis.** Alec's Proxmox server is managed by **Jarvis**, an agent reached
+   as an MCP server: a session asks Jarvis to create or update the container, and Jarvis carries
+   it out on Proxmox. Jarvis is not reachable from the Windows machine yet (no MCP server and no
+   `jarvis` SSH host configured there, as of 2026-10-13), so connecting to it is a setup step
+   before phase 7.
+
    **Prove it early.** The emulators speak plain HTTP, while book.icepuente.com is HTTPS through
    Cloudflare, and browsers block HTTPS pages from calling HTTP addresses. The likely setup is one
    nginx in front: it serves the site and forwards each emulator's paths (Auth, Firestore,
@@ -254,16 +260,17 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
    included, before confirming** the booking. Addresses beyond 18 km are refused.
 3. **Capacity: each job blocks its own length.** A booking blocks its service duration plus travel,
    so a long job cannot overlap the next booking (one mechanic). **A booking takes at most 45
-   minutes of work**, however many services are chosen. Exact durations per service follow from the
-   owner (open item A); the mock uses 45 minutes (30 for a tube change) and a 15-minute travel gap
-   as placeholders.
+   minutes of work, and travel comes on top** (decided 2026-10-13), however many services are
+   chosen. Exact durations per service and the travel gap follow from the owner (open item A); the
+   mock uses 45 minutes (30 for a tube change) and a 15-minute travel gap as placeholders.
 4. **Business accounts: invite-only at launch.** The owner creates the company account after the
    consultation and the contact gets an invite email. Self-service sign-up for businesses comes
    later.
 5. **Payments: manual invoice at launch.** Online payment (Stripe, MobilePay or similar) is added
    later; the booking data keeps a payment status so that fits in without changes.
-6. **Hosting: Firebase Hosting**, kept compatible with the home server **Jarvis**: the same site
-   files must also run there behind nginx, against the emulators (see "One codebase" in section 3).
+6. **Hosting: Firebase Hosting**, kept compatible with the Proxmox home server that Jarvis manages:
+   the same site files must also run there behind nginx, against the emulators (see "One codebase"
+   in section 3, and phase 7).
 7. **Language: Danish and English, Danish by default.** All site text lives in one translation file
    per language, with a DA/EN switch in the header that remembers the visitor's choice. The Danish
    text should be proofread by a native speaker before launch. The owner's dashboard stays English
@@ -285,11 +292,9 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
 
 ### Still open
 
-- **A. Exact timings.** The owner will supply how long each service takes (at most 45 minutes per
-  booking), and how much travel time to leave between jobs. Also: does the 45 minutes include
-  travel, or come on top of it?
-- **B. Jarvis.** Which machine Jarvis is, relative to the Proxmox container that runs Spoke & Go
-  today (`docs/operations.md`).
+- **A. Exact timings.** The owner will supply how long each service takes (at most 45 minutes of
+  work per booking) and how much travel time to leave between jobs.
+- **B. Connecting to Jarvis** from the Windows machine, before phase 7.
 
 ## The mock site
 
