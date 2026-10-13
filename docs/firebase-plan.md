@@ -46,7 +46,8 @@ Pricing rules in the booking flow:
 - Monthly services are shown as a separate monthly amount.
 - **Travel** costs **2.5 DKK per km** from the base, up to **18 km one way**, and is confirmed with the
   customer before the visit.
-- Arrival times are **10:00–15:30 in 30-minute steps**, from today onward.
+- Arrival times are **10:00–15:30 in 30-minute steps**, from today onward (replaced by decisions 3
+  and 9 in section 8).
 - A **consent popup** must be accepted first: data processing for the booking, and the company terms.
 
 **The account area** shows:
@@ -115,8 +116,10 @@ Customers only ever *read* through security rules; every customer-side write goe
 The owner's dashboard writes directly, guarded by an `admin` custom claim.
 
 **One codebase, two environments.** The site reads its Firebase settings from a small config file,
-so the same files can run against the production project or a separate demo project (phase 7). The
-demo build also turns on a "demo" banner and sends no real email.
+so the same files run against the production project on Firebase, or against the Firebase emulators
+on Alec's home server, **Jarvis** (phase 7, decision 6). Nothing in the code may depend on
+Firebase Hosting specifically: rewrites and headers live in `firebase.json`, and the home server's
+nginx config mirrors them. The demo build also turns on a "demo" banner and sends no real email.
 
 **Region.** Firestore, Functions and Storage all in one EU region, e.g. `europe-west1` (Belgium) or
 `europe-north1` (Finland). Keeping customer data in the EU covers the GDPR basics and matches the
@@ -250,16 +253,21 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
    price cannot be altered in the browser. The customer sees the **full order total, travel
    included, before confirming** the booking. Addresses beyond 18 km are refused.
 3. **Capacity: each job blocks its own length.** A booking blocks its service duration plus travel,
-   so a long job cannot overlap the next booking (one mechanic). Needs a duration per service
-   (open item A).
+   so a long job cannot overlap the next booking (one mechanic). **A booking takes at most 45
+   minutes of work**, however many services are chosen. Exact durations per service follow from the
+   owner (open item A); the mock uses 45 minutes (30 for a tube change) and a 15-minute travel gap
+   as placeholders.
 4. **Business accounts: invite-only at launch.** The owner creates the company account after the
    consultation and the contact gets an invite email. Self-service sign-up for businesses comes
    later.
 5. **Payments: manual invoice at launch.** Online payment (Stripe, MobilePay or similar) is added
    later; the booking data keeps a payment status so that fits in without changes.
-6. **Hosting:** *still open.* Firebase Hosting (recommended, one deploy) or Cloudflare Pages.
-7. **Language: Danish and English.** All site text lives in one translation file per language, with
-   a language switch in the header. Default language is open item C.
+6. **Hosting: Firebase Hosting**, kept compatible with the home server **Jarvis**: the same site
+   files must also run there behind nginx, against the emulators (see "One codebase" in section 3).
+7. **Language: Danish and English, Danish by default.** All site text lives in one translation file
+   per language, with a DA/EN switch in the header that remembers the visitor's choice. The Danish
+   text should be proofread by a native speaker before launch. The owner's dashboard stays English
+   for now.
 8. **The live Spoke & Go site.** *Decided 2026-10-12:* The Neighbor replaces it in this repo, and is
    hosted elsewhere on its own .dk domain. There is **no redirect** from book.icepuente.com. Still
    open: when the old site is switched off, and whether any existing Spoke & Go bookings need to be
@@ -267,21 +275,21 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
    bookings finish on the old site; it is switched off when the demo is ready to take over
    book.icepuente.com.
 9. **Opening days: Monday to Saturday, 08:30–15:30.** Closed on Sundays. The owner can still block
-   single days. Whether 15:30 is the last arrival or the end of the working day is open item B.
+   single days. **15:30 is when all work must be finished**, so the last start time depends on the
+   job: 14:30 for a 45-minute job (with 30-minute start steps).
 10. **Demo on the home server (phase 7).** *Decided 2026-10-12:* the **Firebase emulators** on the
     home server (Java 11+, Node and the Firebase CLI, run in Docker alongside cloudflared), at
     **book.icepuente.com** once Spoke & Go is switched off. No cloud project or billing for the demo.
     Considered and not chosen: a separate demo Firebase project, and a browser-only demo like the
     mock. Open risk: the HTTPS proof of concept described in phase 7.
 
-**Still open**
+### Still open
 
-- **A. Service durations.** How long each service takes (for example one-time service 1 hour, bike
-  check-up 1.5 hours), and how much travel time to allow between jobs. Decision 3 needs these.
-- **B. 15:30:** the last arrival time, or the time work must be finished by?
-- **C. Default language:** Danish or English for a first-time visitor (the switch remembers the
-  visitor's choice after that).
-- **D. Hosting** (decision 6).
+- **A. Exact timings.** The owner will supply how long each service takes (at most 45 minutes per
+  booking), and how much travel time to leave between jobs. Also: does the 45 minutes include
+  travel, or come on top of it?
+- **B. Jarvis.** Which machine Jarvis is, relative to the Proxmox container that runs Spoke & Go
+  today (`docs/operations.md`).
 
 ## The mock site
 
@@ -291,6 +299,9 @@ using the collections in section 4, so a booking made on the landing page shows 
 area and the owner dashboard. Open `mock/index.html` directly in a browser. Sample data comes from
 the account-preview document (Anna Jensen and Hotel ABC). A "Reset demo data" link restores it.
 
-The mock was built before the 2026-10-13 decisions. It still uses 10:00–15:30 arrivals every day,
-one booking per arrival time, a rough postcode travel estimate and English only, and it has no
-"Remember me" or "Create an account" options on the booking form.
+The mock follows the 2026-10-13 decisions: Danish by default with a DA/EN switch, open Monday to
+Saturday with work finished by 15:30, bookings of at most 45 minutes that block their time plus a
+travel gap, "Remember me" and "Create an account" on the booking form, and the full price with
+travel shown before confirming. Two stand-ins remain: travel is estimated from the postcode instead
+of Google Maps (the price page says so), and the service durations are placeholders until the
+owner's timings arrive. The owner dashboard is English only.
