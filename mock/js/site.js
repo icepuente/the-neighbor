@@ -105,17 +105,19 @@
   ['city', 'road', 'mtb', 'e', 'cargo'].forEach((k) => bikeSel.appendChild(new Option(t('bike.' + k), t('bike.' + k))));
 
   const dateIn = $('date');
-  dateIn.min = util.today();
+  // 2 days ahead for everyone; tomorrow for a Care Plus member whose urgent visit is unused.
+  dateIn.min = fn.earliestDate(user);
 
   // Start times depend on the day's bookings and on how long the chosen services take.
   function renderSlots() {
     const box = $('slots');
     box.textContent = '';
     $('accv').textContent = t('bk.selectTime');
-    const closed = dateIn.value ? fn.closedReason(dateIn.value) : null;
-    $('e-date').textContent = closed ? t('err.' + closed) : '';
     const q = fn.quote(chosen(), '');
-    if (!dateIn.value || closed || q.tooLong) return;
+    // The same date rules as the backend: closed days, the 2-day lead time, the urgent visit.
+    const dateErr = dateIn.value ? fn.checkBooking({ date: dateIn.value }, q).date : null;
+    $('e-date').textContent = dateErr ? t(`err.${dateErr}`) : '';
+    if (!dateIn.value || dateErr || q.tooLong) return;
     const times = fn.startTimes(dateIn.value, q.workMin);
     if (!times.some((s) => s.free)) box.appendChild(h('p', 'det', t('bk.noTimes')));
     times.forEach((s) => {
@@ -151,7 +153,8 @@
     $('email').value = user.email;
     $('addr').value = user.address || '';
     $('signed-in').hidden = false;
-    $('signed-in').textContent = t('bk.signedIn', { name: user.name });
+    $('signed-in').textContent = t('bk.signedIn', { name: user.name })
+      + (fn.urgentAvailable(user, dateIn.min) ? ` ${t('bk.urgent')}` : '');
     $('opts').hidden = true;
   } else if (remembered) {
     $('name').value = remembered.name || '';
@@ -226,6 +229,7 @@
     notes.textContent = '';
     const note = (x) => notes.appendChild(h('div', 'note', x));
     note(t('co.visit', { min: q.workMin }));
+    if (fn.isUrgentDate(draft.date)) note(t('co.urgent'));
     if (q.special) note(t('co.noteSpecial'));
     if (!q.discount && q.oneOffCount === 1 && q.services.some((s) => s.id === 'bike-check')) note(t('co.noteCombo'));
     if (q.monthly) note(t('care.terms'));

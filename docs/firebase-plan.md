@@ -325,17 +325,20 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
     Neighbor Bike Check** is booked together with at least one other service; repairs booked
     without the Bike Check get no combo discount. **Care Plus: 5%** off one-off services, from the
     booking that starts the subscription onward. An order gets at most **one 5%**; the two do not
-    stack.
+    stack. A repair added to the monthly Care check-up is **not** a combo: only the Bike Check
+    triggers it.
+14. **Lead time and the Care Plus urgent visit (2026-10-13).** Everyone books **at least 2 days
+    ahead**. A signed-in **Care Plus** member may also book **tomorrow**, once per calendar month;
+    that booking is marked urgent, and the owner's notification email and dashboard show it as
+    urgent. A second urgent booking in the same month is refused; cancelling the urgent booking
+    frees it again. Same-day bookings are not possible for anyone. Considered and not chosen:
+    calendar times held back for Care Plus members, and arranging urgent visits only by phone.
 
 ### Still open
 
-- **A. Care Plus in the calendar.** How priority scheduling and the monthly urgent appointment
-  work when booking: for example times held back for Care Plus members, or allowing next-day
-  bookings only for them. The mock does not model either yet.
-- **B. A repair added to the monthly Care check-up.** Does it count as a combo (5% off) like the
-  Bike Check does? The mock says no.
-- *Done 2026-10-13:* the travel gap (15 minutes), the Diagnostics time and tube, the monthly plans,
-  the combo discount, and connecting the Windows PC to Jarvis.
+Nothing at the moment. *Done 2026-10-13:* the travel gap (15 minutes), the Diagnostics time and
+tube, the monthly plans, the combo discount, Care Plus scheduling (decision 14), a repair added to
+the Care check-up (no combo), and connecting the Windows PC to Jarvis.
 
 ## The mock site
 
@@ -349,7 +352,8 @@ The mock follows the 2026-10-13 decisions: Danish by default with a DA/EN switch
 Saturday with work finished by 15:30, bookings of at most 45 minutes that block their time plus a
 travel gap, "Remember me" and "Create an account" on the booking form, and the full price with
 travel shown before confirming. It also has the owner's six services with their prices and times,
-the two Care subscriptions with their terms, the 5% combo and Care Plus discounts, and refuses a
+the two Care subscriptions with their terms, the 5% combo and Care Plus discounts, the 2-day lead
+time with Care Plus's next-day urgent visit (the demo customer Anna has Care Plus), and refuses a
 booking whose services add up to more than 45 minutes. One stand-in remains: travel is estimated
 from the postcode instead of Google Maps (the price page says so). The owner dashboard is English
 only.

@@ -6,7 +6,7 @@
   'use strict';
 
   // v2: the owner's service list of 2026-10-13. A new key replaces stale sample data in old browsers.
-  const KEY = 'neighbor-mock-v3';
+  const KEY = 'neighbor-mock-v4';
   const SESSION = 'neighbor-mock-session';
 
   const CONFIG = {
@@ -20,6 +20,10 @@
     comboOff: 0.05,
     carePlusOff: 0.05,
     subscriptionMinMonths: 3,
+    // Everyone books at least 2 days ahead. Care Plus members may book tomorrow once a calendar
+    // month, as their urgent visit.
+    minLeadDays: 2,
+    urgentLeadDays: 1,
     // Open Monday to Saturday. Work starts from 08:30 and must be finished by 15:30.
     openFrom: 8 * 60 + 30,
     workEnd: 15 * 60 + 30,
@@ -153,7 +157,10 @@
       consultations: {
         l1: { name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'sofie@example.com', phone: '+45 22 33 44 55', companyType: 'Hostel', bikes: '16–35', preferredDate: open(4), preferredTime: '11:00', message: 'We rent 20 city bikes to guests and need monthly checks.', status: 'new', createdAt: addDays(t, -1) },
       },
-      subscriptions: {},
+      // Anna has Care Plus, so the demo can show the urgent next-day visit and the 5% discount.
+      subscriptions: {
+        s1: { customerUid: 'u-anna', email: 'anna@example.com', service: 'premium-monthly', price: 99, status: 'active', startDate: '2026-09-01', commitmentEnds: '2026-12-01' },
+      },
       closedDates: { [open(9)]: { reason: 'Holiday' } },
       mail: {},
     };
@@ -236,6 +243,21 @@
     return !!user && store.list('subscriptions', (s) => s.customerUid === user.id && s.service === 'premium-monthly' && s.status !== 'cancelled').length > 0;
   }
 
+  // Care Plus includes one urgent visit per calendar month; it is used by any urgent booking in the
+  // same month that is not cancelled.
+  function urgentAvailable(user, date) {
+    if (!hasCarePlus(user)) return false;
+    const month = date.slice(0, 7);
+    return !store.list('bookings', (b) => b.customerUid === user.id && b.urgent && b.status !== 'cancelled' && b.date.startsWith(month)).length;
+  }
+  const isUrgentDate = (date) => date < addDays(today(), CONFIG.minLeadDays);
+  // The earliest date this customer can pick: tomorrow for a Care Plus member with the urgent visit
+  // unused, otherwise 2 days ahead.
+  function earliestDate(user) {
+    const tomorrow = addDays(today(), CONFIG.urgentLeadDays);
+    return urgentAvailable(user, tomorrow) ? tomorrow : addDays(today(), CONFIG.minLeadDays);
+  }
+
   function quote(serviceIds, address) {
     const sel = serviceIds.map(svc).filter(Boolean);
     const priced = sel.filter((s) => s.price != null);
@@ -306,8 +328,15 @@
     const errors = {};
     if (!q.services.length) errors.services = 'services';
     else if (q.tooLong) errors.services = 'tooLong';
+    const user = auth.current();
     if (!input.date || input.date < today()) errors.date = 'past';
     else if (closedReason(input.date)) errors.date = closedReason(input.date);
+    else if (isUrgentDate(input.date)) {
+      // Inside the 2-day lead time only a Care Plus member's urgent visit is allowed, and not today.
+      const tooSoon = input.date < addDays(today(), CONFIG.urgentLeadDays);
+      if (tooSoon || !hasCarePlus(user)) errors.date = 'lead';
+      else if (!urgentAvailable(user, input.date)) errors.date = 'urgentUsed';
+    }
     // A visit that is too long is reported on the services, so there is no start time to check.
     if (!q.tooLong) {
       const slot = input.date ? startTimes(input.date, q.workMin).find((s) => s.time === input.arrival) : null;
@@ -327,6 +356,10 @@
     startTimes,
     closedReason,
     checkBooking,
+    hasCarePlus,
+    urgentAvailable,
+    earliestDate,
+    isUrgentDate,
 
     createBooking(input, consent) {
       const q = quote(input.serviceIds || [], input.address);
@@ -345,6 +378,7 @@
         arrival: input.arrival,
         workMin: q.workMin,
         blockMin: q.workMin + CONFIG.travelBufferMin,
+        urgent: isUrgentDate(input.date),
         bike: input.bike,
         address: input.address,
         name: input.name,
@@ -369,7 +403,7 @@
       const lines = q.services.map((s) => `- ${s.name}`).join('\n');
       sendMail(booking.email, `Booking received ${booking.ref}`,
         `Hi ${booking.name},\n\nThanks for booking with The Neighbor. We have received:\n${lines}\n\n${fmtDate(booking.date, 'en-GB')} at ${booking.arrival}\n${booking.address}\n\nWe will confirm your booking shortly.`);
-      sendMail(CONFIG.email, `New booking ${booking.ref}`, `${booking.name} (${booking.phone}) booked ${q.services.map((s) => s.name).join(', ')} on ${booking.date} at ${booking.arrival}.`);
+      sendMail(CONFIG.email, `${booking.urgent ? 'URGENT ' : ''}New booking ${booking.ref}`, `${booking.name} (${booking.phone}) booked ${q.services.map((s) => s.name).join(', ')} on ${booking.date} at ${booking.arrival}.`);
       return { booking };
     },
 

@@ -99,6 +99,7 @@
       const price = b.pricing.special ? 'price by agreement' : `≈ ${dkk(b.pricing.total)}`;
       const head = h('h3', '', `${util.fmtDate(b.date)} · ${b.arrival} · ${b.name} `);
       head.appendChild(tag(b.status));
+      if (b.urgent) head.appendChild(tag('soon', 'Urgent (Care Plus)'));
       const more = h('details');
       A(more, h('summary', 'meta', 'Details'), defList([
         ['Phone', b.phone], ['Email', b.email], ['Address', b.address], ['Bike', b.bike], ['Notes', b.note],
