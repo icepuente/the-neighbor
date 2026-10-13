@@ -15,28 +15,37 @@
     kmRate: 2.5,
     maxKm: 18,
     comboOff: 0.1,
-    arrivalStart: 10 * 60,
-    arrivalEnd: 16 * 60,
-    arrivalStep: 30,
+    // Open Monday to Saturday. Work starts from 08:30 and must be finished by 15:30.
+    openFrom: 8 * 60 + 30,
+    workEnd: 15 * 60 + 30,
+    startStep: 30,
+    closedWeekdays: [0],
+    // A booking takes at most 45 minutes of work. Per-service durations and the travel gap are
+    // placeholders until the owner supplies real timings (plan, open item A).
+    maxWorkMin: 45,
+    travelBufferMin: 15,
     consentVersion: '2026-10',
   };
 
   const SERVICES = [
-    { id: 'one-time', name: 'One-Time Bike Service', price: 199, monthly: false, description: 'Basic inspection and adjustment.' },
-    { id: 'monthly', name: 'Monthly Bike Check-Up', price: 79, monthly: true, description: 'One bicycle check-up every month.' },
-    { id: 'premium-monthly', name: 'Premium Monthly Check-Up', price: 99, monthly: true, description: 'Monthly check-up plus priority booking.' },
-    { id: 'check-up', name: 'Bike check-up', price: 269, monthly: false, description: 'Brakes, gears, tyre pressure, chain and a full safety check.' },
-    { id: 'tube', name: 'Change tube', price: 149, monthly: false, description: 'Punctured or worn inner tube replaced on the spot.' },
-    { id: 'special', name: 'Special repair', price: null, monthly: false, description: 'Describe the problem and we agree the price with you.' },
+    { id: 'one-time', name: 'One-Time Bike Service', da: 'Enkelt cykelservice', price: 199, monthly: false, durationMin: 45 },
+    { id: 'monthly', name: 'Monthly Bike Check-Up', da: 'Månedligt eftersyn', price: 79, monthly: true, durationMin: 45 },
+    { id: 'premium-monthly', name: 'Premium Monthly Check-Up', da: 'Premium månedligt eftersyn', price: 99, monthly: true, durationMin: 45 },
+    { id: 'check-up', name: 'Bike check-up', da: 'Cykeleftersyn', price: 269, monthly: false, durationMin: 45 },
+    { id: 'tube', name: 'Change tube', da: 'Skift slange', price: 149, monthly: false, durationMin: 30 },
+    { id: 'special', name: 'Special repair', da: 'Specialreparation', price: null, monthly: false, durationMin: 45 },
   ];
 
   const PLANS = [
     { id: 'basic', name: 'Basic', pricePerBike: 250, monthlyReport: false, maxBikes: null,
-      includes: ['Initial bicycle checklist', 'Initial fleet report', 'Preventive maintenance', 'Basic safety inspection'] },
+      includes: ['Initial bicycle checklist', 'Initial fleet report', 'Preventive maintenance', 'Basic safety inspection'],
+      includesDa: ['Opstartstjekliste', 'Opstartsrapport for flåden', 'Forebyggende vedligehold', 'Grundlæggende sikkerhedseftersyn'] },
     { id: 'standard', name: 'Standard', pricePerBike: 300, monthlyReport: true, maxBikes: null,
-      includes: ['Initial bicycle checklist', 'Initial fleet report', 'Monthly bicycle check-up', 'Monthly service report', 'Preventive maintenance'] },
+      includes: ['Initial bicycle checklist', 'Initial fleet report', 'Monthly bicycle check-up', 'Monthly service report', 'Preventive maintenance'],
+      includesDa: ['Opstartstjekliste', 'Opstartsrapport for flåden', 'Månedligt eftersyn', 'Månedlig servicerapport', 'Forebyggende vedligehold'] },
     { id: 'premium', name: 'Premium', pricePerBike: 350, monthlyReport: true, maxBikes: 35,
-      includes: ['Monthly bicycle check-up', 'Monthly service report', 'Priority service', 'Priority reporting', 'Discounted inner-tube repairs'] },
+      includes: ['Monthly bicycle check-up', 'Monthly service report', 'Priority service', 'Priority reporting', 'Discounted inner-tube repairs'],
+      includesDa: ['Månedligt eftersyn', 'Månedlig servicerapport', 'Prioriteret service', 'Prioriteret rapportering', 'Rabat på slangereparationer'] },
   ];
 
   const STATUS = { ready: 'Ready', attention: 'Attention', repair: 'Repair needed' };
@@ -52,18 +61,27 @@
     d.setDate(d.getDate() + n);
     return isoDate(d);
   }
+  const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  // Every start time in the day, ignoring bookings; used for the consultation form.
   function arrivalTimes() {
     const out = [];
-    for (let m = CONFIG.arrivalStart; m < CONFIG.arrivalEnd; m += CONFIG.arrivalStep) {
-      out.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
-    }
+    for (let m = CONFIG.openFrom; m + CONFIG.maxWorkMin <= CONFIG.workEnd; m += CONFIG.startStep) out.push(hhmm(m));
     return out;
+  }
+  // The first open day on or after `date` (seed data must not land on a Sunday).
+  function nextOpenDay(date) {
+    let d = date;
+    while (CONFIG.closedWeekdays.includes(new Date(d + 'T12:00:00').getDay())) d = addDays(d, 1);
+    return d;
   }
   const uid = (p) => p + '-' + Math.random().toString(36).slice(2, 9);
 
   // ---- Sample data (from the account-preview document) ----
   function seed() {
     const t = today();
+    const open = (n) => nextOpenDay(addDays(t, n));
+    const block = { workMin: 45, blockMin: 45 + CONFIG.travelBufferMin };
     const fleet = [
       ['#001', 'City bike', 'Reception', 2022, 'M', '7-speed', 'Rim', ['ready', '–', 'All checks passed.'], ['ready', '–', 'All checks passed.']],
       ['#002', 'City bike', 'Reception', 2022, 'M', '7-speed', 'Rim', ['ready', '–', 'All checks passed.'], ['attention', 'Brake adjustment', 'Rear brake is rubbing. Adjusted at the next visit.']],
@@ -114,14 +132,14 @@
         k4: { ownerUid: 'u-anna', bikeId: 'b2', title: 'Annual full check', urgency: 'later', reason: 'The last full check was in June 2026.', dueBy: 'By June 2027', status: 'open' },
       },
       bookings: {
-        bk1: { ref: 'TN-1041', status: 'confirmed', customerUid: 'u-anna', guestToken: 'tok-anna1', services: [SERVICES[3]], date: addDays(t, 6), arrival: '10:30', bike: 'Pelago Brinkeby', address: 'Fuglebakkevej 12, 2000 Frederiksberg', name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56', note: 'Front brake feels soft.', pricing: { oneOff: 269, comboDiscount: 0, monthly: 0, travel: 13, distanceKm: 5, special: false, total: 282 }, createdAt: addDays(t, -3) },
-        bk2: { ref: 'TN-1042', status: 'pending', customerUid: null, guestToken: 'tok-mikkel', services: [SERVICES[0], SERVICES[4]], date: addDays(t, 2), arrival: '13:00', bike: 'Road', address: 'Jagtvej 120, 2200 København N', name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77', note: '', pricing: { oneOff: 348, comboDiscount: 35, monthly: 0, travel: 13, distanceKm: 5, special: false, total: 326 }, createdAt: addDays(t, -1) },
+        bk1: { ref: 'TN-1041', status: 'confirmed', customerUid: 'u-anna', guestToken: 'tok-anna1', services: [SERVICES[3]], date: open(6), arrival: '10:30', ...block, bike: 'Pelago Brinkeby', address: 'Fuglebakkevej 12, 2000 Frederiksberg', name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56', note: 'Front brake feels soft.', pricing: { oneOff: 269, comboDiscount: 0, monthly: 0, travel: 13, distanceKm: 5, special: false, total: 282 }, createdAt: addDays(t, -3) },
+        bk2: { ref: 'TN-1042', status: 'pending', customerUid: null, guestToken: 'tok-mikkel', services: [SERVICES[0], SERVICES[4]], date: open(2), arrival: '13:00', ...block, bike: 'Road', address: 'Jagtvej 120, 2200 København N', name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77', note: '', pricing: { oneOff: 348, comboDiscount: 35, monthly: 0, travel: 13, distanceKm: 5, special: false, total: 326 }, createdAt: addDays(t, -1) },
       },
       consultations: {
-        l1: { name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'sofie@example.com', phone: '+45 22 33 44 55', companyType: 'Hostel', bikes: '16–35', preferredDate: addDays(t, 4), preferredTime: '11:00', message: 'We rent 20 city bikes to guests and need monthly checks.', status: 'new', createdAt: addDays(t, -1) },
+        l1: { name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'sofie@example.com', phone: '+45 22 33 44 55', companyType: 'Hostel', bikes: '16–35', preferredDate: open(4), preferredTime: '11:00', message: 'We rent 20 city bikes to guests and need monthly checks.', status: 'new', createdAt: addDays(t, -1) },
       },
       subscriptions: {},
-      closedDates: { [addDays(t, 9)]: { reason: 'Holiday' } },
+      closedDates: { [open(9)]: { reason: 'Holiday' } },
       mail: {},
     };
   }
@@ -160,18 +178,20 @@
     },
     signIn(email) {
       const u = store.list('users', (x) => x.email.toLowerCase() === String(email).trim().toLowerCase())[0];
-      if (!u) return { error: 'No account with that email. Create one, or use a demo account.' };
+      if (!u) return { error: 'noAccount' };
       localStorage.setItem(SESSION, u.id);
       return { user: u };
     },
-    signUp({ name, email, phone, password }) {
+    exists(email) {
+      const e = String(email || '').trim().toLowerCase();
+      return store.list('users', (x) => x.email.toLowerCase() === e).length > 0;
+    },
+    signUp({ name, email, phone, address, password }) {
       email = String(email || '').trim();
-      if (!name || !/^\S+@\S+\.\S+$/.test(email)) return { error: 'Fill in your name and a valid email.' };
-      if (!password || password.length < 8) return { error: 'Choose a password of at least 8 characters.' };
-      if (store.list('users', (x) => x.email.toLowerCase() === email.toLowerCase()).length) {
-        return { error: 'An account with that email already exists. Log in instead.' };
-      }
-      const u = store.add('users', { role: 'private', name, email, phone: phone || '', address: '', createdAt: today() });
+      if (!name || !/^\S+@\S+\.\S+$/.test(email)) return { error: 'nameEmail' };
+      if (!password || password.length < 8) return { error: 'password' };
+      if (auth.exists(email)) return { error: 'exists' };
+      const u = store.add('users', { role: 'private', name, email, phone: phone || '', address: address || '', createdAt: today() });
       // Guest bookings made with this email become part of the new account.
       store.list('bookings', (b) => !b.customerUid && b.email.toLowerCase() === email.toLowerCase())
         .forEach((b) => store.update('bookings', b.id, { customerUid: u.id }));
@@ -183,7 +203,8 @@
   };
 
   // ---- Pricing and availability (would run in Cloud Functions) ----
-  // Mock distance: a rough estimate from the postcode. The real version is open decision 2 in the plan.
+  // Mock distance: a rough estimate from the postcode. The real site asks the Google Maps Routes API
+  // for the exact one-way driving distance (plan, decision 2).
   function estimateKm(address) {
     const m = String(address || '').match(/\b(\d{4})\b/);
     if (!m) return null;
@@ -204,8 +225,10 @@
     const monthly = priced.filter((s) => s.monthly).reduce((a, s) => a + s.price, 0);
     const distanceKm = estimateKm(address);
     const travel = distanceKm == null ? null : Math.round(distanceKm * CONFIG.kmRate);
+    const workMin = Math.min(CONFIG.maxWorkMin, sel.reduce((a, s) => a + s.durationMin, 0) || CONFIG.maxWorkMin);
     return {
       services: sel,
+      workMin,
       oneOffCount: oneOffs.length,
       oneOff,
       comboDiscount,
@@ -217,37 +240,62 @@
     };
   }
 
-  function takenArrivals(date) {
-    return store.list('bookings', (b) => b.date === date && b.status !== 'cancelled').map((b) => b.arrival);
+  // Why a day is closed: 'sunday' (closed weekday), 'closed' (blocked by the owner), or null.
+  function closedReason(date) {
+    if (CONFIG.closedWeekdays.includes(new Date(date + 'T12:00:00').getDay())) return 'sunday';
+    return col('closedDates')[date] ? 'closed' : null;
   }
-  const isClosed = (date) => !!col('closedDates')[date];
 
-  const fmtDkk = (n) => Math.round(n).toLocaleString('da-DK') + ' DKK';
-  const fmtDate = (s) => new Date(s + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  // Start times for a job of `workMin` minutes. A booking blocks its work plus the travel gap, so a
+  // start is free only if that whole stretch overlaps no other booking. Work must end by workEnd.
+  function startTimes(date, workMin) {
+    const busy = store.list('bookings', (b) => b.date === date && b.status !== 'cancelled')
+      .map((b) => [toMin(b.arrival), toMin(b.arrival) + (b.blockMin || CONFIG.maxWorkMin + CONFIG.travelBufferMin)]);
+    const out = [];
+    for (let m = CONFIG.openFrom; m + workMin <= CONFIG.workEnd; m += CONFIG.startStep) {
+      const end = m + workMin + CONFIG.travelBufferMin;
+      out.push({ time: hhmm(m), free: !busy.some(([s, e]) => m < e && s < end) });
+    }
+    return out;
+  }
+
+  // Pages set <html lang>; Danish pages get Danish dates and "kr.", everything else English.
+  const isDa = () => typeof document !== 'undefined' && document.documentElement.lang === 'da';
+  const fmtDkk = (n) => Math.round(n).toLocaleString('da-DK') + (isDa() ? ' kr.' : ' DKK');
+  const fmtDate = (s, locale) => new Date(s + 'T12:00:00').toLocaleDateString(locale || (isDa() ? 'da-DK' : 'en-GB'), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
   function nextRef() {
     const n = store.list('bookings').map((b) => Number(b.ref.split('-')[1]) || 0);
     return 'TN-' + (Math.max(1040, ...n) + 1);
   }
 
+  // Checks shared by the booking form and createBooking. Errors are codes; pages translate them.
+  function checkBooking(input, q) {
+    const errors = {};
+    if (!q.services.length) errors.services = 'services';
+    if (!input.date || input.date < today()) errors.date = 'past';
+    else if (closedReason(input.date)) errors.date = closedReason(input.date);
+    const slot = input.date ? startTimes(input.date, q.workMin).find((s) => s.time === input.arrival) : null;
+    if (!slot) errors.arrival = 'arrival';
+    else if (!slot.free) errors.arrival = 'taken';
+    if (q.special && !String(input.note || '').trim()) errors.note = 'note';
+    if (!input.address || !input.name || !input.phone || !input.email) errors.form = 'contact';
+    else if (!/^\S+@\S+\.\S+$/.test(input.email)) errors.form = 'email';
+    else if (q.distanceKm == null) errors.form = 'address';
+    else if (q.distanceKm > CONFIG.maxKm) errors.form = 'far';
+    return errors;
+  }
+
   const fn = {
     quote,
-    takenArrivals,
-    isClosed,
+    startTimes,
+    closedReason,
+    checkBooking,
 
     createBooking(input, consent) {
-      const errors = {};
       const q = quote(input.serviceIds || [], input.address);
-      if (!q.services.length) errors.services = 'Choose at least one service.';
-      if (!input.date || input.date < today()) errors.date = 'Choose a date from today onward.';
-      else if (isClosed(input.date)) errors.date = 'We are closed that day. Please pick another date.';
-      if (!arrivalTimes().includes(input.arrival)) errors.arrival = 'Choose an arrival time.';
-      else if (takenArrivals(input.date).includes(input.arrival)) errors.arrival = 'That time was just taken. Please pick another.';
-      if (q.special && !String(input.note || '').trim()) errors.note = 'Describe your problem here so we can agree a price.';
-      if (!input.address || !input.name || !input.phone) errors.form = 'Fill in your address, name and phone so we can find you.';
-      else if (!/^\S+@\S+\.\S+$/.test(input.email || '')) errors.form = 'Add a valid email so we can confirm the booking.';
-      else if (q.distanceKm != null && q.distanceKm > CONFIG.maxKm) errors.form = `That address looks more than ${CONFIG.maxKm} km from our base. Contact us and we will see what we can do.`;
-      if (!consent) errors.form = 'Please accept the consent notice first.';
+      const errors = checkBooking(input, q);
+      if (!consent) errors.form = 'consent';
       if (Object.keys(errors).length) return { errors };
 
       const user = auth.current();
@@ -259,6 +307,8 @@
         services: q.services,
         date: input.date,
         arrival: input.arrival,
+        workMin: q.workMin,
+        blockMin: q.workMin + CONFIG.travelBufferMin,
         bike: input.bike,
         address: input.address,
         name: input.name,
@@ -274,15 +324,15 @@
       }));
       const lines = q.services.map((s) => `- ${s.name}`).join('\n');
       sendMail(booking.email, `Booking received ${booking.ref}`,
-        `Hi ${booking.name},\n\nThanks for booking with The Neighbor. We have received:\n${lines}\n\n${fmtDate(booking.date)} at ${booking.arrival}\n${booking.address}\n\nWe will confirm the exact arrival time and final price shortly.`);
+        `Hi ${booking.name},\n\nThanks for booking with The Neighbor. We have received:\n${lines}\n\n${fmtDate(booking.date, 'en-GB')} at ${booking.arrival}\n${booking.address}\n\nWe will confirm your booking shortly.`);
       sendMail(CONFIG.email, `New booking ${booking.ref}`, `${booking.name} (${booking.phone}) booked ${q.services.map((s) => s.name).join(', ')} on ${booking.date} at ${booking.arrival}.`);
       return { booking };
     },
 
     createConsultation(input) {
       const need = ['name', 'company', 'email', 'phone', 'companyType', 'bikes'];
-      if (need.some((k) => !String(input[k] || '').trim())) return { error: 'Fill in name, company, email, phone, company type and number of bicycles.' };
-      if (!/^\S+@\S+\.\S+$/.test(input.email)) return { error: 'Check your email address.' };
+      if (need.some((k) => !String(input[k] || '').trim())) return { error: 'missing' };
+      if (!/^\S+@\S+\.\S+$/.test(input.email)) return { error: 'email' };
       const lead = store.add('consultations', { ...input, status: 'new', createdAt: new Date().toISOString() });
       sendMail(input.email, 'We have received your consultation request', `Hi ${input.name},\n\nThanks for your interest. We will contact you shortly to arrange a consultation for ${input.company}.`);
       sendMail(CONFIG.email, `New consultation request: ${input.company}`, `${input.name} (${input.phone}, ${input.email})\n${input.companyType}, ${input.bikes} bikes\nPreferred: ${input.preferredDate || '–'} ${input.preferredTime || ''}\n\n${input.message || ''}`);
@@ -301,7 +351,7 @@
     setBookingStatus(id, status) {
       const b = store.update('bookings', id, { status });
       const words = { confirmed: 'is confirmed', completed: 'is complete', cancelled: 'has been cancelled' };
-      if (words[status]) sendMail(b.email, `Your booking ${b.ref} ${words[status]}`, `Hi ${b.name},\n\nYour booking on ${fmtDate(b.date)} at ${b.arrival} ${words[status]}.`);
+      if (words[status]) sendMail(b.email, `Your booking ${b.ref} ${words[status]}`, `Hi ${b.name},\n\nYour booking on ${fmtDate(b.date, 'en-GB')} at ${b.arrival} ${words[status]}.`);
       return b;
     },
 
@@ -324,14 +374,14 @@
       }
       if (v.bookingId) store.update('bookings', v.bookingId, { status: 'completed' });
       const to = v.ownerUid ? store.get('users', v.ownerUid).email : store.get('companies', v.companyId).email;
-      sendMail(to, `Service done: ${v.title}`, `Your bike has been serviced on ${fmtDate(v.date)}.\n\nWork done:\n${v.work.map((w) => '- ' + w).join('\n')}\n\nSee the full record, photos and costs in My account.`);
+      sendMail(to, `Service done: ${v.title}`, `Your bike has been serviced on ${fmtDate(v.date, 'en-GB')}.\n\nWork done:\n${v.work.map((w) => '- ' + w).join('\n')}\n\nSee the full record, photos and costs in My account.`);
       return rec;
     },
 
     saveReport(companyId, month, visitDate, entries) {
       store.set(`companies/${companyId}/reports`, month, { month, visitDate, entries });
       const c = store.get('companies', companyId);
-      sendMail(c.email, `Fleet report ready: ${monthLabel(month)}`, `Hi ${c.contact},\n\nThe ${monthLabel(month)} report for ${c.name} is ready in My account.\n\n${countLine(entries)}`);
+      sendMail(c.email, `Fleet report ready: ${monthLabel(month, 'en-GB')}`, `Hi ${c.contact},\n\nThe ${monthLabel(month, 'en-GB')} report for ${c.name} is ready in My account.\n\n${countLine(entries)}`);
     },
 
     createCompanyFromLead(leadId, planId) {
@@ -350,8 +400,8 @@
     },
   };
 
-  function monthLabel(m) {
-    return new Date(m + '-01T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  function monthLabel(m, locale) {
+    return new Date(m + '-01T12:00:00').toLocaleDateString(locale || (isDa() ? 'da-DK' : 'en-GB'), { month: 'long', year: 'numeric' });
   }
   function counts(entries) {
     const c = { ready: 0, attention: 0, repair: 0 };
@@ -371,7 +421,7 @@
     store,
     auth,
     fn,
-    util: { today, addDays, arrivalTimes, fmtDkk, fmtDate, monthLabel, counts },
+    util: { today, addDays, nextOpenDay, arrivalTimes, fmtDkk, fmtDate, monthLabel, counts, isDa },
     reset() { localStorage.removeItem(KEY); localStorage.removeItem(SESSION); load(); },
   };
 })();

@@ -115,8 +115,26 @@ details[open] > summary::after { content: "−"; }
 .prices a { background: var(--paper); color: var(--ink); border-radius: 18px; padding: 16px 18px; text-decoration: none; display: block; }
 .prices b { display: block; font: 400 21px 'DM Serif Display', serif; }
 .prices .price { font-size: 26px; margin: 2px 0; }
-.prices span { font-size: 15px; opacity: .8; }
+.prices a > span { font-size: 15px; opacity: .8; }
 .quote { font: 400 clamp(24px, 3vw, 32px)/1.25 'DM Serif Display', serif; max-width: 30ch; margin: 0 0 12px; }
+.points span { display: block; }
+
+/* Language switch */
+.lang { display: inline-flex; border: 1.5px solid rgba(255, 255, 255, .6); border-radius: 99px; overflow: hidden; }
+.lang button { background: transparent; color: #fff; border: 0; padding: 6px 11px; font: 600 14px 'Source Serif 4', serif; cursor: pointer; }
+.lang button[aria-pressed=true] { background: #fff; color: var(--base); }
+
+/* Booking options: Remember me / Create an account */
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 4px; }
+.opt { position: relative; margin: 0; font-weight: 400; }
+.opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.opt span { display: grid; grid-template-columns: 30px 1fr; column-gap: 10px; align-items: center; height: 100%; padding: 12px 14px; background: #fff; border: 1.5px solid var(--field); border-radius: 14px; }
+.opt svg { grid-row: span 2; width: 26px; height: 26px; fill: var(--base); stroke: var(--base); }
+.opt b { font-weight: 600; font-size: 16px; }
+.opt small { font-size: 13px; opacity: .75; }
+.opt input:checked + span { background: var(--base); color: #fff; border-color: var(--base); }
+.opt input:checked + span svg { fill: var(--accent); stroke: var(--accent); }
+.opt input:focus-visible + span { outline: 3px solid #1a6fe0; outline-offset: 2px; }
 
 /* Paper panels and forms */
 .paper, .box { background: var(--paper); color: var(--ink); border-radius: 24px; padding: 28px; }
@@ -238,6 +256,7 @@ footer.small { padding: 40px 0; font-size: 15px; opacity: .75; }
 @media (max-width: 860px) {
   .hero, .steps, .steps.s4, footer .cols, .row, .split, .prices { grid-template-columns: 1fr; }
   .points { grid-template-columns: 1fr 1fr; }
+  .opts { grid-template-columns: 1fr; }
   .fr { text-align: left; }
   .logo { font-size: 26px; }
   .slots { grid-template-columns: repeat(3, 1fr); }

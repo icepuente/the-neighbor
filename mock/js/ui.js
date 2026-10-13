@@ -4,6 +4,8 @@
   'use strict';
 
   const $ = (id) => document.getElementById(id);
+  // Translate when the page loads i18n.js (public pages); the English dashboard does not.
+  const t = (key, vars) => (window.I18N ? I18N.t(key, vars) : key);
 
   function h(tag, cls, text) {
     const e = document.createElement(tag);
@@ -34,7 +36,7 @@
     return h('span', 'tag ' + status, label || status[0].toUpperCase() + status.slice(1));
   }
 
-  // Demo banner "Reset demo data" link, and the header account link.
+  // Demo banner "Reset demo data" link, the header account link and the language switch.
   document.addEventListener('DOMContentLoaded', () => {
     const reset = $('reset-demo');
     if (reset) {
@@ -46,9 +48,17 @@
     }
     const acct = $('acct-link');
     const user = NB.auth.current();
-    if (acct && user) acct.textContent = user.role === 'admin' ? 'Dashboard' : 'My account';
-    if (acct && user && user.role === 'admin') acct.href = 'admin.html';
+    if (acct && user) {
+      acct.textContent = t(user.role === 'admin' ? 'nav.dashboard' : 'nav.account');
+      if (user.role === 'admin') acct.href = 'admin.html';
+    }
+    ['da', 'en'].forEach((l) => {
+      const b = $('lang-' + l);
+      if (!b || !window.I18N) return;
+      b.setAttribute('aria-pressed', String(I18N.lang === l));
+      b.onclick = () => I18N.set(l);
+    });
   });
 
-  window.UI = { $, h, A, button, defList, tag };
+  window.UI = { $, h, A, button, defList, tag, t };
 })();
