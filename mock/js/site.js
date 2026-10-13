@@ -39,6 +39,18 @@
     $('plan-cards').appendChild(card);
   });
 
+  // Price plus the owner's time estimate, e.g. "199 kr. · ca. 20–25 min."
+  const svcDetail = (s) => priceLabel(s) + (s.mins ? ' · ' + t('svc.time', { m: s.mins }) : '');
+
+  // ---- Private service cards (one-off services; monthly plans have their own line) ----
+  SERVICES.filter((s) => !s.monthly).forEach((s) => {
+    const a = h('a');
+    a.href = '#book';
+    a.dataset.pre = s.id;
+    A(a, h('b', '', svcName(s)), h('p', 'price', dkk(s.price)), h('span', '', s.mins ? t('svc.time', { m: s.mins }) : t('svc.parts')));
+    $('svc-cards').appendChild(a);
+  });
+
   // ---- Booking form ----
   SERVICES.forEach((s) => {
     const l = h('label', 'chk');
@@ -47,7 +59,7 @@
     input.name = 'svc';
     input.value = s.id;
     const span = h('span', '', svcName(s));
-    span.appendChild(h('small', '', priceLabel(s)));
+    span.appendChild(h('small', '', svcDetail(s)));
     A(l, input, span);
     $('svcs').appendChild(l);
   });
@@ -55,6 +67,8 @@
   $('svcs').addEventListener('change', () => {
     const names = chosen().map((id) => svcName(SERVICES.find((s) => s.id === id)));
     $('saccv').textContent = names.length ? names.join(', ') : t('bk.selectServices');
+    // Say straight away when the chosen services do not fit in one visit.
+    $('e-services').textContent = fn.quote(chosen(), '').tooLong ? t('err.tooLong') : '';
     renderSlots();
   });
   const toggle = (btn, panel) => {
@@ -84,8 +98,9 @@
     $('accv').textContent = t('bk.selectTime');
     const closed = dateIn.value ? fn.closedReason(dateIn.value) : null;
     $('e-date').textContent = closed ? t('err.' + closed) : '';
-    if (!dateIn.value || closed) return;
-    const times = fn.startTimes(dateIn.value, fn.quote(chosen(), '').workMin);
+    const q = fn.quote(chosen(), '');
+    if (!dateIn.value || closed || q.tooLong) return;
+    const times = fn.startTimes(dateIn.value, q.workMin);
     if (!times.some((s) => s.free)) box.appendChild(h('p', 'det', t('bk.noTimes')));
     times.forEach((s) => {
       const l = h('label', 'slot');

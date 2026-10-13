@@ -5,7 +5,8 @@
 (function () {
   'use strict';
 
-  const KEY = 'neighbor-mock-v1';
+  // v2: the owner's service list of 2026-10-13. A new key replaces stale sample data in old browsers.
+  const KEY = 'neighbor-mock-v2';
   const SESSION = 'neighbor-mock-session';
 
   const CONFIG = {
@@ -20,21 +21,27 @@
     workEnd: 15 * 60 + 30,
     startStep: 30,
     closedWeekdays: [0],
-    // A booking takes at most 45 minutes of work. Per-service durations and the travel gap are
-    // placeholders until the owner supplies real timings (plan, open item A).
+    // A booking takes at most 45 minutes of work; travel comes on top. The travel gap between jobs is
+    // still a placeholder (plan, open item A).
     maxWorkMin: 45,
     travelBufferMin: 15,
     consentVersion: '2026-10',
   };
 
+  // The owner's service list (2026-10-13). durationMin is the top of the owner's range, so the
+  // calendar never runs short; `mins` is the range shown to customers. Diagnostics has no time yet.
   const SERVICES = [
-    { id: 'one-time', name: 'One-Time Bike Service', da: 'Enkelt cykelservice', price: 199, monthly: false, durationMin: 45 },
-    { id: 'monthly', name: 'Monthly Bike Check-Up', da: 'Månedligt eftersyn', price: 79, monthly: true, durationMin: 45 },
-    { id: 'premium-monthly', name: 'Premium Monthly Check-Up', da: 'Premium månedligt eftersyn', price: 99, monthly: true, durationMin: 45 },
-    { id: 'check-up', name: 'Bike check-up', da: 'Cykeleftersyn', price: 269, monthly: false, durationMin: 45 },
-    { id: 'tube', name: 'Change tube', da: 'Skift slange', price: 149, monthly: false, durationMin: 30 },
-    { id: 'special', name: 'Special repair', da: 'Specialreparation', price: null, monthly: false, durationMin: 45 },
+    { id: 'bike-check', name: 'The Neighbor Bike Check', da: 'The Neighbor Cykeltjek', price: 199, monthly: false, durationMin: 25, mins: '20–25' },
+    { id: 'puncture', name: 'Puncture Fix', da: 'Punkteringsreparation', price: 199, monthly: false, durationMin: 20, mins: '15–20' },
+    { id: 'brakes', name: 'Brake Adjustment', da: 'Bremsejustering', price: 129, monthly: false, durationMin: 15, mins: '15' },
+    { id: 'gears', name: 'Gear Adjustment', da: 'Gearjustering', price: 129, monthly: false, durationMin: 15, mins: '15' },
+    { id: 'chain', name: 'Chain Service', da: 'Kædeservice', price: 149, monthly: false, durationMin: 15, mins: '15' },
+    { id: 'diagnostics', name: 'Diagnostics', da: 'Fejlfinding', price: 299, monthly: false, durationMin: 30, mins: null, needsNote: true },
+    // Monthly plans from the original documents; kept until the owner says whether they stay.
+    { id: 'monthly', name: 'Monthly Bike Check-Up', da: 'Månedligt eftersyn', price: 79, monthly: true, durationMin: 25, mins: '20–25' },
+    { id: 'premium-monthly', name: 'Premium Monthly Check-Up', da: 'Premium månedligt eftersyn', price: 99, monthly: true, durationMin: 25, mins: '20–25' },
   ];
+  const svc = (id) => SERVICES.find((s) => s.id === id);
 
   const PLANS = [
     { id: 'basic', name: 'Basic', pricePerBike: 250, monthlyReport: false, maxBikes: null,
@@ -81,7 +88,7 @@
   function seed() {
     const t = today();
     const open = (n) => nextOpenDay(addDays(t, n));
-    const block = { workMin: 45, blockMin: 45 + CONFIG.travelBufferMin };
+    const block = (workMin) => ({ workMin, blockMin: workMin + CONFIG.travelBufferMin });
     const fleet = [
       ['#001', 'City bike', 'Reception', 2022, 'M', '7-speed', 'Rim', ['ready', '–', 'All checks passed.'], ['ready', '–', 'All checks passed.']],
       ['#002', 'City bike', 'Reception', 2022, 'M', '7-speed', 'Rim', ['ready', '–', 'All checks passed.'], ['attention', 'Brake adjustment', 'Rear brake is rubbing. Adjusted at the next visit.']],
@@ -121,9 +128,9 @@
         '2026-10': { month: '2026-10', visitDate: '2026-10-02', entries: oct },
       },
       serviceRecords: {
-        r1: { ownerUid: 'u-anna', bikeId: 'b1', date: '2026-09-12', title: 'One-Time Bike Service', work: ['Brakes inspected and adjusted', 'Gears indexed', 'Tyre pressure set to 4.5 bar', 'Chain cleaned and lubricated'], parts: [], notes: 'Rear tyre is showing wear. See recommendations.', photos: ['photo-1.jpg', 'photo-2.jpg'], cost: { service: 199, parts: 0, travel: 35 } },
-        r2: { ownerUid: 'u-anna', bikeId: 'b2', date: '2026-06-03', title: 'Change tube', work: ['Punctured rear inner tube replaced', 'Tyre checked for debris'], parts: [{ name: 'Inner tube 700×38c', price: 59 }], notes: 'Tyre in good condition.', photos: ['photo-1.jpg'], cost: { service: 149, parts: 59, travel: 35 } },
-        r3: { ownerUid: 'u-anna', bikeId: 'b1', date: '2026-03-18', title: 'Bike check-up', work: ['Full safety check', 'Brake pads checked (60% left)', 'Gears and chain checked', 'Bolts torqued'], parts: [], notes: 'Bike in good condition.', photos: ['photo-1.jpg', 'photo-2.jpg'], cost: { service: 269, parts: 0, travel: 35 } },
+        r1: { ownerUid: 'u-anna', bikeId: 'b1', date: '2026-09-12', title: 'The Neighbor Bike Check', work: ['Brakes inspected and adjusted', 'Gears indexed', 'Tyre pressure set to 4.5 bar', 'Chain cleaned and lubricated'], parts: [], notes: 'Rear tyre is showing wear. See recommendations.', photos: ['photo-1.jpg', 'photo-2.jpg'], cost: { service: 199, parts: 0, travel: 35 } },
+        r2: { ownerUid: 'u-anna', bikeId: 'b2', date: '2026-06-03', title: 'Puncture Fix', work: ['Punctured rear inner tube replaced', 'Tyre checked for debris'], parts: [{ name: 'Inner tube 700×38c', price: 59 }], notes: 'Tyre in good condition.', photos: ['photo-1.jpg'], cost: { service: 199, parts: 59, travel: 35 } },
+        r3: { ownerUid: 'u-anna', bikeId: 'b1', date: '2026-03-18', title: 'The Neighbor Bike Check', work: ['Full safety check', 'Brake pads checked (60% left)', 'Gears and chain checked', 'Bolts torqued'], parts: [], notes: 'Bike in good condition.', photos: ['photo-1.jpg', 'photo-2.jpg'], cost: { service: 199, parts: 0, travel: 35 } },
       },
       recommendations: {
         k1: { ownerUid: 'u-anna', bikeId: 'b1', title: 'Replace rear tyre', urgency: 'soon', reason: 'Tread is worn to the wear indicators.', dueBy: 'Within about 1 month', status: 'open' },
@@ -132,8 +139,8 @@
         k4: { ownerUid: 'u-anna', bikeId: 'b2', title: 'Annual full check', urgency: 'later', reason: 'The last full check was in June 2026.', dueBy: 'By June 2027', status: 'open' },
       },
       bookings: {
-        bk1: { ref: 'TN-1041', status: 'confirmed', customerUid: 'u-anna', guestToken: 'tok-anna1', services: [SERVICES[3]], date: open(6), arrival: '10:30', ...block, bike: 'Pelago Brinkeby', address: 'Fuglebakkevej 12, 2000 Frederiksberg', name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56', note: 'Front brake feels soft.', pricing: { oneOff: 269, comboDiscount: 0, monthly: 0, travel: 13, distanceKm: 5, special: false, total: 282 }, createdAt: addDays(t, -3) },
-        bk2: { ref: 'TN-1042', status: 'pending', customerUid: null, guestToken: 'tok-mikkel', services: [SERVICES[0], SERVICES[4]], date: open(2), arrival: '13:00', ...block, bike: 'Road', address: 'Jagtvej 120, 2200 København N', name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77', note: '', pricing: { oneOff: 348, comboDiscount: 35, monthly: 0, travel: 13, distanceKm: 5, special: false, total: 326 }, createdAt: addDays(t, -1) },
+        bk1: { ref: 'TN-1041', status: 'confirmed', customerUid: 'u-anna', guestToken: 'tok-anna1', services: [svc('bike-check')], date: open(6), arrival: '10:30', ...block(25), bike: 'Pelago Brinkeby', address: 'Fuglebakkevej 12, 2000 Frederiksberg', name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56', note: 'Front brake feels soft.', pricing: { oneOff: 199, comboDiscount: 0, monthly: 0, travel: 13, distanceKm: 5, total: 212 }, createdAt: addDays(t, -3) },
+        bk2: { ref: 'TN-1042', status: 'pending', customerUid: null, guestToken: 'tok-mikkel', services: [svc('puncture'), svc('chain')], date: open(2), arrival: '13:00', ...block(35), bike: 'Road', address: 'Jagtvej 120, 2200 København N', name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77', note: '', pricing: { oneOff: 348, comboDiscount: 35, monthly: 0, travel: 13, distanceKm: 5, total: 326 }, createdAt: addDays(t, -1) },
       },
       consultations: {
         l1: { name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'sofie@example.com', phone: '+45 22 33 44 55', companyType: 'Hostel', bikes: '16–35', preferredDate: open(4), preferredTime: '11:00', message: 'We rent 20 city bikes to guests and need monthly checks.', status: 'new', createdAt: addDays(t, -1) },
@@ -216,7 +223,7 @@
   }
 
   function quote(serviceIds, address) {
-    const sel = serviceIds.map((id) => SERVICES.find((s) => s.id === id)).filter(Boolean);
+    const sel = serviceIds.map(svc).filter(Boolean);
     const priced = sel.filter((s) => s.price != null);
     const oneOffs = priced.filter((s) => !s.monthly);
     const oneOff = oneOffs.reduce((a, s) => a + s.price, 0);
@@ -225,10 +232,13 @@
     const monthly = priced.filter((s) => s.monthly).reduce((a, s) => a + s.price, 0);
     const distanceKm = estimateKm(address);
     const travel = distanceKm == null ? null : Math.round(distanceKm * CONFIG.kmRate);
-    const workMin = Math.min(CONFIG.maxWorkMin, sel.reduce((a, s) => a + s.durationMin, 0) || CONFIG.maxWorkMin);
+    // Work time is the sum of the chosen services; with nothing chosen yet, show times for a full visit.
+    const workMin = sel.reduce((a, s) => a + s.durationMin, 0) || CONFIG.maxWorkMin;
     return {
       services: sel,
       workMin,
+      tooLong: workMin > CONFIG.maxWorkMin,
+      needsNote: sel.some((s) => s.needsNote),
       oneOffCount: oneOffs.length,
       oneOff,
       comboDiscount,
@@ -273,12 +283,16 @@
   function checkBooking(input, q) {
     const errors = {};
     if (!q.services.length) errors.services = 'services';
+    else if (q.tooLong) errors.services = 'tooLong';
     if (!input.date || input.date < today()) errors.date = 'past';
     else if (closedReason(input.date)) errors.date = closedReason(input.date);
-    const slot = input.date ? startTimes(input.date, q.workMin).find((s) => s.time === input.arrival) : null;
-    if (!slot) errors.arrival = 'arrival';
-    else if (!slot.free) errors.arrival = 'taken';
-    if (q.special && !String(input.note || '').trim()) errors.note = 'note';
+    // A visit that is too long is reported on the services, so there is no start time to check.
+    if (!q.tooLong) {
+      const slot = input.date ? startTimes(input.date, q.workMin).find((s) => s.time === input.arrival) : null;
+      if (!slot) errors.arrival = 'arrival';
+      else if (!slot.free) errors.arrival = 'taken';
+    }
+    if ((q.special || q.needsNote) && !String(input.note || '').trim()) errors.note = 'note';
     if (!input.address || !input.name || !input.phone || !input.email) errors.form = 'contact';
     else if (!/^\S+@\S+\.\S+$/.test(input.email)) errors.form = 'email';
     else if (q.distanceKm == null) errors.form = 'address';

@@ -40,6 +40,8 @@ type, number of bikes, preferred date and time, message).
 | Change tube | 149 DKK |
 | Special repair | price by agreement; a problem description is required |
 
+The one-off services above are replaced by the owner's own list (section 8, decision 11).
+
 Pricing rules in the booking flow:
 
 - Booking **two or more one-off services** together gives a **10% combo discount** on those services.
@@ -261,8 +263,10 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
 3. **Capacity: each job blocks its own length.** A booking blocks its service duration plus travel,
    so a long job cannot overlap the next booking (one mechanic). **A booking takes at most 45
    minutes of work, and travel comes on top** (decided 2026-10-13), however many services are
-   chosen. Exact durations per service and the travel gap follow from the owner (open item A); the
-   mock uses 45 minutes (30 for a tube change) and a 15-minute travel gap as placeholders.
+   chosen. Work time is the sum of the chosen services' times (decision 11), using the top of each
+   range. If that sum is over 45 minutes the booking is refused, and the customer is asked to drop
+   a service or book two visits. The travel gap between jobs is still a placeholder of 15 minutes
+   (open item A).
 4. **Business accounts: invite-only at launch.** The owner creates the company account after the
    consultation and the contact gets an invite email. Self-service sign-up for businesses comes
    later.
@@ -289,12 +293,28 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
     **book.icepuente.com** once Spoke & Go is switched off. No cloud project or billing for the demo.
     Considered and not chosen: a separate demo Firebase project, and a browser-only demo like the
     mock. Open risk: the HTTPS proof of concept described in phase 7.
+11. **Private services (owner's list, 2026-10-13).** Spare parts are not included.
+
+    | Service | Price | Time | Includes |
+    |---|---|---|---|
+    | The Neighbor Bike Check | 199 DKK | ~20–25 min | Brake, gear, tyre, tyre pressure and chain checks; chain lubrication; main bolts; handlebar and saddle; quick safety check; recommendations for further repairs |
+    | Puncture Fix | 199 DKK | ~15–20 min | |
+    | Brake Adjustment | 129 DKK | ~15 min | Brake adjustment, performance check, test. Parts sold separately |
+    | Gear Adjustment | 129 DKK | ~15 min | Shifting adjustment, cable adjustment, test |
+    | Chain Service | 149 DKK | ~15 min | Inspection, lubrication, basic adjustment |
+    | Diagnostics | 299 DKK | *not given* | Parts are charged separately (except tube) |
+
+    The calendar uses the top of each range (25, 20, 15, 15, 15). Diagnostics needs a problem
+    description, like the old special repair. The mock still offers the monthly check-ups from the
+    documents (79 and 99 DKK / month) until the owner says whether they stay (open item C).
 
 ### Still open
 
-- **A. Exact timings.** The owner will supply how long each service takes (at most 45 minutes of
-  work per booking) and how much travel time to leave between jobs.
-- **B. Connecting to Jarvis** from the Windows machine, before phase 7.
+- **A. Travel gap.** How much time to leave between jobs for travel (placeholder: 15 minutes).
+- **B. Connecting to Jarvis.** *Done 2026-10-13:* the Windows PC connects to Jarvis.
+- **C. Monthly check-ups.** Do the 79 and 99 DKK / month plans from the documents stay?
+- **D. Diagnostics.** How long it takes (the mock uses 30 minutes), and what "except tube" means.
+- **E. Combo discount.** Does 10% off for two or more services still apply to the new list?
 
 ## The mock site
 
@@ -307,6 +327,7 @@ the account-preview document (Anna Jensen and Hotel ABC). A "Reset demo data" li
 The mock follows the 2026-10-13 decisions: Danish by default with a DA/EN switch, open Monday to
 Saturday with work finished by 15:30, bookings of at most 45 minutes that block their time plus a
 travel gap, "Remember me" and "Create an account" on the booking form, and the full price with
-travel shown before confirming. Two stand-ins remain: travel is estimated from the postcode instead
-of Google Maps (the price page says so), and the service durations are placeholders until the
-owner's timings arrive. The owner dashboard is English only.
+travel shown before confirming. It also has the owner's six services with their prices and times,
+and refuses a booking whose services add up to more than 45 minutes. Stand-ins remain: travel is
+estimated from the postcode instead of Google Maps (the price page says so), and the travel gap
+and the Diagnostics time are placeholders. The owner dashboard is English only.
