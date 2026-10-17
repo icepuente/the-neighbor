@@ -1,3 +1,6 @@
 # Check out text files with LF on every platform. deploy.sh rsyncs the working
 # tree to a Linux server, so CRLF from a Windows checkout breaks the scripts.
 * text=auto eol=lf
+
+# The proofreading sheet stays exactly as exported for Excel: BOM and CRLF line ends.
+docs/review/*.csv -text
