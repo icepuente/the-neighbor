@@ -12,6 +12,7 @@
     "dev": "npm run sync-shared && firebase emulators:start --only auth,firestore,functions,storage,hosting",
     "stop-emulators": "node scripts/stop-emulators.js",
     "test:functions": "node scripts/test-functions.js",
+    "test:browser": "node scripts/test-browser.js",
     "test": "node --test \"test/*.test.js\""
   },
   "engines": {

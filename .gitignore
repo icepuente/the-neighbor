@@ -14,3 +14,6 @@ emulator-data/
 # Copies of shared/ made by `npm run sync-shared`: edit shared/, not these
 web/js/shared/
 functions/shared/
+
+# Browser test screenshots
+test/browser/shots/
