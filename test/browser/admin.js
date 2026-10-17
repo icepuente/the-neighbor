@@ -82,6 +82,18 @@ run(9336, async () => {
   await evaluate("(()=>{const s=document.querySelector('#view select');s.value='contacted';s.dispatchEvent(new Event('change'))})()");
   await waitFor("document.querySelector('#view .tag')?.textContent === 'Contacted'", 'the new request status');
   check(true, 'its status can be moved to Contacted');
+  // Archive: out of the active list, kept under Archived, and restorable.
+  const reqButton = (label) => `[...document.querySelectorAll('#view .paper button')].find((b)=>b.textContent==='${label}')`;
+  await evaluate(`${reqButton('Archive')}.click()`);
+  await waitFor("!document.getElementById('view').textContent.includes('Hostel Nørrebro')", 'the request to leave the active list');
+  check(await evaluate("document.querySelector('[data-shelf=archived]').textContent") === 'Archived (1)', 'Archive moves it out of the active list (Archived: 1)');
+  await evaluate("document.querySelector('[data-shelf=archived]').click()");
+  check((await evaluate("document.getElementById('view').textContent")).includes('Hostel Nørrebro') && await evaluate(`!!${reqButton('Restore')}`), 'it is kept under Archived, with Restore');
+  await shot('admin-archived.png', 800);
+  await evaluate(`${reqButton('Restore')}.click()`);
+  await waitFor("document.querySelector('[data-shelf=archived]').textContent === 'Archived (0)'", 'the restored request');
+  await evaluate("document.querySelector('[data-shelf=active]').click()");
+  check((await evaluate("document.getElementById('view').textContent")).includes('Hostel Nørrebro'), 'Restore brings it back to the active list');
 
   // Closed days: close one with the calendar; the public booking calendar then greys it out.
   await tab('Closed days');

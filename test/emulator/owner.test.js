@@ -78,3 +78,17 @@ test('closed days: the owner adds and removes them, others cannot', async () => 
   assert.ok(options.closedDates.includes(day), 'and the calendar greys it out');
   assert.equal((await fetch(`${FS}/closedDates/${day}`, { method: 'DELETE', headers: owner })).status, 200, 'the owner opens it again');
 });
+
+test('requests: the owner archives and restores them, as true or false only', async () => {
+  const lead = await (await fetch(`${FN}/createConsultation`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: { input: { name: 'Arkiv Test', company: 'Archive ApS', email: 'archive@example.com', phone: '1', companyType: 'Hotel', bikes: '6–15' } } }) })).json();
+  const id = lead.result.lead.id;
+  const owner = await account('owner-rules5@example.com', { admin: true });
+  const setArchived = (value, headers) => fetch(`${FS}/consultations/${id}?updateMask.fieldPaths=archived`, {
+    method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { archived: value } }),
+  });
+  assert.equal((await setArchived({ booleanValue: true }, owner)).status, 200, 'archive');
+  assert.equal((await setArchived({ booleanValue: false }, owner)).status, 200, 'restore');
+  assert.equal((await setArchived({ stringValue: 'yes' }, owner)).status, 403, 'only true or false');
+  assert.equal((await setArchived({ booleanValue: true }, await account('z@example.com'))).status, 403, 'not a customer');
+});

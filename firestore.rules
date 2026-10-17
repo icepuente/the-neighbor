@@ -18,12 +18,14 @@ service cloud.firestore {
         && request.resource.data.status in ['pending', 'confirmed', 'completed', 'cancelled'];
     }
 
-    // Business consultation requests: read, and move along new -> contacted -> won / lost.
+    // Business consultation requests: read, move along new -> contacted -> won / lost, and archive
+    // (kept, but out of the main list) or restore.
     match /consultations/{id} {
       allow read: if isOwner();
       allow update: if isOwner()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ownerNote'])
-        && request.resource.data.status in ['new', 'contacted', 'won', 'lost'];
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ownerNote', 'archived'])
+        && request.resource.data.status in ['new', 'contacted', 'won', 'lost']
+        && (!('archived' in request.resource.data) || request.resource.data.archived is bool);
     }
 
     // Days the owner blocks: the document id is the date (YYYY-MM-DD).

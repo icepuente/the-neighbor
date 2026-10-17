@@ -69,7 +69,7 @@ onAuthStateChanged(auth, async (user) => {
 // ---- Tabs ----
 const tabs = [
   ['Bookings', bookingsView, () => data.bookings.filter((b) => b.status === 'pending').length],
-  ['Requests', requestsView, () => data.consultations.filter((c) => c.status === 'new').length],
+  ['Requests', requestsView, () => data.consultations.filter((c) => c.status === 'new' && !c.archived).length],
   ['Closed days', closedView],
   ['Outbox', outboxView],
 ];
@@ -310,9 +310,29 @@ function photoRow(b) {
 }
 
 // ---- Business consultation requests ----
+// Archived requests are kept, but out of the way: an Active / Archived switch shows either.
+let requestShelf = 'active';
+const setArchived = (l, archived) => updateDoc(doc(db, 'consultations', l.id), { archived })
+  .catch((e) => showError(`Could not ${archived ? 'archive' : 'restore'}: ${e.code || e.message}`));
+
 function requestsView(v) {
-  const list = [...data.consultations].sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-  if (!list.length) v.append(h('p', 'sub', 'No requests yet.'));
+  const archivedCount = data.consultations.filter((c) => c.archived).length;
+  const bar = h('div', 'toolbar');
+  const seg = h('div', 'seg view-switch');
+  seg.setAttribute('role', 'group');
+  seg.setAttribute('aria-label', 'Show');
+  for (const [shelf, label] of [['active', 'Active'], ['archived', `Archived (${archivedCount})`]]) {
+    const b = button(label, '', () => { requestShelf = shelf; render(); });
+    b.dataset.shelf = shelf;
+    b.setAttribute('aria-pressed', String(requestShelf === shelf));
+    seg.append(b);
+  }
+  bar.append(seg);
+  v.append(bar);
+
+  const list = data.consultations.filter((c) => Boolean(c.archived) === (requestShelf === 'archived'))
+    .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+  if (!list.length) v.append(h('p', 'sub', requestShelf === 'archived' ? 'No archived requests.' : 'No requests.'));
   const wrap = h('div', 'list');
   for (const l of list) {
     const c = h('div', 'paper');
@@ -329,6 +349,10 @@ function requestsView(v) {
     st.onchange = () => updateDoc(doc(db, 'consultations', l.id), { status: st.value })
       .catch((e) => showError(`Could not update: ${e.code || e.message}`));
     bar.append(field('Status', st));
+    bar.append(l.archived
+      ? button('Restore', 'alt sm', () => setArchived(l, false))
+      : button('Archive', 'alt sm', () => setArchived(l, true)));
+    c.dataset.company = l.company;
     c.append(bar);
     wrap.append(c);
   }
