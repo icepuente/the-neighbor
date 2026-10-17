@@ -214,6 +214,14 @@ Each phase ends with something usable, so it can stop at any point.
    to end and stores everything.*
 2. **Owner dashboard on Firebase.** Port today's admin features (statuses, reschedule, notes,
    messages, closed days, CSV) and add consultation leads.
+   *First part done 2026-10-17:* `web/admin.html` + `js/admin.js` (English). Sign-in by email and
+   password; only accounts with the `admin` custom claim (`npm run set-owner -- <email>`) get in.
+   Live lists of bookings (filter; photos; Confirm / Mark completed / Cancel with a second click),
+   business requests (status), closed days (added with the site calendar) and the email outbox.
+   Rules let the owner change only statuses and closed days; the Function `bookingStatusChanged`
+   queues the customer's email on every status change. Demo owner login: owner@demo.dk /
+   neighbor-demo (`scripts/seed-demo.js`, run on every daily demo start). Still to do: reschedule,
+   owner notes, replying to customers, CSV export.
 3. **Private accounts.** Sign-up and log-in, linking past guest bookings by verified email; history,
    bikes (with **bike photos**, added and edited, decision 15) and recommendations; the owner's "log
    a visit" form with photo upload.
