@@ -327,3 +327,45 @@ mark.todo { background: #f2c14e; color: #102f33; padding: 0 4px; border-radius: 
 /* Owner dashboard (admin.html) */
 pre.mail { white-space: pre-wrap; font: 15px/1.5 'Source Serif 4', serif; margin: 8px 0 0; }
 .page .box.narrow { margin-left: 0; }
+
+/* Bookings calendar in the dashboard (admin.js calendarView) */
+.view-switch { margin: 0; align-self: end; }
+.toolbar .cb.inline { margin: 0 0 10px; color: #fff; align-items: center; }
+.bcal-head { display: flex; align-items: center; gap: 12px; margin: 4px 0 6px; }
+.bcal-head .cal-nav { border-color: rgba(255, 255, 255, .6); background: transparent; color: #fff; }
+.bcal-head .alt.sm { color: #fff; border-color: #fff; margin: 0 0 0 8px; }
+.bcal-title { min-width: 190px; text-align: center; margin: 0; }
+.bcal-legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; font-size: 14px; }
+.bcal-key-closed { padding: 2px 10px; border-radius: 6px; background: repeating-linear-gradient(135deg, #e3dccd 0 6px, #d6ccb7 6px 12px); color: var(--ink); }
+.bcal-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+.bcal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; background: var(--paper); color: var(--ink); border-radius: 18px; padding: 10px; }
+.bcal-wd { text-align: center; font-size: 13px; font-weight: 600; opacity: .7; padding: 4px 0; }
+.bcal-day { min-height: 96px; background: #fff; border-radius: 10px; padding: 4px 5px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.bcal-day.empty { background: transparent; }
+.bcal-day.past { opacity: .55; }
+.bcal-day.today { box-shadow: inset 0 0 0 2px var(--base); }
+.bcal-day.closed { background: repeating-linear-gradient(135deg, #efe9dd 0 6px, #e5ddcc 6px 12px); }
+.bcal-num { font-size: 13px; font-weight: 600; }
+.bcal-reason { font-size: 12px; font-style: italic; opacity: .8; }
+/* A booking: status by colour, outline and symbol. */
+.bchip { display: block; width: 100%; text-align: left; font: 600 12.5px/1.25 'Source Serif 4', serif; border-radius: 6px; padding: 3px 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1.5px solid; }
+.bchip .mark { display: inline-block; min-width: 1.1em; font-weight: 700; }
+.bchip .who { display: block; overflow: hidden; text-overflow: ellipsis; font: 400 12.5px/1.25 'Source Serif 4', serif; }
+.bchip.pending { background: #fff4df; color: #7a4a00; border: 1.5px dashed #d98a00; }
+.bchip.confirmed { background: var(--mid); color: #fff; border-color: var(--mid); }
+.bchip.completed { background: #e6f3ea; color: #2e6b45; border-color: #9ccfae; text-decoration: line-through; }
+.bchip.cancelled { background: #f6e3e1; color: #8e2a22; border-color: #e0a8a2; text-decoration: line-through; opacity: .8; }
+.bchip.urgent { box-shadow: inset 4px 0 0 #b3261e; }
+.bchip[aria-pressed=true] { outline: 3px solid #1a6fe0; outline-offset: 1px; }
+.bcal-legend .bchip { display: inline-block; width: auto; cursor: default; }
+.bcal-detail { position: sticky; top: 100px; }
+.bcal-detail .lnk { color: #fff; margin-top: 8px; }
+@media (max-width: 960px) {
+  .bcal-layout { grid-template-columns: 1fr; }
+  .bcal-day { min-height: 70px; }
+  .bcal-detail { position: static; }
+}
+@media (max-width: 560px) {
+  .bchip { font-size: 11px; padding: 2px 3px; }
+  .bcal-day { min-height: 56px; padding: 3px; }
+}

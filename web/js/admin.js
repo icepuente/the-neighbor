@@ -113,13 +113,44 @@ let bookingFilter = 'upcoming';
 const changeStatus = (b, status) => updateDoc(doc(db, 'bookings', b.id), { status, statusAt: serverTimestamp() })
   .catch((e) => showError(`Could not update ${b.ref}: ${e.code || e.message}`));
 
+// Two ways to look at bookings: a list, or a month calendar. The choice is kept on this device.
+const MODE_KEY = 'neighbor-admin-bookings-view';
+let bookingMode = localStorage.getItem(MODE_KEY) === 'calendar' ? 'calendar' : 'list';
+let showCancelled = false;
+let selectedId = null; // the booking open in the calendar
+let calMonth = (() => { const [y, m] = R.today().split('-').map(Number); return [y, m - 1]; })();
+
 function bookingsView(v) {
   const bar = h('div', 'toolbar');
-  const sel = select([['upcoming', 'Upcoming'], ['pending', 'Waiting for confirmation'], ['all', 'All bookings']], bookingFilter);
-  sel.id = 'booking-filter';
-  sel.onchange = () => { bookingFilter = sel.value; render(); };
-  bar.append(field('Show', sel));
+  // List / Calendar switch.
+  const seg = h('div', 'seg view-switch');
+  seg.setAttribute('role', 'group');
+  seg.setAttribute('aria-label', 'View');
+  for (const [mode, label] of [['list', 'List'], ['calendar', 'Calendar']]) {
+    const b = button(label, '', () => { bookingMode = mode; localStorage.setItem(MODE_KEY, mode); render(); });
+    b.dataset.mode = mode;
+    b.setAttribute('aria-pressed', String(bookingMode === mode));
+    seg.append(b);
+  }
+  bar.append(seg);
+  if (bookingMode === 'list') {
+    const sel = select([['upcoming', 'Upcoming'], ['pending', 'Waiting for confirmation'], ['all', 'All bookings']], bookingFilter);
+    sel.id = 'booking-filter';
+    sel.onchange = () => { bookingFilter = sel.value; render(); };
+    bar.append(field('Show', sel));
+  } else {
+    const cb = h('input');
+    cb.type = 'checkbox';
+    cb.id = 'show-cancelled';
+    cb.checked = showCancelled;
+    cb.onchange = () => { showCancelled = cb.checked; render(); };
+    const l = h('label', 'cb inline', '');
+    l.htmlFor = cb.id;
+    A(l, cb, h('span', '', 'Show cancelled'));
+    bar.append(l);
+  }
   v.append(bar);
+  if (bookingMode === 'calendar') { calendarView(v); return; }
 
   const today = R.today();
   const list = data.bookings.filter((b) => {
@@ -130,46 +161,131 @@ function bookingsView(v) {
   if (!list.length) v.append(h('p', 'sub', 'Nothing here.'));
 
   const wrap = h('div', 'list');
-  for (const b of list) {
-    const c = h('div', 'paper booking');
-    c.dataset.ref = b.ref;
-    const head = h('h3', '', `${fmtDate(b.date)} · ${b.arrival} · ${b.name} `);
-    head.append(tag(b.status));
-    if (b.urgent) head.append(' ', tag('soon', 'Urgent (Care Plus)'));
-    const services = b.services.map((s) => s.name).join(', ');
-    A(c, head, h('p', 'det', `${services} · ${dkk(b.pricing.total)} incl. travel${b.pricing.monthly ? ` + ${dkk(b.pricing.monthly)}/month` : ''}`),
-      h('p', 'det', R.fullAddress(b.address, b.apartment)));
-    if (b.photos?.length) c.append(photoRow(b));
-    const more = h('details');
-    more.dataset.key = b.id;
-    const phone = h('a', '', b.phone);
-    phone.href = `tel:${b.phone.replace(/\s/g, '')}`;
-    const email = h('a', '', b.email);
-    email.href = `mailto:${b.email}`;
-    A(more, h('summary', 'meta', 'Details'), defList([
-      ['Phone', phone], ['Email', email], ['Bike', b.bikeType || '–'], ['Note', b.note || '–'],
-      ['Work', `${b.workMin} min (blocks ${b.blockMin} min with travel)`],
-      ['Travel', b.pricing.travel == null ? 'to confirm' : `${dkk(b.pricing.travel)} (${b.distanceKm} km, estimated)`],
-      ['Discount', b.pricing.discount ? `${dkk(b.pricing.discount)} (${b.pricing.discountReason})` : '–'],
-      ['Ref', b.ref], ['Booked', fmtTime(b.createdAt) || '–'],
-    ]));
-    c.append(more);
-    // Actions: each change queues the matching email to the customer (bookingStatusChanged).
-    if (b.status === 'pending') c.append(button('Confirm', 'alt sm', () => changeStatus(b, 'confirmed')));
-    if (['pending', 'confirmed'].includes(b.status)) {
-      c.append(button('Mark completed', 'alt sm', () => changeStatus(b, 'completed')));
-      // Cancelling takes two clicks, so it cannot happen by accident.
-      const cancel = button('Cancel booking', 'alt sm', () => {
-        if (cancel.dataset.armed) { changeStatus(b, 'cancelled'); return; }
-        cancel.dataset.armed = '1';
-        cancel.textContent = `Click again to cancel and email ${b.name}`;
-        setTimeout(() => { delete cancel.dataset.armed; cancel.textContent = 'Cancel booking'; }, 5000);
-      });
-      c.append(cancel);
-    }
-    wrap.append(c);
-  }
+  for (const b of list) wrap.append(bookingCard(b));
   v.append(wrap);
+}
+
+// One booking: the essentials, photos, details and the actions. Used by the list and the calendar.
+function bookingCard(b) {
+  const c = h('div', 'paper booking');
+  c.dataset.ref = b.ref;
+  const head = h('h3', '', `${fmtDate(b.date)} · ${b.arrival} · ${b.name} `);
+  head.append(tag(b.status));
+  if (b.urgent) head.append(' ', tag('soon', 'Urgent (Care Plus)'));
+  const services = b.services.map((s) => s.name).join(', ');
+  A(c, head, h('p', 'det', `${services} · ${dkk(b.pricing.total)} incl. travel${b.pricing.monthly ? ` + ${dkk(b.pricing.monthly)}/month` : ''}`),
+    h('p', 'det', R.fullAddress(b.address, b.apartment)));
+  if (b.photos?.length) c.append(photoRow(b));
+  const more = h('details');
+  more.dataset.key = b.id;
+  const phone = h('a', '', b.phone);
+  phone.href = `tel:${b.phone.replace(/\s/g, '')}`;
+  const email = h('a', '', b.email);
+  email.href = `mailto:${b.email}`;
+  A(more, h('summary', 'meta', 'Details'), defList([
+    ['Phone', phone], ['Email', email], ['Bike', b.bikeType || '–'], ['Note', b.note || '–'],
+    ['Work', `${b.workMin} min (blocks ${b.blockMin} min with travel)`],
+    ['Travel', b.pricing.travel == null ? 'to confirm' : `${dkk(b.pricing.travel)} (${b.distanceKm} km, estimated)`],
+    ['Discount', b.pricing.discount ? `${dkk(b.pricing.discount)} (${b.pricing.discountReason})` : '–'],
+    ['Ref', b.ref], ['Booked', fmtTime(b.createdAt) || '–'],
+  ]));
+  c.append(more);
+  // Actions: each change queues the matching email to the customer (bookingStatusChanged).
+  if (b.status === 'pending') c.append(button('Confirm', 'alt sm', () => changeStatus(b, 'confirmed')));
+  if (['pending', 'confirmed'].includes(b.status)) {
+    c.append(button('Mark completed', 'alt sm', () => changeStatus(b, 'completed')));
+    // Cancelling takes two clicks, so it cannot happen by accident.
+    const cancel = button('Cancel booking', 'alt sm', () => {
+      if (cancel.dataset.armed) { changeStatus(b, 'cancelled'); return; }
+      cancel.dataset.armed = '1';
+      cancel.textContent = `Click again to cancel and email ${b.name}`;
+      setTimeout(() => { delete cancel.dataset.armed; cancel.textContent = 'Cancel booking'; }, 5000);
+    });
+    c.append(cancel);
+  }
+  return c;
+}
+
+// ---- Month calendar of bookings ----
+// Each booking is a chip on its day: time and name, with the status shown by colour, outline and a
+// symbol (so it does not rely on colour alone). Clicking one opens its card, with the same actions.
+const STATUS_MARK = { pending: '?', confirmed: '✓', completed: '✓✓', cancelled: '✕' };
+const STATUS_WORD = { pending: 'waiting for confirmation', confirmed: 'confirmed', completed: 'completed', cancelled: 'cancelled' };
+
+function calendarView(v) {
+  const [y, m] = calMonth;
+  const head = h('div', 'bcal-head');
+  const shift = (n) => { const i = y * 12 + m + n; calMonth = [Math.floor(i / 12), i % 12]; render(); };
+  const prev = button('‹', 'cal-nav', () => shift(-1));
+  prev.setAttribute('aria-label', 'Previous month');
+  const next = button('›', 'cal-nav', () => shift(1));
+  next.setAttribute('aria-label', 'Next month');
+  const title = h('h3', 'bcal-title', new Date(Date.UTC(y, m, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }));
+  const todayBtn = button('Today', 'alt sm', () => { const [ty, tm] = R.today().split('-').map(Number); calMonth = [ty, tm - 1]; render(); });
+  A(head, prev, title, next, todayBtn);
+  v.append(head);
+
+  // Legend.
+  const legend = h('p', 'bcal-legend');
+  for (const s of ['pending', 'confirmed', 'completed']) {
+    const chip = h('span', `bchip ${s}`);
+    A(chip, h('span', 'mark', STATUS_MARK[s]), ` ${STATUS_WORD[s][0].toUpperCase()}${STATUS_WORD[s].slice(1)}`);
+    legend.append(chip, ' ');
+  }
+  const closedKey = h('span', 'bcal-key-closed', 'Closed');
+  legend.append(closedKey);
+  v.append(legend);
+
+  const layout = h('div', 'bcal-layout');
+  const grid = h('div', 'bcal');
+  grid.setAttribute('role', 'grid');
+  grid.setAttribute('aria-label', title.textContent);
+  for (const w of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) grid.append(h('div', 'bcal-wd', w));
+  const lead = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7;
+  for (let i = 0; i < lead; i++) grid.append(h('div', 'bcal-day empty'));
+  const days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const today = R.today();
+  const closed = new Map(data.closedDates.map((c) => [c.id, c.reason]));
+  const byDay = new Map();
+  for (const b of data.bookings) {
+    if (b.status === 'cancelled' && !showCancelled) continue;
+    if (!byDay.has(b.date)) byDay.set(b.date, []);
+    byDay.get(b.date).push(b);
+  }
+  for (let d = 1; d <= days; d++) {
+    const date = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const cell = h('div', 'bcal-day');
+    cell.dataset.date = date;
+    if (date === today) cell.classList.add('today');
+    if (date < today) cell.classList.add('past');
+    const reason = R.closedReason(date, [...closed.keys()]);
+    if (reason) cell.classList.add('closed');
+    cell.append(h('span', 'bcal-num', String(d)));
+    if (reason === 'closed') cell.append(h('span', 'bcal-reason', closed.get(date) || 'Closed'));
+    for (const b of (byDay.get(date) || []).sort((a, z) => a.arrival.localeCompare(z.arrival))) {
+      const chip = button('', `bchip ${b.status}`, () => { selectedId = b.id; render(); document.getElementById('bcal-detail')?.scrollIntoView({ block: 'nearest' }); });
+      chip.dataset.ref = b.ref;
+      A(chip, h('span', 'mark', STATUS_MARK[b.status]), ` ${b.arrival}`, h('span', 'who', b.name.split(' ')[0]));
+      if (b.urgent) chip.classList.add('urgent');
+      chip.setAttribute('aria-label', `${b.arrival} ${b.name}, ${STATUS_WORD[b.status]}${b.urgent ? ', urgent' : ''}`);
+      if (b.id === selectedId) chip.setAttribute('aria-pressed', 'true');
+      cell.append(chip);
+    }
+    grid.append(cell);
+  }
+  layout.append(grid);
+
+  // The chosen booking's card, with the same actions as in the list.
+  const detail = h('div', 'bcal-detail');
+  detail.id = 'bcal-detail';
+  const chosen = data.bookings.find((b) => b.id === selectedId);
+  if (chosen) {
+    detail.append(bookingCard(chosen), button('Close', 'lnk', () => { selectedId = null; render(); }));
+  } else {
+    detail.append(h('p', 'sub', 'Click a booking to see it and act on it.'));
+  }
+  layout.append(detail);
+  v.append(layout);
 }
 
 // Booking photos: thumbnails, read with the owner's sign-in; a click opens the full photo.

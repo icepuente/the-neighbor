@@ -31,6 +31,32 @@ run(9336, async () => {
   check((await evaluate(`${card('TN-1041')}.textContent`)).includes('Fuglebakkevej 12, 3. th., 2000 Frederiksberg'), 'addresses show floor and door the Danish way');
   await shot('admin-bookings.png', 1100);
 
+  // Calendar view: bookings on their days, status shown by colour, outline and symbol; clicking one
+  // opens the same card with the same actions.
+  await evaluate("document.querySelector('.view-switch [data-mode=calendar]').click()");
+  await waitFor("!!document.querySelector('.bcal')", 'the calendar view');
+  const chip = (ref) => `document.querySelector('.bchip[data-ref="${ref}"]')`;
+  // The seeded bookings are 3-6 days ahead: possibly next month.
+  if (!await evaluate(`!!${chip('TN-1042')}`)) await evaluate("document.querySelector('.bcal-head .cal-nav[aria-label=\"Next month\"]').click()");
+  await waitFor(`!!${chip('TN-1042')}`, 'the TN-1042 chip');
+  const look = (ref) => evaluate(`(()=>{const c=${chip(ref)};const s=getComputedStyle(c);return {cls:c.className,mark:c.querySelector('.mark').textContent,border:s.borderTopStyle,bg:s.backgroundColor,label:c.getAttribute('aria-label')}})()`);
+  const pend = await look('TN-1042');
+  const conf = await look('TN-1041');
+  check(pend.cls.includes('pending') && pend.mark === '?' && pend.border === 'dashed' && pend.label.includes('waiting for confirmation'),
+    `a pending booking is a dashed chip marked "?" ("${pend.label}")`);
+  check(conf.cls.includes('confirmed') && conf.mark === '✓' && conf.border === 'solid' && conf.bg !== pend.bg,
+    `a confirmed booking is a solid chip of another colour, marked "✓" ("${conf.label}")`);
+  await shot('admin-calendar.png', 1000);
+  await evaluate(`${chip('TN-1041')}.click()`);
+  await waitFor("!!document.querySelector('#bcal-detail .booking[data-ref=\"TN-1041\"]')", 'the card for TN-1041');
+  const actions = await evaluate("[...document.querySelectorAll('#bcal-detail .booking button')].map((b)=>b.textContent)");
+  check(actions.includes('Mark completed') && actions.includes('Cancel booking'), `clicking it opens its card with the same actions (${actions.join(', ')})`);
+  await evaluate("[...document.querySelectorAll('#bcal-detail .booking button')].find((b)=>b.textContent==='Mark completed').click()");
+  await waitFor(`${chip('TN-1041')}.classList.contains('completed')`, 'the chip to turn completed');
+  check(await evaluate("document.querySelector('#bcal-detail .tag').textContent") === 'Completed', 'acting from the calendar works: TN-1041 is completed, chip and card update live');
+  await evaluate("document.querySelector('.view-switch [data-mode=list]').click()");
+  await waitFor("!document.querySelector('.bcal') && !!document.querySelector('.booking[data-ref=\"TN-1042\"]')", 'the list again');
+
   // Confirm TN-1042: the status changes, and the customer's email is queued by the Function.
   await evaluate(`${buttonIn('TN-1042', 'Confirm')}.click()`);
   await waitFor(`${card('TN-1042')}.querySelector('.tag').textContent === 'Confirmed'`, 'the confirmed status');
