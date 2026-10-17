@@ -6,7 +6,7 @@
   'use strict';
 
   // v2: the owner's service list of 2026-10-13. A new key replaces stale sample data in old browsers.
-  const KEY = 'neighbor-mock-v4';
+  const KEY = 'neighbor-mock-v5';
   const SESSION = 'neighbor-mock-session';
 
   const CONFIG = {
@@ -31,6 +31,9 @@
     closedWeekdays: [0],
     // A booking takes at most 45 minutes of work; travel comes on top, with 15 minutes between jobs.
     maxWorkMin: 45,
+    // Bike photos: at most 3 per booking and 4 per saved bike (plan, decision 15).
+    maxBookingPhotos: 3,
+    maxBikePhotos: 4,
     travelBufferMin: 15,
     consentVersion: '2026-10',
   };
@@ -96,6 +99,12 @@
     return isoDate(d);
   }
 
+  // A drawn stand-in for a customer's bike photo, so the sample data stays small.
+  const samplePhoto = (id, bg, frame) => ({
+    id, w: 320, h: 240, at: '2026-10-01T10:00:00Z',
+    data: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240"><rect width="320" height="240" fill="${bg}"/><g fill="none" stroke="#102f33" stroke-width="8"><circle cx="85" cy="160" r="50"/><circle cx="235" cy="160" r="50"/></g><path d="M85 160 140 90h80l15 70M140 90l-15-25M140 90l40 70h55M200 70h30" fill="none" stroke="${frame}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>`)}`,
+  });
+
   // ---- Sample data (from the account-preview document) ----
   function seed() {
     const t = today();
@@ -128,7 +137,7 @@
         'u-owner': { role: 'admin', name: 'The Neighbor (owner)', email: 'owner@example.com', phone: '', createdAt: '2026-01-01' },
       },
       'users/u-anna/bikes': {
-        b1: { name: 'Trek FX 3', type: 'Hybrid commuter', year: 2021, size: 'M / 54 cm', gears: '2×9 speed', brakes: 'Hydraulic disc', tyres: '700×35c', frame: 'Aluminium', colour: 'Dark green', usage: 'Daily commuter, about 60 km per week' },
+        b1: { name: 'Trek FX 3', type: 'Hybrid commuter', year: 2021, size: 'M / 54 cm', gears: '2×9 speed', brakes: 'Hydraulic disc', tyres: '700×35c', frame: 'Aluminium', colour: 'Dark green', usage: 'Daily commuter, about 60 km per week', photos: [samplePhoto('p-b1', '#e8efe4', '#2f5d3a')] },
         b2: { name: 'Pelago Brinkeby', type: 'City bike', year: 2019, size: '54 cm', gears: '7-speed hub', brakes: 'Rim brakes', tyres: '700×38c', frame: 'Steel', colour: 'Cream', usage: 'Weekend and shopping bike' },
       },
       companies: {
@@ -151,7 +160,7 @@
         k4: { ownerUid: 'u-anna', bikeId: 'b2', title: 'Annual full check', urgency: 'later', reason: 'The last full check was in June 2026.', dueBy: 'By June 2027', status: 'open' },
       },
       bookings: {
-        bk1: { ref: 'TN-1041', status: 'confirmed', customerUid: 'u-anna', guestToken: 'tok-anna1', services: [svc('bike-check')], date: open(6), arrival: '10:30', ...block(25), bike: 'Pelago Brinkeby', address: 'Fuglebakkevej 12, 2000 Frederiksberg', name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56', note: 'Front brake feels soft.', pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, distanceKm: 5, total: 212 }, createdAt: addDays(t, -3) },
+        bk1: { ref: 'TN-1041', status: 'confirmed', customerUid: 'u-anna', guestToken: 'tok-anna1', services: [svc('bike-check')], date: open(6), arrival: '10:30', ...block(25), bike: 'Pelago Brinkeby', address: 'Fuglebakkevej 12, 2000 Frederiksberg', name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56', note: 'Front brake feels soft.', photos: [samplePhoto('p-bk1', '#f3ead8', '#c9b48a')], pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, distanceKm: 5, total: 212 }, createdAt: addDays(t, -3) },
         bk2: { ref: 'TN-1042', status: 'pending', customerUid: null, guestToken: 'tok-mikkel', services: [svc('puncture'), svc('chain')], date: open(2), arrival: '13:00', ...block(35), bike: 'Road', address: 'Jagtvej 120, 2200 København N', name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77', note: '', pricing: { oneOff: 348, discount: 0, discountReason: null, monthly: 0, travel: 13, distanceKm: 5, total: 361 }, createdAt: addDays(t, -1) },
       },
       consultations: {
@@ -172,7 +181,24 @@
     try { db = JSON.parse(localStorage.getItem(KEY)); } catch { db = null; }
     if (!db) { db = seed(); save(); }
   }
-  function save() { localStorage.setItem(KEY, JSON.stringify(db)); }
+  // Photos make the data large; when the browser's storage is full, undo the change and say so.
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(db));
+    } catch (e) {
+      if (e && e.name === 'QuotaExceededError') {
+        load();
+        throw new Error('storageFull');
+      }
+      throw e;
+    }
+  }
+
+  // Keep only well-formed image entries, at most `max` of them.
+  const cleanPhotos = (list, max) => (Array.isArray(list) ? list : [])
+    .filter((p) => p && typeof p.data === 'string' && p.data.startsWith('data:image/'))
+    .slice(0, max)
+    .map(({ id, data, w, h, at }) => ({ id: id || uid('p'), data, w, h, at: at || new Date().toISOString() }));
   load();
 
   const col = (path) => (db[path] = db[path] || {});
@@ -255,7 +281,9 @@
   // unused, otherwise 2 days ahead.
   function earliestDate(user) {
     const tomorrow = addDays(today(), CONFIG.urgentLeadDays);
-    return urgentAvailable(user, tomorrow) ? tomorrow : addDays(today(), CONFIG.minLeadDays);
+    // A closed tomorrow (a Sunday or a blocked day) cannot be the urgent visit.
+    const urgentOk = !closedReason(tomorrow) && urgentAvailable(user, tomorrow);
+    return urgentOk ? tomorrow : addDays(today(), CONFIG.minLeadDays);
   }
 
   function quote(serviceIds, address) {
@@ -348,6 +376,7 @@
     else if (!/^\S+@\S+\.\S+$/.test(input.email)) errors.form = 'email';
     else if (q.distanceKm == null) errors.form = 'address';
     else if (q.distanceKm > CONFIG.maxKm) errors.form = 'far';
+    if ((input.photos || []).length > CONFIG.maxBookingPhotos) errors.photos = 'photosMax';
     return errors;
   }
 
@@ -385,6 +414,7 @@
         email: input.email,
         phone: input.phone,
         note: input.note || '',
+        photos: cleanPhotos(input.photos, CONFIG.maxBookingPhotos),
         pricing: { oneOff: q.oneOff, discount: q.discount, discountReason: q.discountReason, monthly: q.monthly, travel: q.travel, distanceKm: q.distanceKm, special: q.special, total: q.total },
         consent,
         createdAt: new Date().toISOString(),
@@ -423,7 +453,16 @@
       sendMail(CONFIG.email, `Booking ${b.ref} cancelled by customer`, `${b.name} cancelled ${b.date} ${b.arrival}.`);
     },
 
-    addBike(ownerUid, bike) { return store.add(`users/${ownerUid}/bikes`, bike); },
+    addBike(ownerUid, bike) {
+      return store.add(`users/${ownerUid}/bikes`, { ...bike, photos: cleanPhotos(bike.photos, CONFIG.maxBikePhotos) });
+    },
+
+    // Edit a saved bike, including adding or removing photos.
+    updateBike(ownerUid, bikeId, patch) {
+      const next = { ...patch };
+      if ('photos' in patch) next.photos = cleanPhotos(patch.photos, CONFIG.maxBikePhotos);
+      return store.update(`users/${ownerUid}/bikes`, bikeId, next);
+    },
 
     // ---- Owner (admin) actions ----
     setBookingStatus(id, status) {

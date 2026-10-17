@@ -6,6 +6,8 @@
   const $ = (id) => document.getElementById(id);
   // Translate when the page loads i18n.js (public pages); the English dashboard does not.
   const t = (key, vars) => (window.I18N ? I18N.t(key, vars) : key);
+  // For text the English dashboard also shows: translated on public pages, the fallback there.
+  const tx = (key, fallback, vars) => (window.I18N ? I18N.t(key, vars) : fallback);
 
   function h(tag, cls, text) {
     const e = document.createElement(tag);
@@ -36,6 +38,126 @@
     return h('span', 'tag ' + status, label || status[0].toUpperCase() + status.slice(1));
   }
 
+  // ---- Photos ----
+  // Shrink an image in the browser before it is stored or uploaded. Re-drawing it on a canvas also
+  // drops its EXIF data, including any GPS location the phone recorded.
+  async function resizeImage(file, max = 800, quality = 0.7) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = url;
+      });
+      const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * scale);
+      const hgt = Math.round(img.naturalHeight * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = hgt;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, hgt);
+      return { data: canvas.toDataURL('image/jpeg', quality), w, h: hgt };
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  // Full-size view of one photo; click, Escape or the button closes it.
+  function openPhoto(src, alt) {
+    const box = h('div', 'dialog lightbox');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    const img = h('img');
+    img.src = src;
+    img.alt = alt;
+    const close = button(tx('pics.close', 'Close'), 'pill', () => done());
+    const onKey = (e) => { if (e.key === 'Escape') done(); };
+    function done() {
+      box.remove();
+      document.removeEventListener('keydown', onKey);
+    }
+    box.onclick = (e) => { if (e.target === box || e.target === img) done(); };
+    document.addEventListener('keydown', onKey);
+    A(box, img, close);
+    document.body.appendChild(box);
+    close.focus();
+  }
+
+  // Thumbnails that open full size. `label` names one photo, e.g. "Photo 1".
+  function gallery(photos, label = (n) => tx('pics.alt', `Photo ${n}`, { n })) {
+    const row = h('div', 'pics-grid');
+    (photos || []).forEach((p, i) => {
+      const b = h('button', 'pic');
+      b.type = 'button';
+      const img = h('img');
+      img.src = p.data;
+      img.alt = label(i + 1);
+      img.loading = 'lazy';
+      b.onclick = () => openPhoto(p.data, img.alt);
+      b.appendChild(img);
+      row.appendChild(b);
+    });
+    return row;
+  }
+
+  // A photo field: an "add" tile, thumbnails with a remove button, and a counter. `get()` returns
+  // the photos as { id, data, w, h, at }.
+  function photoPicker({ max, initial = [], id }) {
+    let photos = [...initial];
+    const wrap = h('div', 'pics');
+    const grid = h('div', 'pics-grid');
+    const add = h('label', 'pic pic-add');
+    const input = h('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    if (id) input.id = id;
+    const addText = h('span', '', t('pics.add'));
+    A(add, input, h('span', 'plus', '+'), addText);
+    const count = h('p', 'det');
+    const err = h('p', 'err');
+    err.setAttribute('role', 'alert');
+
+    function render() {
+      grid.textContent = '';
+      photos.forEach((p, i) => {
+        const fig = h('figure', 'pic');
+        const img = h('img');
+        img.src = p.data;
+        img.alt = t('pics.alt', { n: i + 1 });
+        const x = button('×', 'pic-x', () => { photos.splice(i, 1); err.textContent = ''; render(); });
+        x.setAttribute('aria-label', t('pics.remove', { n: i + 1 }));
+        A(fig, img, x);
+        grid.appendChild(fig);
+      });
+      add.hidden = photos.length >= max;
+      grid.appendChild(add);
+      count.textContent = t('pics.count', { n: photos.length, max });
+    }
+
+    input.onchange = async () => {
+      err.textContent = '';
+      const files = [...input.files];
+      input.value = '';
+      for (const f of files) {
+        if (photos.length >= max) { err.textContent = t('pics.max', { max }); break; }
+        if (!f.type.startsWith('image/')) { err.textContent = t('pics.notImage'); continue; }
+        if (f.size > 20 * 1024 * 1024) { err.textContent = t('pics.tooBig'); continue; }
+        try {
+          photos.push({ id: `p-${Math.random().toString(36).slice(2, 9)}`, ...(await resizeImage(f)), at: new Date().toISOString() });
+        } catch {
+          err.textContent = t('pics.unreadable');
+        }
+        render();
+      }
+    };
+
+    render();
+    A(wrap, grid, count, err);
+    return { el: wrap, get: () => photos.slice(), reset() { photos = []; render(); } };
+  }
+
   // Demo banner "Reset demo data" link, the header account link and the language switch.
   document.addEventListener('DOMContentLoaded', () => {
     const reset = $('reset-demo');
@@ -60,5 +182,5 @@
     });
   });
 
-  window.UI = { $, h, A, button, defList, tag, t };
+  window.UI = { $, h, A, button, defList, tag, t, gallery, photoPicker, openPhoto };
 })();

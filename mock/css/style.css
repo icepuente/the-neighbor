@@ -213,6 +213,22 @@ details.paper > summary { cursor: pointer; padding: 16px 20px; font-weight: 600;
 details.paper .body { padding: 0 20px 20px; }
 .photos { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 .photo { width: 120px; height: 90px; border: 2px dashed #b9ad90; border-radius: 10px; display: grid; place-items: center; font-size: 14px; opacity: .8; }
+
+/* Bike photos: thumbnails, the add tile, a bike's cover photo and the full-size view */
+.pics-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 4px; }
+.pic { position: relative; width: 92px; height: 92px; margin: 0; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: #fff; cursor: pointer; }
+.pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pic-x { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(16, 47, 51, .85); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.pic-add { display: grid; place-content: center; text-align: center; border: 2px dashed var(--field); color: var(--ink); font-size: 13px; font-weight: 600; }
+.pic-add .plus { font-size: 26px; line-height: 1; }
+.pic-add input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.pic-add:has(input:focus-visible) { outline: 3px solid #1a6fe0; outline-offset: 2px; }
+.pics .det { margin: 0; font-size: 14px; }
+.bike-card .cover { display: block; width: calc(100% + 44px); margin: -22px -22px 14px; padding: 0; border: 0; background: none; cursor: pointer; }
+.bike-card .cover img { width: 100%; height: 170px; object-fit: cover; display: block; border-radius: 20px 20px 0 0; }
+.lightbox { gap: 14px; align-content: center; justify-items: center; }
+.lightbox img { max-width: min(92vw, 1000px); max-height: 78vh; border-radius: 14px; background: #fff; }
+.lightbox .pill { width: auto; }
 .row2 { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding: 6px 0; font-size: 16px; }
 .row2.t { font-weight: 600; border: 0; }
 .tag { display: inline-block; border-radius: 99px; padding: 2px 12px; font-size: 14px; font-weight: 600; background: var(--base); color: #fff; }

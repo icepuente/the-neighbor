@@ -179,6 +179,7 @@
     b.services.forEach((s) => ul.appendChild(h('li', '', `${svcName(s)}: ${priceLabel(s)}`)));
     c.appendChild(ul);
     if (b.pricing.travel != null) c.appendChild(h('p', 'det', t('bks.price', { travel: dkk(b.pricing.travel), total: dkk(b.pricing.total) })));
+    if (b.photos && b.photos.length) c.appendChild(UI.gallery(b.photos));
     if (canCancel) {
       c.appendChild(button(t('bks.cancel'), 'alt sm', () => {
         if (!confirm(t('bks.cancelAsk', { ref: b.ref }))) return;
@@ -227,25 +228,48 @@
     });
   }
 
+  // The bike being edited in the form below the cards, or null when the form adds a new bike.
+  let editingBike = null;
+
   function bikes(v, u) {
     const g = h('div', 'grid');
     myBikes(u).forEach((b) => {
       const lastRec = myRecords(u).find((r) => r.bikeId === b.id);
-      const c = h('div', 'paper');
+      const c = h('div', 'paper bike-card');
+      const photos = b.photos || [];
+      // The first photo is the cover; the rest sit as thumbnails under the details.
+      if (photos.length) {
+        const cover = h('button', 'cover');
+        cover.type = 'button';
+        const img = h('img');
+        img.src = photos[0].data;
+        img.alt = t('pics.ofBike', { name: b.name });
+        cover.onclick = () => UI.openPhoto(photos[0].data, img.alt);
+        cover.appendChild(img);
+        c.appendChild(cover);
+      }
       A(c, h('h3', '', b.name), h('p', '', [b.type, b.year].filter(Boolean).join(' · ')), defList([
         [t('bike.size'), b.size], [t('bike.frame'), b.frame], [t('bike.gears'), b.gears], [t('bike.brakes'), b.brakes],
         [t('bike.tyres'), b.tyres], [t('bike.colour'), b.colour], [t('bike.usage'), b.usage],
         [t('bike.last'), lastRec ? shortDate(lastRec.date) : t('bike.notYet')],
       ]));
+      if (photos.length > 1) c.appendChild(UI.gallery(photos.slice(1), (n) => t('pics.alt', { n: n + 1 })));
+      c.appendChild(button(t('bike.edit'), 'alt sm', () => {
+        editingBike = b.id;
+        go(3);
+        $('bike-form').scrollIntoView({ block: 'start' });
+      }));
       g.appendChild(c);
     });
     v.appendChild(g);
 
-    // Add a bike
+    // Add a bike, or edit the one chosen above
+    const editing = editingBike ? myBikes(u).find((b) => b.id === editingBike) : null;
     const f = h('form', 'box');
+    f.id = 'bike-form';
     f.noValidate = true;
     f.style.maxWidth = '640px';
-    f.appendChild(h('h2', '', t('bike.add')));
+    f.appendChild(h('h2', '', editing ? t('bike.editTitle', { name: editing.name }) : t('bike.add')));
     const fields = [
       ['name', t('bike.name'), t('bike.namePh')], ['type', t('bike.type'), t('bike.typePh')], ['year', t('bike.year'), ''],
       ['size', t('bike.size'), ''], ['gears', t('bike.gears'), ''], ['brakes', t('bike.brakes'), ''], ['tyres', t('bike.tyres'), ''],
@@ -260,24 +284,41 @@
       i.type = 'text';
       i.id = 'nb-' + k;
       i.placeholder = ph;
+      if (editing && editing[k] != null) i.value = editing[k];
       l.htmlFor = i.id;
       inputs[k] = i;
       A(wrap, l, i);
       grid.appendChild(wrap);
     });
+    const photoLabel = h('label', 'lb', t('bike.photos'));
+    photoLabel.htmlFor = 'nb-photos';
+    const picker = UI.photoPicker({ max: NB.CONFIG.maxBikePhotos, initial: editing ? editing.photos || [] : [], id: 'nb-photos' });
     const err = h('p', 'err');
-    const submit = h('button', 'pill', t('bike.save'));
+    err.setAttribute('role', 'alert');
+    const submit = h('button', 'pill', t(editing ? 'bike.saveChanges' : 'bike.save'));
     submit.type = 'submit';
-    A(f, grid, err, submit);
+    A(f, grid, photoLabel, h('p', 'det', t('bike.photosHint')), picker.el, err, submit);
+    if (editing) {
+      f.appendChild(button(t('bike.cancel'), 'alt', () => { editingBike = null; go(3); }));
+    }
     f.addEventListener('submit', (e) => {
       e.preventDefault();
-      const bike = {};
+      const bike = { photos: picker.get() };
       Object.entries(inputs).forEach(([k, i]) => { bike[k] = i.value.trim(); });
       if (!bike.name) {
         err.textContent = t('bike.err');
         return;
       }
-      fn.addBike(u.id, bike);
+      try {
+        if (editing) fn.updateBike(u.id, editing.id, bike);
+        else fn.addBike(u.id, bike);
+      } catch (ex) {
+        // The mock keeps photos in the browser, which has little room; the real site uploads them.
+        if (ex.message !== 'storageFull') throw ex;
+        err.textContent = t('err.storage');
+        return;
+      }
+      editingBike = null;
       go(3);
     });
     v.appendChild(f);

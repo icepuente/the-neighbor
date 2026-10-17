@@ -154,7 +154,7 @@
     $('addr').value = user.address || '';
     $('signed-in').hidden = false;
     $('signed-in').textContent = t('bk.signedIn', { name: user.name })
-      + (fn.urgentAvailable(user, dateIn.min) ? ` ${t('bk.urgent')}` : '');
+      + (fn.isUrgentDate(dateIn.min) ? ` ${t('bk.urgent')}` : '');
     $('opts').hidden = true;
   } else if (remembered) {
     $('name').value = remembered.name || '';
@@ -165,8 +165,12 @@
   }
   $('mkacct').onchange = () => { $('pw-row').hidden = !$('mkacct').checked; };
 
+  // Photos of the bike or the problem, shrunk in the browser before they are saved.
+  const bookingPhotos = UI.photoPicker({ max: CONFIG.maxBookingPhotos, id: 'bk-photo-input' });
+  $('bk-photos').appendChild(bookingPhotos.el);
+
   let draft = null;
-  const ERR = ['services', 'date', 'arrival', 'note', 'form'];
+  const ERR = ['services', 'date', 'arrival', 'note', 'photos', 'form'];
   const showErrors = (errors) => ERR.forEach((k) => { $('e-' + k).textContent = errors[k] ? t('err.' + errors[k]) : ''; });
   function show(id) {
     ['f', 'co', 'done'].forEach((x) => { $(x).hidden = x !== id; });
@@ -186,6 +190,7 @@
       phone: $('tel').value.trim(),
       email: $('email').value.trim(),
       note: $('note').value.trim(),
+      photos: bookingPhotos.get(),
     };
     // Same checks the backend runs, so the customer sees the price only for a bookable order.
     const errors = fn.checkBooking(draft, fn.quote(draft.serviceIds, draft.address));
@@ -229,6 +234,10 @@
     notes.textContent = '';
     const note = (x) => notes.appendChild(h('div', 'note', x));
     note(t('co.visit', { min: q.workMin }));
+    if (draft.photos.length) {
+      notes.appendChild(h('p', 'det', t('pics.attached', { n: draft.photos.length })));
+      notes.appendChild(UI.gallery(draft.photos));
+    }
     if (fn.isUrgentDate(draft.date)) note(t('co.urgent'));
     if (q.special) note(t('co.noteSpecial'));
     if (!q.discount && q.oneOffCount === 1 && q.services.some((s) => s.id === 'bike-check')) note(t('co.noteCombo'));
@@ -244,7 +253,15 @@
       $('consent').hidden = false;
       return;
     }
-    const res = fn.createBooking(draft, consent);
+    let res;
+    try {
+      res = fn.createBooking(draft, consent);
+    } catch (e) {
+      // The mock keeps photos in the browser, which has little room; the real site uploads them.
+      if (e.message !== 'storageFull') throw e;
+      $('e-confirm').textContent = t('err.storage');
+      return;
+    }
     if (res.errors) {
       showErrors(res.errors);
       if (res.errors.arrival) renderSlots();
@@ -276,6 +293,7 @@
       `${t('sum.bike')}: ${b.bike}`,
       `${t('sum.address')}: ${b.address}`,
       `${t('sum.notes')}: ${b.note || '–'}`,
+      b.photos.length ? t('pics.attached', { n: b.photos.length }) : null,
     ].filter((x) => x != null).join('\n');
     const acct = $('done-acct');
     acct.textContent = '';

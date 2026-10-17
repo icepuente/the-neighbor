@@ -105,7 +105,10 @@
         ['Phone', b.phone], ['Email', b.email], ['Address', b.address], ['Bike', b.bike], ['Notes', b.note],
         ['Travel', b.pricing.travel == null ? 'to confirm' : `${dkk(b.pricing.travel)} (${b.pricing.distanceKm} km)`], ['Ref', b.ref],
       ]));
-      A(c, head, h('p', 'det', `${services} · ${price}`), more);
+      A(c, head, h('p', 'det', `${services} · ${price}`));
+      // Photos the customer attached: the bike, or the problem to look at.
+      if (b.photos && b.photos.length) c.appendChild(UI.gallery(b.photos, (n) => `Customer photo ${n}`));
+      c.appendChild(more);
       if (b.status === 'pending') c.appendChild(button('Confirm', 'alt sm', () => { fn.setBookingStatus(b.id, 'confirmed'); go(0); }));
       if (['pending', 'confirmed'].includes(b.status)) {
         if (b.customerUid) {
@@ -178,14 +181,26 @@
     companies.forEach((c) => g2.appendChild(new Option(c.name, 'c:' + c.id)));
     A(who, g1, g2);
     const bike = h('select');
+    // The customer's own photos of the chosen bike, to recognise it on site.
+    const bikePhotos = h('div');
+    let bikeList = [];
+    const showBikePhotos = () => {
+      bikePhotos.textContent = '';
+      const b = bikeList.find((x) => x.id === bike.value);
+      if (b && b.photos && b.photos.length) {
+        A(bikePhotos, h('p', 'det', "Customer's photos of this bike"), UI.gallery(b.photos, (n) => `${b.name} photo ${n}`));
+      }
+    };
     const fillBikes = () => {
       bike.textContent = '';
       const [kind, id] = who.value.split(':');
-      const list = kind === 'u' ? store.list(`users/${id}/bikes`) : store.list(`companies/${id}/bikes`);
-      list.forEach((b) => bike.appendChild(new Option(b.name || `${b.number} · ${b.type}`, b.id)));
-      if (!list.length) bike.appendChild(new Option('No bikes saved yet', ''));
+      bikeList = kind === 'u' ? store.list(`users/${id}/bikes`) : store.list(`companies/${id}/bikes`);
+      bikeList.forEach((b) => bike.appendChild(new Option(b.name || `${b.number} · ${b.type}`, b.id)));
+      if (!bikeList.length) bike.appendChild(new Option('No bikes saved yet', ''));
+      showBikePhotos();
     };
     who.onchange = fillBikes;
+    bike.onchange = showBikePhotos;
     fillBikes();
 
     const date = input('date', pre ? pre.date : util.today());
@@ -207,7 +222,7 @@
     A(r2, field('Date', date), field('Title', title));
     const r3 = h('div', 'row');
     A(r3, field('Service price (DKK)', price), field('Travel (DKK)', travel));
-    A(f, r1, r2, r3, field('Work done', work), field('Parts used', parts), field('Mechanic\'s notes', notes), field('Photos', photos));
+    A(f, r1, bikePhotos, r2, r3, field('Work done', work), field('Parts used', parts), field('Mechanic\'s notes', notes), field('Photos', photos));
 
     const recBox = h('details', 'paper');
     recBox.style.background = '#fff';

@@ -102,7 +102,8 @@ Browser (static HTML/CSS/JS, no build step, as today)
   │  Firebase JS SDK
   ├── Firebase Authentication ── email + password, email verification, password reset
   ├── Cloud Firestore ────────── customers read their own data, enforced by security rules
-  ├── Cloud Storage ──────────── service photos (owner uploads, customer reads own)
+  ├── Cloud Storage ──────────── photos: service records (owner), saved bikes and bookings
+  │                               (customer); see decision 15
   └── Cloud Functions ────────── anything that must be trusted:
         quoteBooking             full price incl. travel (Maps Routes API), shown before confirming
         createBooking            validate, re-price, check time blocks, write booking, send emails
@@ -144,7 +145,8 @@ plans/{basic|standard|premium}
 
 users/{uid}                 role: private | business | admin, name, email, phone, address,
                             companyId?, consent { data, terms, version, at }, createdAt
-users/{uid}/bikes/{bikeId}  name, type, year, size, frame, gears, brakes, tyres, colour, usage
+users/{uid}/bikes/{bikeId}  name, type, year, size, frame, gears, brakes, tyres, colour, usage,
+                            photos[{ id, path, thumbPath, w, h, uploadedAt }] (max 4, first = cover)
 
 companies/{companyId}       name, type, plan, pricePerBike, contact, address, memberUids[],
                             nextVisit, status: lead | active | ended
@@ -157,8 +159,9 @@ companies/{id}/reports/{yyyy-mm}
 bookings/{id}               ref "TN-1042", status pending | confirmed | completed | cancelled,
                             customerUid?, guestToken, services[{ id, name, price, monthly }],
                             date, arrival "10:30", bikeType | bikeId, address, distanceKm,
-                            pricing { oneOff, comboDiscount, monthly, travel, total },
-                            note, consent { data, terms, version, at }, createdAt
+                            pricing { oneOff, discount, discountReason, monthly, travel, total },
+                            urgent: bool, note, photos[{ id, path, thumbPath, w, h, uploadedAt }]
+                            (max 3), consent { data, terms, version, at }, createdAt
 bookings/{id}/messages/{id} direction in | out, body, emailStatus, createdAt  (as today)
 
 serviceRecords/{id}         ownerUid | companyId, bikeId, bookingId?, date, title,
@@ -178,7 +181,8 @@ stored totals never carry floating-point remainders.
 **Security rules, in short.** A private customer reads `users/{uid}` and its subcollections, and
 `bookings`, `serviceRecords` and `recommendations` where `ownerUid == uid`. A business member reads
 its company and its subcollections when `companyId` matches the custom claim. `admin` reads and
-writes everything. No client writes to `bookings`, `consultations` or prices.
+writes everything. No client writes to `bookings`, `consultations` or prices. Photo files in Cloud
+Storage have their own rules (decision 15).
 
 ## 5. Site structure
 
@@ -200,13 +204,15 @@ Each phase ends with something usable, so it can stop at any point.
 
 1. **Foundations.** Firebase project in the chosen EU region; Blaze plan with a budget alert; Hosting
    on a Firebase subdomain; the new design and content; consent popup; `createBooking` and
-   `createConsultation` Functions with emails. Also a small proof of concept for the phase 7 demo:
+   `createConsultation` Functions with emails; **booking photos** (decision 15), including guest
+   uploads through anonymous sign-in. Also a small proof of concept for the phase 7 demo:
    the emulators behind nginx and the tunnel, reached over HTTPS. *Result: the public site works end
    to end and stores everything.*
 2. **Owner dashboard on Firebase.** Port today's admin features (statuses, reschedule, notes,
    messages, closed days, CSV) and add consultation leads.
 3. **Private accounts.** Sign-up and log-in, linking past guest bookings by verified email; history,
-   bikes and recommendations; the owner's "log a visit" form with photo upload.
+   bikes (with **bike photos**, added and edited, decision 15) and recommendations; the owner's "log
+   a visit" form with photo upload.
 4. **Business accounts.** Invite-only company accounts, fleets, monthly reports, the scheduled report
    job, and a printable or PDF report.
 5. **Go live on the .dk domain.** The Neighbor is hosted separately from the current server, on its
@@ -247,6 +253,9 @@ Each phase ends with something usable, so it can stop at any point.
   Maps APIs in the project switches it to Blaze automatically, which Functions need anyway.
 - **Domain:** a .dk name from a Danish registrar (Cloudflare Registrar does not sell .dk), with DNS on
   Cloudflare.
+- **Photos** (decision 15): about 300 KB per photo after shrinking, plus a small thumbnail, so 1,000
+  photos take roughly 0.3 GB. Check that against Cloud Storage's no-cost quota when the project is
+  created in phase 1. Anonymous sign-in for guests is part of the free Authentication options.
 
 ## 8. Decisions
 
@@ -332,13 +341,48 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
     that booking is marked urgent, and the owner's notification email and dashboard show it as
     urgent. A second urgent booking in the same month is refused; cancelling the urgent booking
     frees it again. Same-day bookings are not possible for anyone. Considered and not chosen:
-    calendar times held back for Care Plus members, and arranging urgent visits only by phone.
+    calendar times held back for Care Plus members, and arranging urgent visits only by phone. If
+    tomorrow is closed (a Sunday or a blocked day), no urgent visit is offered for it.
+15. **Bike photos (2026-10-17).** Customers can attach **up to 3 photos when booking** (optional:
+    the bike, or the problem), and keep **up to 4 photos on each saved bike**, added when the bike
+    is created or later by editing it; the first is the cover photo. The owner sees a booking's
+    photos on the booking, and a bike's photos in "Log a visit" to recognise it on site. Backend
+    design, to build in phase 1 (booking photos) and phase 3 (bike photos):
+    - **Shrunk in the browser before upload.** The page redraws each photo on a canvas at most
+      1600 px on its long side (the mock uses 800 px, because it keeps photos in the browser) and
+      saves it as JPEG at about 80% quality, roughly 300 KB, plus a 320 px thumbnail for lists.
+      Uploads stay fast on a phone, and redrawing **removes EXIF data, including GPS location**: a
+      photo of a bike taken at home would otherwise carry the home's coordinates.
+    - **Where files live (Cloud Storage):** `users/{uid}/bikes/{bikeId}/{photoId}.jpg` and
+      `bookings/{bookingId}/{photoId}.jpg`, each with a `{photoId}_thumb.jpg`. Firestore keeps only
+      the list `photos[{ id, path, thumbPath, w, h, uploadedAt }]` on the bike or booking.
+    - **Guests.** Storage needs a signed-in user to accept an upload, and guests can book without an
+      account. The booking page therefore signs a guest in with Firebase **Anonymous
+      Authentication** (invisible to them) and uploads to `uploads/{uid}/{photoId}.jpg`.
+      `createBooking` checks the files belong to the caller, moves them into the booking's folder
+      and records them. If the guest then creates an account, the anonymous user is linked to it,
+      so nothing is lost. Signed-in customers use the same route.
+    - **Rules.** Customers may write only to their own `uploads/{uid}/` and
+      `users/{uid}/bikes/...`, JPEG only, at most 2 MB per file. Photos can be read by the customer
+      they belong to and by the owner (`admin`). Firestore rules cap a bike at 4 photos, and
+      `createBooking` refuses more than 3.
+    - **Clean-up.** A scheduled Function deletes uploads not attached to a booking within 24 hours.
+      Removing a photo, deleting a bike or deleting an account deletes the files too (GDPR).
+    - **Demo.** The Storage emulator covers this on the home server; it is the part already
+      flagged as least certain in the phase 1 proof of concept.
 
 ### Still open
 
-Nothing at the moment. *Done 2026-10-13:* the travel gap (15 minutes), the Diagnostics time and
-tube, the monthly plans, the combo discount, Care Plus scheduling (decision 14), a repair added to
-the Care check-up (no combo), and connecting the Windows PC to Jarvis.
+- **A. Booking photos and saved bikes.** When a signed-in customer books with one of their saved
+  bikes, should the booking photos also be added to that bike? The mock keeps them on the booking
+  only.
+- **B. How long to keep booking photos** after the visit: for example 12 months, or as long as the
+  booking is kept.
+- **C. Business fleets.** Photos for fleet bikes too (added by the owner during fleet checks), or
+  private customers only for now?
+- *Done 2026-10-13:* the travel gap (15 minutes), the Diagnostics time and tube, the monthly plans,
+  the combo discount, Care Plus scheduling (decision 14), a repair added to the Care check-up (no
+  combo), and connecting the Windows PC to Jarvis.
 
 ## The mock site
 
@@ -353,7 +397,9 @@ Saturday with work finished by 15:30, bookings of at most 45 minutes that block 
 travel gap, "Remember me" and "Create an account" on the booking form, and the full price with
 travel shown before confirming. It also has the owner's six services with their prices and times,
 the two Care subscriptions with their terms, the 5% combo and Care Plus discounts, the 2-day lead
-time with Care Plus's next-day urgent visit (the demo customer Anna has Care Plus), and refuses a
+time with Care Plus's next-day urgent visit (the demo customer Anna has Care Plus), bike photos on
+bookings and saved bikes (decision 15; photos are kept in the browser, so its storage can fill up
+after many photos, and "Reset demo data" clears it), and refuses a
 booking whose services add up to more than 45 minutes. One stand-in remains: travel is estimated
 from the postcode instead of Google Maps (the price page says so). The owner dashboard is English
 only.
