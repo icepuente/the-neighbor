@@ -32,6 +32,21 @@ export async function copyToBooking(b, uid, photos, bookingId) {
   }));
 }
 
+// Copies a booking's photos onto the customer's saved bike (decision 15), as new files with new ids
+// so deleting one copy leaves the other. Returns the entries for the bike's photo list.
+export async function copyToBike(b, photos, uid, bikeId, bookingId) {
+  const uploadedAt = new Date().toISOString();
+  return Promise.all(photos.map(async (p) => {
+    const id = randomId();
+    const path = `users/${uid}/bikes/${bikeId}/${id}.jpg`;
+    const thumbPath = `users/${uid}/bikes/${bikeId}/${id}_thumb.jpg`;
+    await Promise.all([b.file(p.path).copy(b.file(path)), b.file(p.thumbPath).copy(b.file(thumbPath))]);
+    return { id, path, thumbPath, w: p.w, h: p.h, uploadedAt, fromBooking: bookingId };
+  }));
+}
+// 20 lower-case letters and digits, as the site makes photo ids.
+const randomId = () => Array.from(crypto.getRandomValues(new Uint8Array(20)), (x) => 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]).join('');
+
 export const deleteFiles = (b, paths) => Promise.all(paths.map((p) => b.file(p).delete({ ignoreNotFound: true })));
 export const deleteUploads = (b, uid, photos) => deleteFiles(b, photos.flatMap((p) => uploadPaths(uid, p.id)));
 

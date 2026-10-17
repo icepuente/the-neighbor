@@ -97,3 +97,80 @@ test('demoVerifyEmail marks the address verified, on the emulators', async () =>
   const s = await (await fetch(`${AUTH}/accounts:lookup?key=demo`, { method: 'POST', headers: json, body: JSON.stringify({ idToken: u.headers.Authorization.slice(7) }) })).json();
   assert.equal(s.users[0].emailVerified, true);
 });
+
+// ---- Saved bikes (phase 3b) ----
+const BUCKET = `${P}.firebasestorage.app`;
+const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1, 0xff, 0xd9]);
+const upload = async (headers, path) => (await fetch(`http://127.0.0.1:9199/v0/b/${BUCKET}/o?name=${encodeURIComponent(path)}`, {
+  method: 'POST', headers: { Authorization: headers.Authorization.replace('Bearer', 'Firebase'), 'Content-Type': 'image/jpeg' }, body: JPEG,
+})).status;
+const readFile = async (headers, path) => (await fetch(`http://127.0.0.1:9199/v0/b/${BUCKET}/o/${encodeURIComponent(path)}?alt=media`, {
+  headers: { Authorization: headers.Authorization.replace('Bearer', 'Firebase') },
+})).status;
+const pid = (n) => `${'b'.repeat(14)}${String(n).padStart(6, '0')}`;
+const photoVal = (uid, bike, id) => ({ mapValue: { fields: {
+  id: { stringValue: id }, path: { stringValue: `users/${uid}/bikes/${bike}/${id}.jpg` }, thumbPath: { stringValue: `users/${uid}/bikes/${bike}/${id}_thumb.jpg` },
+} } });
+const putBike = (headers, uid, bike, fields) => fetch(`${FS}/users/${uid}/bikes/${bike}`, {
+  method: 'PATCH', headers: { ...headers, ...json }, body: JSON.stringify({ fields }),
+});
+
+test('saved bikes: a customer manages their own, with up to 4 photos in their own folder', async () => {
+  const u = await signUp('bikes@example.com');
+  await call('syncAccount', { profile: { name: 'Bike Owner' } }, u.headers);
+  const other = await signUp('bikes-other@example.com');
+  await call('syncAccount', { profile: { name: 'Other' } }, other.headers);
+  // Photos: into their own bike folder, as a signed-in account.
+  assert.equal(await upload(u.headers, `users/${u.uid}/bikes/b1/${pid(1)}.jpg`), 200, 'own bike folder');
+  assert.equal(await upload(u.headers, `users/${u.uid}/bikes/b1/${pid(1)}_thumb.jpg`), 200, 'and its thumbnail');
+  assert.equal(await upload(other.headers, `users/${u.uid}/bikes/b1/${pid(2)}.jpg`), 403, "not someone else's folder");
+  const anon = await (await fetch(`${AUTH}/accounts:signUp?key=demo`, { method: 'POST', headers: json, body: '{"returnSecureToken":true}' })).json();
+  assert.equal(await upload({ Authorization: `Bearer ${anon.idToken}` }, `users/${anon.localId}/bikes/b1/${pid(3)}.jpg`), 403, 'not an anonymous guest');
+  assert.equal(await readFile(u.headers, `users/${u.uid}/bikes/b1/${pid(1)}.jpg`), 200, 'the customer sees their photo');
+  assert.equal(await readFile(other.headers, `users/${u.uid}/bikes/b1/${pid(1)}.jpg`), 403, 'another customer does not');
+  // The bike document.
+  const name = { stringValue: 'Trek FX 3' };
+  assert.equal((await putBike(u.headers, u.uid, 'b1', { name, photos: { arrayValue: { values: [photoVal(u.uid, 'b1', pid(1))] } } })).status, 200, 'a bike with a photo');
+  assert.equal((await putBike(other.headers, u.uid, 'b2', { name })).status, 403, "not in someone else's account");
+  assert.equal((await putBike(u.headers, u.uid, 'b3', { name: { stringValue: '' } })).status, 403, 'a bike needs a name');
+  assert.equal((await putBike(u.headers, u.uid, 'b3', { name, owner: { stringValue: 'x' } })).status, 403, 'only known fields');
+  assert.equal((await putBike(u.headers, u.uid, 'b3', { name, photos: { arrayValue: { values: [photoVal(other.uid, 'b1', pid(9))] } } })).status, 403, "a photo must be in this bike's folder");
+  const five = { arrayValue: { values: [1, 2, 3, 4, 5].map((n) => photoVal(u.uid, 'b3', pid(n))) } };
+  assert.equal((await putBike(u.headers, u.uid, 'b3', { name, photos: five })).status, 403, 'at most 4 photos');
+  assert.equal((await read(`users/${u.uid}/bikes/b1`, other.headers)).status, 403, "another customer cannot read the bike");
+});
+
+test("createBooking: a saved bike is linked, and the booking's photos are added to it", async () => {
+  const u = await signUp('bike-booking@example.com');
+  await call('syncAccount', { profile: { name: 'Bike Booker' } }, u.headers);
+  assert.equal((await putBike(u.headers, u.uid, 'cargo', { name: { stringValue: 'Ladcykel' } })).status, 200);
+  // The booking photo, uploaded the way the booking form does.
+  const id = pid(42);
+  assert.equal(await upload(u.headers, `uploads/${u.uid}/${id}.jpg`), 200);
+  assert.equal(await upload(u.headers, `uploads/${u.uid}/${id}_thumb.jpg`), 200);
+  const input = { serviceIds: ['chain'], date: day, arrival: '13:30', bike: 'Ladcykel', bikeId: 'cargo', address: 'Jagtvej 1, 2200 København N', name: 'B', phone: '1', email: u.email, photos: [{ id, w: 10, h: 10 }] };
+  const r = (await call('createBooking', { input, accept: { terms: true, earlyStart: true } }, u.headers)).result;
+  assert.ok(r.booking, JSON.stringify(r.errors));
+  assert.equal(r.booking.photosAddedToBike, 1, 'the photo is added to the bike');
+  const booking = await (await read(`bookings/${r.booking.id}`, u.headers)).json();
+  assert.equal(booking.fields.bikeId.stringValue, 'cargo', 'the booking is linked to the saved bike');
+  const bike = await (await read(`users/${u.uid}/bikes/cargo`, u.headers)).json();
+  const photo = bike.fields.photos.arrayValue.values[0].mapValue.fields;
+  assert.ok(photo.path.stringValue.startsWith(`users/${u.uid}/bikes/cargo/`) && photo.fromBooking.stringValue === r.booking.id, 'stored in the bike\'s folder, marked with the booking');
+  assert.equal(await readFile(u.headers, photo.path.stringValue), 200, 'and the customer can see it');
+  // A bike id that is not the customer's own is ignored.
+  const guest = (await call('createBooking', { input: { ...input, arrival: '14:30', photos: [], email: 'g@example.com' }, accept: { terms: true, earlyStart: true } })).result;
+  const gb = await (await read(`bookings/${guest.booking.id}`, ADMIN)).json();
+  assert.equal(gb.fields.bikeId.nullValue, null, 'a guest cannot link a saved bike');
+});
+
+test('saved bikes: a customer deletes their own bike, not someone else\'s', async () => {
+  const u = await signUp('bike-delete@example.com');
+  await call('syncAccount', { profile: { name: 'Deleter' } }, u.headers);
+  const other = await signUp('bike-delete-other@example.com');
+  assert.equal((await putBike(u.headers, u.uid, 'old', { name: { stringValue: 'Old bike' } })).status, 200);
+  assert.equal((await fetch(`${FS}/users/${u.uid}/bikes/old`, { method: 'DELETE', headers: other.headers })).status, 403, 'not another customer');
+  const del = await fetch(`${FS}/users/${u.uid}/bikes/old`, { method: 'DELETE', headers: u.headers });
+  assert.equal(del.status, 200, `the customer deletes it (${del.status} ${await del.text()})`);
+  assert.equal((await read(`users/${u.uid}/bikes/old`, u.headers)).status, 404, 'and it is gone');
+});

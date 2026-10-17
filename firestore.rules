@@ -27,6 +27,34 @@ service cloud.firestore {
         && shortText(request.resource.data.name, 100) && request.resource.data.name.size() > 0
         && shortText(request.resource.data.phone, 40) && shortText(request.resource.data.address, 200)
         && shortText(request.resource.data.apartment, 40);
+
+      // Saved bikes: the customer adds, edits and deletes their own; the owner reads them. Up to 4
+      // photos, each stored under this bike's own folder in Cloud Storage (storage.rules).
+      match /bikes/{bikeId} {
+        allow read: if isCustomer(uid) || isOwner();
+        allow delete: if isCustomer(uid);
+        allow create, update: if isCustomer(uid) && validBike(request.resource.data, uid, bikeId);
+      }
+    }
+
+    function photoOk(p, uid, bikeId) {
+      return p.keys().hasOnly(['id', 'path', 'thumbPath', 'w', 'h', 'uploadedAt', 'fromBooking'])
+        && p.path is string && p.path.matches('users/' + uid + '/bikes/' + bikeId + '/[a-z0-9]{20}[.]jpg')
+        && p.thumbPath is string && p.thumbPath.matches('users/' + uid + '/bikes/' + bikeId + '/[a-z0-9]{20}_thumb[.]jpg');
+    }
+    function validBike(d, uid, bikeId) {
+      return d.keys().hasOnly(['name', 'type', 'year', 'size', 'frame', 'gears', 'brakes', 'tyres', 'colour', 'usage', 'photos', 'updatedAt'])
+        && shortText(d.name, 80) && d.name.size() > 0
+        && (!('type' in d) || shortText(d.type, 80)) && (!('year' in d) || shortText(d.year, 10))
+        && (!('size' in d) || shortText(d.size, 40)) && (!('frame' in d) || shortText(d.frame, 60))
+        && (!('gears' in d) || shortText(d.gears, 60)) && (!('brakes' in d) || shortText(d.brakes, 60))
+        && (!('tyres' in d) || shortText(d.tyres, 60)) && (!('colour' in d) || shortText(d.colour, 40))
+        && (!('usage' in d) || shortText(d.usage, 200))
+        && (!('photos' in d) || (d.photos is list && d.photos.size() <= 4
+          && (d.photos.size() < 1 || photoOk(d.photos[0], uid, bikeId))
+          && (d.photos.size() < 2 || photoOk(d.photos[1], uid, bikeId))
+          && (d.photos.size() < 3 || photoOk(d.photos[2], uid, bikeId))
+          && (d.photos.size() < 4 || photoOk(d.photos[3], uid, bikeId))));
     }
 
     // Bookings: the owner reads them and changes only their status and the owner's own note.

@@ -14,7 +14,8 @@ const {
   onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendEmailVerification,
   sendPasswordResetEmail, EmailAuthProvider, linkWithCredential, updateProfile,
 } = sdk.auth;
-const { collection, doc, onSnapshot, query, where, updateDoc } = sdk.firestore;
+const { collection, doc, onSnapshot, query, where, updateDoc, setDoc, deleteDoc, serverTimestamp } = sdk.firestore;
+const { ref: storageRef, uploadBytes, getBlob, deleteObject } = sdk.storage;
 
 const dkk = I18N.dkk;
 const fmtDate = I18N.date;
@@ -109,6 +110,7 @@ const stop = () => { while (unsubscribe.length) unsubscribe.pop()(); };
 let me = null;
 let profile = null;
 let bookings = [];
+let myBikes = [];
 let current = 0;
 
 onAuthStateChanged(auth, async (user) => {
@@ -137,6 +139,10 @@ async function enter(user) {
   unsubscribe.push(onSnapshot(doc(db, 'users', user.uid), (s) => { profile = s.data() || null; render(); }));
   unsubscribe.push(onSnapshot(query(collection(db, 'bookings'), where('customerUid', '==', user.uid)), (s) => {
     bookings = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+    render();
+  }));
+  unsubscribe.push(onSnapshot(collection(db, 'users', user.uid, 'bikes'), (s) => {
+    myBikes = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
     render();
   }));
 }
@@ -171,6 +177,7 @@ const upcoming = () => bookings.filter((b) => b.date >= R.today() && ['pending',
 const tabs = [
   [() => t('tab.overview'), overview],
   [() => t('tab.bookings'), bookingsView, () => upcoming().length],
+  [() => t('tab.bikes'), bikesView],
   [() => t('tab.profile'), profileView],
 ];
 
@@ -321,4 +328,161 @@ function profileView(v) {
     search: async (q) => (await callFn('addressSearch', { q })).suggestions || [],
     onPick: () => form.querySelector('#pf-apt').focus(),
   });
+}
+
+// ---- My bikes: saved bikes with up to 4 photos (the first is the cover) ----
+// Photos live in Cloud Storage under users/{uid}/bikes/{bikeId}/ (storage.rules); the bike document
+// lists them. Files are read with the customer's sign-in and shown from local object URLs.
+const blobUrls = new Map();
+const photoUrl = (path) => {
+  if (!blobUrls.has(path)) blobUrls.set(path, getBlob(storageRef(NBF.storage, path)).then((b) => URL.createObjectURL(b)));
+  return blobUrls.get(path);
+};
+const BIKE_FIELDS = [
+  ['name', 'bike.name', 'bike.namePh', 80], ['type', 'bike.type', 'bike.typePh', 80], ['year', 'bike.year', '', 10],
+  ['size', 'bike.size', '', 40], ['gears', 'bike.gears', '', 60], ['brakes', 'bike.brakes', '', 60], ['tyres', 'bike.tyres', '', 60],
+  ['colour', 'bike.colour', '', 40], ['usage', 'bike.usageLabel', 'bike.usagePh', 200],
+];
+// The form's state lives here, not in the page, so live re-draws keep its photos.
+let bikeForm = null; // { id, editing, picker, error, busy }
+
+async function openBikeForm(bike) {
+  const initial = [];
+  for (const p of bike?.photos || []) {
+    // Existing photos are shown from their thumbnails and kept as they are when saved.
+    initial.push({ ...p, data: await photoUrl(p.thumbPath).catch(() => ''), stored: true });
+  }
+  bikeForm = {
+    id: bike ? bike.id : doc(collection(db, 'users', me.uid, 'bikes')).id,
+    editing: bike || null,
+    picker: UI.photoPicker({ max: R.CONFIG.maxBikePhotos, initial, id: 'nb-photos', full: 1600, quality: 0.8, thumb: 320 }),
+  };
+  render();
+  document.getElementById('bike-form')?.scrollIntoView({ block: 'start' });
+}
+
+function bikesView(v) {
+  if (!myBikes.length) v.append(h('p', 'sub', t('bike.none')));
+  const g = h('div', 'grid');
+  for (const b of myBikes) {
+    const c = h('div', 'paper bike-card');
+    c.dataset.bike = b.name;
+    const photos = b.photos || [];
+    if (photos.length) {
+      const cover = h('button', 'cover');
+      cover.type = 'button';
+      const img = h('img');
+      img.alt = t('pics.ofBike', { name: b.name });
+      photoUrl(photos[0].thumbPath).then((u) => { img.src = u; }, () => {});
+      cover.onclick = async () => UI.openPhoto(await photoUrl(photos[0].path), img.alt);
+      cover.append(img);
+      c.append(cover);
+    }
+    A(c, h('h3', '', b.name), h('p', '', [b.type, b.year].filter(Boolean).join(' · ')), UI.defList([
+      [t('bike.size'), b.size], [t('bike.gears'), b.gears], [t('bike.brakes'), b.brakes], [t('bike.tyres'), b.tyres],
+      [t('bike.colour'), b.colour], [t('bike.usage'), b.usage],
+    ]));
+    if (photos.length > 1) {
+      const row = h('div', 'pics-grid');
+      photos.slice(1).forEach((p, i) => {
+        const btn = h('button', 'pic');
+        btn.type = 'button';
+        const img = h('img');
+        img.alt = t('pics.alt', { n: i + 2 });
+        photoUrl(p.thumbPath).then((u) => { img.src = u; }, () => {});
+        btn.onclick = async () => UI.openPhoto(await photoUrl(p.path), img.alt);
+        btn.append(img);
+        row.append(btn);
+      });
+      c.append(row);
+    }
+    c.append(button(t('bike.edit'), 'alt sm', () => openBikeForm(b)));
+    // Deleting takes two clicks, and removes the photos too.
+    const del = button(t('bike.delete'), 'alt sm', async () => {
+      if (!del.dataset.armed) {
+        del.dataset.armed = '1';
+        del.textContent = t('bike.deleteArmed');
+        setTimeout(() => { delete del.dataset.armed; del.textContent = t('bike.delete'); }, 5000);
+        return;
+      }
+      del.disabled = true;
+      await Promise.all(photos.flatMap((p) => [p.path, p.thumbPath]).map((path) => deleteObject(storageRef(NBF.storage, path)).catch(() => {})));
+      await deleteDoc(doc(db, 'users', me.uid, 'bikes', b.id));
+      if (bikeForm?.id === b.id) bikeForm = null;
+    });
+    c.append(del);
+    g.append(c);
+  }
+  v.append(g);
+
+  if (!bikeForm) {
+    v.append(button(t('bike.add'), 'pill', () => openBikeForm(null)));
+    return;
+  }
+  const f = bikeForm;
+  const e = f.editing;
+  const form = h('form', 'box');
+  form.id = 'bike-form';
+  form.noValidate = true;
+  form.style.maxWidth = '640px';
+  form.append(h('h2', '', e ? t('bike.editTitle', { name: e.name }) : t('bike.add')));
+  const grid = h('div', 'row');
+  for (const [k, label, ph, max] of BIKE_FIELDS) {
+    const wrap = h('div');
+    const l = h('label', '', t(label));
+    const i = h('input');
+    i.type = 'text';
+    i.id = `nb-${k}`;
+    i.maxLength = max;
+    if (ph) i.placeholder = t(ph);
+    i.value = e?.[k] || '';
+    i.dataset.keep = `nb-${k}`;
+    l.htmlFor = i.id;
+    A(wrap, l, i);
+    grid.append(wrap);
+  }
+  const photoLabel = h('label', 'lb', t('bike.photos'));
+  photoLabel.htmlFor = 'nb-photos';
+  const err = h('p', 'err', f.error || '');
+  err.setAttribute('role', 'alert');
+  const submit = h('button', 'pill', t(e ? 'bike.saveChanges' : 'bike.save'));
+  submit.type = 'submit';
+  submit.disabled = Boolean(f.busy);
+  A(form, grid, photoLabel, h('p', 'det', t('bike.photosHint')), f.picker.el, err, submit,
+    button(t('bike.cancel'), 'alt', () => { bikeForm = null; render(); }));
+  form.onsubmit = (ev) => { ev.preventDefault(); saveBike(form); };
+  v.append(form);
+}
+
+async function saveBike(form) {
+  const f = bikeForm;
+  const fields = {};
+  for (const [k] of BIKE_FIELDS) fields[k] = form.querySelector(`#nb-${k}`).value.trim();
+  if (!fields.name) { f.error = t('bike.err'); render(); return; }
+  f.busy = true;
+  f.error = null;
+  render();
+  try {
+    const folder = `users/${me.uid}/bikes/${f.id}`;
+    const photos = [];
+    for (const p of f.picker.get()) {
+      if (p.stored) { const { data: _d, stored: _s, ...kept } = p; photos.push(kept); continue; }
+      const put = async (path, dataUrl) => uploadBytes(storageRef(NBF.storage, path), await (await fetch(dataUrl)).blob(), { contentType: 'image/jpeg' });
+      const path = `${folder}/${p.id}.jpg`;
+      const thumbPath = `${folder}/${p.id}_thumb.jpg`;
+      await Promise.all([put(path, p.data), put(thumbPath, p.thumb)]);
+      photos.push({ id: p.id, path, thumbPath, w: p.w, h: p.h, uploadedAt: new Date().toISOString() });
+    }
+    // Photos removed in the form: delete their files.
+    const keep = new Set(photos.map((p) => p.id));
+    const gone = (f.editing?.photos || []).filter((p) => !keep.has(p.id));
+    await setDoc(doc(db, 'users', me.uid, 'bikes', f.id), { ...fields, photos, updatedAt: serverTimestamp() });
+    await Promise.all(gone.flatMap((p) => [p.path, p.thumbPath]).map((path) => deleteObject(storageRef(NBF.storage, path)).catch(() => {})));
+    for (const el of document.querySelectorAll('#bike-form [data-dirty]')) delete el.dataset.dirty;
+    bikeForm = null;
+  } catch {
+    f.busy = false;
+    f.error = t('acc.err.server');
+  }
+  render();
 }

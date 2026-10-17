@@ -197,7 +197,21 @@ firebaseReady.then(({ NBF }) => NBF.sdk.auth.onAuthStateChanged(NBF.auth, async 
   $('signed-in').hidden = false;
   $('signed-in').textContent = t('bk.signedIn', { name: p.name.split(' ')[0] });
   $('opts').hidden = true;
+  // Their saved bikes come first in the bike list; booking photos are kept on the chosen one too.
+  const fs = NBF.sdk.firestore;
+  const saved = (await fs.getDocs(fs.collection(NBF.db, 'users', user.uid, 'bikes'))).docs
+    .map((d) => ({ id: d.id, name: d.get('name') })).sort((a, b) => a.name.localeCompare(b.name));
+  for (const b of saved.toReversed()) {
+    const o = new Option(b.name, b.name);
+    o.dataset.bikeId = b.id;
+    bikeSel.prepend(o);
+  }
+  if (saved.length) bikeSel.selectedIndex = 0;
+  updatePhotoHint();
 }));
+const chosenBikeId = () => bikeSel.selectedOptions[0]?.dataset.bikeId || null;
+const updatePhotoHint = () => { $('pics-to-bike').hidden = !chosenBikeId(); };
+bikeSel.addEventListener('change', updatePhotoHint);
 
 // Danish address suggestions while typing (js/address.js); free text still works.
 attachAddressSuggest($('addr'), {
@@ -247,6 +261,7 @@ $('f').addEventListener('submit', async (e) => {
     date: dateIn.value,
     arrival: slot ? slot.value : '',
     bike: bikeSel.value,
+    bikeId: chosenBikeId(),
     address: $('addr').value.trim(),
     apartment: $('addr2').value.trim(),
     name: $('name').value.trim(),
@@ -355,7 +370,8 @@ $('confirm').onclick = async () => {
   } else {
     localStorage.removeItem(REMEMBER_KEY);
   }
-  $('done-msg').textContent = t('done.msg', { ref: b.ref, email: b.email });
+  $('done-msg').textContent = t('done.msg', { ref: b.ref, email: b.email })
+    + (b.photosAddedToBike ? ` ${t('pics.addedToBike', { n: b.photosAddedToBike, name: draft.bike })}` : '');
   $('sum').textContent = [
     ...quote.services.map((s) => `${svcName(s)}: ${priceLabel(s)}`),
     b.pricing.discount ? `${t(`co.discount.${b.pricing.discountReason}`)}: −${dkk(b.pricing.discount)}` : null,

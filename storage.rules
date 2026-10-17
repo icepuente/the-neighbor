@@ -3,8 +3,8 @@ rules_version = '2';
 // Cloud Storage rules (plan, decision 15). Browsers may only drop booking photos into their own
 // upload folder; createBooking (a Cloud Function, which these rules do not restrict) checks them and
 // moves them into the booking's folder, and a scheduled clean-up deletes uploads never booked.
-// The owner (an account with the `admin` claim) reads booking photos in the dashboard; customer
-// accounts read their own in phase 3.
+// The owner (an account with the `admin` claim) reads booking photos in the dashboard; customers
+// manage the photos of their saved bikes.
 service firebase.storage {
   match /b/{bucket}/o {
     // uploads/{uid}/{photoId}.jpg and {photoId}_thumb.jpg: the signed-in visitor (often an
@@ -23,6 +23,23 @@ service firebase.storage {
     // Booking photos: the owner may look at them.
     match /bookings/{bookingId}/{file} {
       allow read: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // A customer's saved-bike photos (users/{uid}/bikes/{bikeId}/{photoId}.jpg and _thumb): the
+    // customer adds, sees and deletes their own; the owner sees them. Signed-in accounts only, not
+    // anonymous guest sessions. createBooking copies booking photos here too.
+    match /users/{uid}/bikes/{bikeId}/{file} {
+      allow read: if request.auth != null
+        && ((request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous') || request.auth.token.admin == true);
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && resource == null
+        && file.matches('[a-z0-9]{20}(_thumb)?[.]jpg')
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.size <= 2 * 1024 * 1024;
+      allow delete: if request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
     // Everything else stays closed to browsers.

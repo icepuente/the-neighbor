@@ -2,7 +2,7 @@
 // (demo button), an earlier guest booking joins, cancel online, edit details, log out, log in as
 // the demo customer, and the booking form fills itself in. Run by `npm run test:browser` after
 // admin.js (which loads the demo data).
-import { check, evaluate, open, run, shot, waitFor } from './cdp.js';
+import { check, evaluate, open, run, setFile, shot, shotEl, waitFor } from './cdp.js';
 import * as R from '../../shared/booking-rules.js';
 
 const SITE = 'http://127.0.0.1:5000/';
@@ -70,7 +70,7 @@ run(9337, async () => {
   check(true, 'the booking is cancelled and moves to "Tidligere og aflyste"');
 
   // Edit details.
-  await tab(2);
+  await tab(3);
   await waitFor("!!document.getElementById('pf-name')", 'the details form');
   check(await evaluate("document.getElementById('pf-name').value") === 'Lene Holm', 'the details form shows the profile');
   await fill('pf-addr', 'Jagtvej 10, 2200 København N');
@@ -83,15 +83,54 @@ run(9337, async () => {
   await evaluate("document.getElementById('out').click()");
   await waitFor("!document.getElementById('login').hidden", 'the log-in form again');
   await evaluate("document.querySelector('#demo-login button').click(); document.querySelector('#lf button[type=submit]').click()");
-  await waitFor("document.getElementById('hi').textContent === 'Hej, Anna' && document.querySelectorAll('.tabs button').length === 3", 'Anna\'s account', 20000);
+  await waitFor("document.getElementById('hi').textContent === 'Hej, Anna' && document.querySelectorAll('.tabs button').length === 4", 'Anna\'s account', 20000);
   check(true, 'the demo customer logs in: "Hej, Anna"');
   await tab(1);
   await waitFor("document.querySelectorAll('.my-booking').length === 2", "Anna's bookings");
   check((await evaluate("document.getElementById('view').textContent")).includes('Fuglebakkevej 12, 3. th., 2000 Frederiksberg'), 'her upcoming and earlier bookings, with floor and door');
+
+  // Mine cykler: her two saved bikes; add a photo to the Trek; add and delete a bike.
+  const bikeCard = (name) => `document.querySelector('.bike-card[data-bike="${name}"]')`;
+  const bikeBtn = (name, label) => `[...${bikeCard(name)}.querySelectorAll('button')].find((b)=>b.textContent.startsWith('${label}'))`;
+  await tab(2);
+  await waitFor("document.querySelectorAll('.bike-card').length === 2", 'her saved bikes');
+  check(await evaluate("[...document.querySelectorAll('.bike-card h3')].map((h)=>h.textContent).join(' | ')") === 'Pelago Brinkeby | Trek FX 3', 'Mine cykler lists her two bikes');
+  await evaluate(`${bikeBtn('Trek FX 3', 'Rediger')}.click()`);
+  await waitFor("document.getElementById('nb-name')?.value === 'Trek FX 3'", 'the edit form');
+  check(true, 'Rediger opens the form with the bike\'s details');
+  await setFile('#nb-photos');
+  await waitFor("document.querySelectorAll('#bike-form figure img').length === 1", 'the added photo');
+  await evaluate("document.querySelector('#bike-form button[type=submit]').click()");
+  await waitFor(`!document.getElementById('bike-form') && ${bikeCard('Trek FX 3')}?.querySelector('.cover img')?.naturalWidth > 0`, 'the cover photo', 20000);
+  check(true, 'a photo is uploaded and shown as the Trek\'s cover, read back from Storage');
+  await shotEl('account-bikes.png', '#view');
+  await evaluate("[...document.querySelectorAll('#view > button')].find((b)=>b.textContent==='Tilføj en cykel').click()");
+  await waitFor("!!document.getElementById('nb-name')", 'the add form');
+  await evaluate("document.querySelector('#bike-form button[type=submit]').click()");
+  check((await evaluate("document.querySelector('#bike-form > .err').textContent")).length > 0, 'a bike without a name is refused');
+  await fill('nb-name', 'Christiania Light');
+  await fill('nb-type', 'Ladcykel');
+  await evaluate("document.querySelector('#bike-form button[type=submit]').click()");
+  await waitFor(`!!${bikeCard('Christiania Light')}`, 'the new bike', 15000);
+  check(true, 'a new bike is added');
+  await evaluate(`${bikeBtn('Christiania Light', 'Slet')}.click()`);
+  check(await evaluate(`${bikeBtn('Christiania Light', 'Klik')}?.textContent`) === 'Klik igen for at slette', 'deleting asks for a second click');
+  await evaluate(`${bikeBtn('Christiania Light', 'Klik')}.click()`);
+  await waitFor(`!${bikeCard('Christiania Light')}`, 'the deleted bike', 15000);
+  // The card goes at once (the page shows the change before the server confirms it); wait for
+  // the server before leaving the page, as a visitor's browser would finish the write.
+  await evaluate('NBF.sdk.firestore.waitForPendingWrites(NBF.db)');
+  check(true, 'and the second click deletes it');
 
   // The booking form knows her.
   await open(`${SITE}index.html`);
   await waitFor("!document.getElementById('signed-in').hidden", 'the signed-in note', 15000);
   check(await evaluate("document.getElementById('name').value") === 'Anna Jensen' && await evaluate("document.getElementById('addr2').value") === '3. th.', 'signed in, the booking form fills in her details');
   check(await evaluate("document.getElementById('acct-link').textContent") === 'Min konto' && await evaluate("document.getElementById('opts').hidden"), 'the header says "Min konto", and "Husk mig" is not needed');
+  await waitFor("!!document.querySelector('#bike option[data-bike-id]')", 'her saved bikes in the bike list', 15000);
+  const bikeList = await evaluate("[...document.querySelectorAll('#bike option')].map((o)=>o.textContent).join(' | ')");
+  check(bikeList.startsWith('Pelago Brinkeby | Trek FX 3 | '), `her saved bikes come first in the bike list (${bikeList})`);
+  check(await evaluate("!document.getElementById('pics-to-bike').hidden"), 'with a saved bike chosen, the form says photos are kept on it too');
+  await evaluate("(()=>{const s=document.getElementById('bike');s.value='By / pendler';s.dispatchEvent(new Event('change'))})()");
+  check(await evaluate("document.getElementById('pics-to-bike').hidden"), 'not with a general bike type');
 });

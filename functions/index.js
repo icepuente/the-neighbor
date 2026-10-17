@@ -200,6 +200,10 @@ export const createBooking = onCall(async (request) => {
     if (!wellFormed || !(await P.uploadsReady(b, uploader, input.photos))) return { errors: { photos: 'photos' } };
   }
   const ref = db.collection('bookings').doc();
+  // A signed-in customer may book one of their saved bikes (users/{uid}/bikes/{bikeId}).
+  const bikeRef = uid && input.bikeId ? db.doc(`users/${uid}/bikes/${input.bikeId}`) : null;
+  const savedBike = bikeRef ? await bikeRef.get() : null;
+  const bikeId = savedBike?.exists ? savedBike.id : null;
   const photos = b ? await P.copyToBooking(b, uploader, input.photos, ref.id) : [];
   const removeCopies = () => (b ? P.deleteFiles(b, photos.flatMap((p) => [p.path, p.thumbPath])) : null);
 
@@ -216,6 +220,17 @@ export const createBooking = onCall(async (request) => {
   } else if (b) {
     // The booking has its copies; the originals go now (the scheduled clean-up would catch them too).
     await P.deleteUploads(b, uploader, input.photos).catch((e) => logger.warn('could not delete uploads', e));
+    // The photos also go onto the saved bike, up to its 4; the rest stay on the booking only.
+    if (bikeId && photos.length) {
+      try {
+        const room = Math.max(0, R.CONFIG.maxBikePhotos - (savedBike.get('photos') || []).length);
+        const copies = await P.copyToBike(b, photos.slice(0, room), uid, bikeId, ref.id);
+        if (copies.length) await bikeRef.update({ photos: FieldValue.arrayUnion(...copies) });
+        result.booking.photosAddedToBike = copies.length;
+      } catch (e) {
+        logger.warn('could not copy photos to the bike', e);
+      }
+    }
   }
   return result;
 
@@ -245,7 +260,7 @@ export const createBooking = onCall(async (request) => {
       blockMin: q.blockMin,
       urgent: R.isUrgentDate(input.date, todayDate),
       bikeType: input.bike,
-      bikeId: null, // linking a saved bike comes with accounts (phase 3)
+      bikeId, // a saved bike of the signed-in customer, or null
       address: input.address,
       apartment: input.apartment,
       distanceKm: q.distanceKm,

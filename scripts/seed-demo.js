@@ -69,6 +69,15 @@ async function seed() {
     role: 'private', email: ANNA.email, name: 'Anna Jensen', phone: '+45 20 12 34 56', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.',
     createdAt: new Date(`${day(-200)}T12:00:00Z`),
   });
+  // Her saved bikes (no photos: add some in the demo).
+  batch.set(db.doc(`users/${anna.uid}/bikes/trek`), {
+    name: 'Trek FX 3', type: 'Hybrid', year: '2021', size: 'M / 54 cm', gears: '2×9', brakes: 'Hydrauliske skivebremser', tyres: '700×35c',
+    colour: 'Mørkegrøn', usage: 'Daglig pendling, ca. 60 km om ugen', photos: [],
+  });
+  batch.set(db.doc(`users/${anna.uid}/bikes/pelago`), {
+    name: 'Pelago Brinkeby', type: 'Bycykel', year: '2019', size: '54 cm', gears: '7-gear nav', brakes: 'Fælgbremser', tyres: '700×38c',
+    colour: 'Creme', usage: 'Weekend og indkøb', photos: [],
+  });
   for (const b of bookings) batch.set(db.collection('bookings').doc(), b);
   batch.set(db.doc('counters/bookings'), { last: 1043 });
   batch.set(db.collection('consultations').doc(), {
