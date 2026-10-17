@@ -46,30 +46,43 @@ run(9334, async () => {
     'no log-in link, no "create an account", no demo banner');
   check(await evaluate("!document.getElementById('bk-photo-block').hidden && !!document.getElementById('bk-photo-input')"), 'the photo field is shown');
 
-  // The date calendar and the time list, used by clicking as a visitor would.
-  await evaluate("document.getElementById('acc').click()");
-  check(await evaluate("document.getElementById('slots').textContent === I18N.t('bk.dateFirst')"),
-    'opening the time list before choosing a date says to choose a date first');
+  // The date picker and the times, used by clicking as a visitor would.
+  check(await evaluate("document.getElementById('date').type === 'hidden' && !!document.getElementById('date-btn') && !document.querySelector('input[type=date]')"),
+    'every date field uses the site\'s calendar, not the browser\'s');
+  check(await evaluate("document.getElementById('times').hidden"), 'no times are shown before a date is chosen');
+  await evaluate("document.querySelector('input[name=svc][value=\"chain\"]').click()");
   await waitFor('!!document.getElementById("date").min', 'the earliest date');
-  await evaluate("document.getElementById('dacc').click()");
-  check(await evaluate("!document.getElementById('cal').hidden && document.getElementById('slots').hidden"), 'the date button opens the calendar (and closes the time list)');
-  check(await evaluate("document.querySelectorAll('#cal .cal-wd')[0].textContent") === 'man', `the calendar starts on Monday, in Danish ("${await evaluate("document.querySelectorAll('#cal .cal-wd')[0].textContent")}")`);
-  const dayBtn = (d) => `document.querySelector('#cal [data-date="${d}"]')`;
+  await evaluate("document.getElementById('date-btn').click()");
+  check(await evaluate("!document.getElementById('date-cal').hidden"), 'the date button opens the calendar');
+  check(await evaluate("document.querySelectorAll('#date-cal .cal-wd')[0].textContent") === 'man', `the calendar starts on Monday, in Danish ("${await evaluate("document.querySelectorAll('#date-cal .cal-wd')[0].textContent")}")`);
+  const dayBtn = (d) => `document.querySelector('#date-cal [data-date="${d}"]')`;
   if (await evaluate(`!!${dayBtn(R.addDays(TODAY, 1))}`)) check(await evaluate(`${dayBtn(R.addDays(TODAY, 1))}.disabled`), 'tomorrow cannot be picked (2 days ahead)');
   // A Sunday after the earliest date (an earlier one is disabled as too early instead).
   let laterSunday = R.addDays(TODAY, 3);
   while (R.weekday(laterSunday) !== 0) laterSunday = R.addDays(laterSunday, 1);
   if (await evaluate(`!!${dayBtn(laterSunday)}`)) check(await evaluate(`${dayBtn(laterSunday)}.disabled && ${dayBtn(laterSunday)}.classList.contains('closed')`), 'Sundays cannot be picked');
-  if (!await evaluate(`!!${dayBtn(D1)}`)) await evaluate("document.querySelector('#cal .cal-nav.next').click()");
+  if (!await evaluate(`!!${dayBtn(D1)}`)) await evaluate("document.querySelector('#date-cal .cal-nav.next').click()");
+  check(await evaluate("!document.getElementById('date-cal').hidden"), 'changing month keeps the calendar open');
   await shotEl('calendar.png', '#f');
-  await evaluate("document.querySelector('input[name=svc][value=\"chain\"]').click()");
   await evaluate(`${dayBtn(D1)}.click()`);
-  check(await evaluate("document.getElementById('cal').hidden && !document.getElementById('slots').hidden") && await evaluate("document.getElementById('date').value") === D1,
-    'picking a day closes the calendar and opens the time list');
-  check(await evaluate("document.getElementById('daccv').textContent !== I18N.t('bk.selectDate')"), `the date button shows the day: "${await evaluate("document.getElementById('daccv').textContent")}"`);
+  check(await evaluate("document.getElementById('date-cal').hidden") && await evaluate("document.getElementById('date').value") === D1, 'picking a day closes the calendar');
+  check(await evaluate("document.getElementById('date-btn').textContent !== I18N.t('bk.selectDate')"), `the date button shows the day: "${await evaluate("document.getElementById('date-btn').textContent")}"`);
   await waitFor(slotsReady, 'start times after picking a day');
+  check(await evaluate("!document.getElementById('times').hidden"), 'and the free times appear straight away, with no list to open');
   await evaluate(`${slot('09:00')}.click()`);
-  check(await evaluate("document.getElementById('accv').textContent") === '09:00' && await evaluate("document.getElementById('slots').hidden"), 'clicking a time chooses it');
+  check(await evaluate(`${slot('09:00')}.checked`) && await evaluate("!document.getElementById('times').hidden"), 'clicking a time chooses it, and the times stay in view');
+  await shotEl('times.png', '#f');
+  await evaluate("document.getElementById('date-btn').click()");
+  await evaluate("document.querySelector('#svc-cards').click()");
+  check(await evaluate("document.getElementById('date-cal').hidden"), 'a click elsewhere closes the calendar');
+
+  // The consultation's preferred date uses the same calendar.
+  check(await evaluate("document.querySelector('label[for=\"cdate-btn\"]') !== null"), 'the consultation date has the calendar, with its label');
+  await evaluate("document.getElementById('cdate-btn').click()");
+  if (!await evaluate(`!!document.querySelector('#cdate-cal [data-date="${D1}"]')`)) await evaluate("document.querySelector('#cdate-cal .cal-nav.next').click()");
+  await evaluate(`document.querySelector('#cdate-cal [data-date="${D1}"]').click()`);
+  check(await evaluate("document.getElementById('cdate').value") === D1, 'a consultation day can be picked');
+  await evaluate("document.getElementById('cdate').value = ''; document.getElementById('cdate').dispatchEvent(new Event('change'))");
   await tick('chain');
 
   // Free times come from the server.

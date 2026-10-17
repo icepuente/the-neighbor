@@ -175,8 +175,10 @@ input[type=text], input[type=tel], input[type=email], input[type=password], inpu
 .slot input:disabled + span { opacity: .4; text-decoration: line-through; }
 .slots > p { grid-column: 1 / -1; margin: 4px 0; }
 
-/* Date calendar (js/datepicker.js) */
-.cal { margin-top: 10px; background: #fff; border: 1.5px solid var(--field); border-radius: 18px; padding: 14px; max-width: 420px; }
+/* Date picker (js/datepicker.js): the field is a button; the calendar opens over the page below it. */
+.datefield { position: relative; }
+.cal { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; width: 340px; max-width: calc(100vw - 48px); background: #fff; border: 1.5px solid var(--field); border-radius: 18px; padding: 14px; box-shadow: 0 12px 32px rgba(5, 20, 22, .28); }
+#times { margin-top: 4px; }
 .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .cal-title { margin: 0; font: 600 18px 'Source Serif 4', serif; text-transform: capitalize; }
 .cal-nav { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--field); background: #fff; color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }

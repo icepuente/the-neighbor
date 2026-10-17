@@ -4,7 +4,7 @@
 // times, the earliest date, the price and the bookings themselves come from the Cloud Functions,
 // so only the server's answer counts. Firebase loads in the background (js/firebase.js).
 import * as R from './shared/booking-rules.js';
-import { datePicker } from './datepicker.js';
+import { attachDatePicker } from './datepicker.js';
 
 const { $, h, A, t } = UI;
 const { CONFIG, SERVICES, PLANS } = R;
@@ -88,9 +88,6 @@ const toggle = (btn, panel) => {
   };
 };
 toggle($('sacc'), $('svcs'));
-toggle($('acc'), $('slots'));
-// The date calendar and the time list share the space under the row: one open at a time.
-$('acc').addEventListener('click', () => picker.close());
 
 // Bike type. (A signed-in customer's saved bikes come with accounts, phase 3.)
 const bikeSel = $('bike');
@@ -102,23 +99,16 @@ const dateIn = $('date');
 let options = { today: R.today(), earliest: R.addDays(R.today(), CONFIG.minLeadDays), closedDates: [] };
 dateIn.min = options.earliest;
 
-// The date calendar (js/datepicker.js), in the page language.
-$('daccv').dataset.placeholder = t('bk.selectDate');
-const picker = datePicker({
-  button: $('dacc'),
-  panel: $('cal'),
-  input: dateIn,
-  valueEl: $('daccv'),
-  opts: {
-    locale: I18N.lang === 'da' ? 'da-DK' : 'en-GB',
-    labels: { prev: t('cal.prev'), next: t('cal.next'), unavailable: t('cal.unavailable') },
-    today: () => options.today,
-    earliest: () => options.earliest,
-    unavailable: (date) => R.closedReason(date, options.closedDates || []),
-    maxMonths: 6,
-    onOpen: () => { $('slots').hidden = true; $('acc').setAttribute('aria-expanded', 'false'); },
-  },
+// Every date field gets the site's calendar (js/datepicker.js), in the page language. Sundays and
+// the days the owner blocked cannot be picked; the earliest day comes from the server.
+const dateField = (input, earliest) => attachDatePicker(input, {
+  locale: I18N.lang === 'da' ? 'da-DK' : 'en-GB',
+  labels: { choose: t('bk.selectDate'), prev: t('cal.prev'), next: t('cal.next'), unavailable: t('cal.unavailable') },
+  today: () => options.today,
+  earliest,
+  unavailable: (date) => R.closedReason(date, options.closedDates || []),
 });
+const picker = dateField(dateIn, () => options.earliest);
 
 // Why a date cannot be booked, from the server's answer, or null.
 function dateError(date, o) {
@@ -135,11 +125,11 @@ async function renderSlots() {
   const box = $('slots');
   const mine = ++slotRequest;
   box.textContent = '';
-  $('accv').textContent = t('bk.selectTime');
   $('e-date').textContent = '';
   const q = R.quote(chosen());
-  // Say why there is nothing to choose yet, instead of an empty list.
-  if (!dateIn.value) { box.appendChild(h('p', 'det', t('bk.dateFirst'))); return; }
+  // The times appear once a date is chosen.
+  $('times').hidden = !dateIn.value;
+  if (!dateIn.value) return;
   if (q.tooLong) { box.appendChild(h('p', 'det', t('err.tooLong'))); return; }
   box.appendChild(h('p', 'det', t('bk.loadingTimes')));
   let o;
@@ -174,18 +164,7 @@ callFn('bookingOptions', {}).then((o) => { options = { ...options, ...o }; dateI
 renderSlots();
 
 // A date was picked: show the day's free times straight away.
-dateIn.addEventListener('change', () => {
-  picker.sync();
-  picker.close();
-  renderSlots();
-  $('acc').setAttribute('aria-expanded', 'true');
-  $('slots').hidden = false;
-});
-$('slots').addEventListener('change', (e) => {
-  $('accv').textContent = e.target.value;
-  $('acc').setAttribute('aria-expanded', 'false');
-  $('slots').hidden = true;
-});
+dateIn.addEventListener('change', renderSlots);
 
 // Contact details from "Remember me" on this device.
 const REMEMBER_KEY = 'neighbor-remember';
@@ -417,7 +396,8 @@ fill('ctype', ['Hotel', 'Hostel', 'Bike rental', 'Property management', 'Office'
   t('f.select'), (x) => t(`ctype.${x}`));
 fill('cnum', ['1', '2–5', '6–15', '16–35', '35+'], t('f.select'));
 fill('ctime', R.arrivalTimes(), t('f.noPref'));
-$('cdate').min = R.today();
+// Preferred meeting day (optional): from today, Monday to Saturday.
+const consultDate = dateField($('cdate'), () => options.today);
 
 $('cf').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -451,6 +431,7 @@ $('cf').addEventListener('submit', async (e) => {
 });
 $('cagain').onclick = () => {
   $('cf').reset();
+  consultDate.clear();
   $('cdone').hidden = true;
   $('cf').hidden = false;
 };
