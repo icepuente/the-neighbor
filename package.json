@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node server.js",
     "dev:express": "node --watch server.js",
-    "sync-shared": "node scripts/sync-shared.js",
+    "sync-shared": "node scripts/sync-shared.js && node scripts/sync-vendor.js",
     "dev": "npm run sync-shared && firebase emulators:start --only auth,firestore,functions,storage,hosting",
     "stop-emulators": "node scripts/stop-emulators.js",
     "test:functions": "node scripts/test-functions.js",
@@ -25,9 +25,14 @@
     "nodemailer": "^10.0.13"
   },
   "devDependencies": {
+    "@fontsource-variable/source-serif-4": "5.3.1",
+    "@fontsource/dm-serif-display": "5.3.0",
+    "firebase": "13.0.0",
     "firebase-tools": "^15.34.0"
   },
   "knip": {
-    "ignoreDependencies": ["firebase-admin"]
+    "ignoreDependencies": [
+      "firebase-admin"
+    ]
   }
 }

@@ -1,12 +1,13 @@
 // Starts Firebase and, on this PC, connects every service to the emulators.
 // Loaded as a module; page scripts use the services through window.NBF once the
 // 'nbf-ready' event has fired (or right away if window.NBF is already set).
-import { SDK_VERSION, firebaseConfig, functionsRegion, emulators } from './firebase-config.js';
+import { firebaseConfig, functionsRegion, emulators } from './firebase-config.js';
 
-const cdn = (name) => `https://www.gstatic.com/firebasejs/${SDK_VERSION}/firebase-${name}.js`;
+// The SDK is served from this site (web/vendor/firebase), not Google's CDN.
+const sdk = (name) => `../vendor/firebase/firebase-${name}.js`;
 
 const [appMod, authMod, fsMod, fnMod, stMod] = await Promise.all(
-  ['app', 'auth', 'firestore', 'functions', 'storage'].map((n) => import(cdn(n))),
+  ['app', 'auth', 'firestore', 'functions', 'storage'].map((n) => import(sdk(n))),
 );
 
 const app = appMod.initializeApp(firebaseConfig);

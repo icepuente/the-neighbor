@@ -22,6 +22,8 @@ const CHROME_CANDIDATES = [
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export const errors = [];
+// Every URL the page requested, to check nothing is fetched from outside this machine.
+export const requests = [];
 let chrome; let ws; let msgId = 0; let n = 0; let profile;
 const pending = new Map();
 
@@ -100,9 +102,11 @@ async function start(port) {
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); }
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description || 'exception');
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errors.push(m.params.args.map((a) => a.value).join(' '));
+    if (m.method === 'Network.requestWillBeSent') requests.push(m.params.request.url);
   };
   await send('Runtime.enable');
   await send('Page.enable');
+  await send('Network.enable');
 }
 
 // Runs one test file's body in a fresh Chrome, then reports and cleans up.

@@ -4,8 +4,9 @@
 // One codebase, two environments (docs/firebase-plan.md, section 3): on this PC (localhost) the
 // site talks to the Firebase emulators; anywhere else it talks to the real project. The home-server
 // demo (phase 7) will set `emulators` to its HTTPS host instead.
-
-export const SDK_VERSION = '13.0.0';
+//
+// The Firebase JS SDK itself is served from web/vendor/firebase/ (copied from the `firebase` npm
+// package, whose version is pinned in package.json, by scripts/sync-vendor.js).
 
 export const firebaseConfig = {
   apiKey: 'AIzaSyC7LspI7yhyEtwCvsyetWZNHpTmOsuMnOc',

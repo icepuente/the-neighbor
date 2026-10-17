@@ -1,7 +1,7 @@
 // The real site (web/) on the Firebase emulators: the booking flow through the Cloud Functions,
 // checked in the browser and in the emulator database. Run with `npm run test:browser`, which uses
 // running emulators (`npm run dev`) or starts its own. It empties the Firestore EMULATOR first.
-import { check, evaluate, open, run, setFile, shot, sleep, waitFor } from './cdp.js';
+import { check, evaluate, open, requests, run, setFile, shot, sleep, waitFor } from './cdp.js';
 import * as R from '../../shared/booking-rules.js';
 import { exists, listFiles } from '../helpers/emulator-admin.js';
 
@@ -163,5 +163,12 @@ run(9334, async () => {
   await evaluate("document.getElementById('lang-da').click()");
   await sleep(800);
   check(await evaluate(visible('terms-da')) && (await evaluate("document.getElementById('terms-da').textContent")).includes('Standardfortrydelsesformular'), 'and in Danish, the standard form');
+
+  // Fonts and the Firebase SDK are served by the site itself: in this whole run, the browser asked
+  // nothing of any other machine (no Google Fonts, no gstatic CDN).
+  const outside = requests.filter((u) => /^https?:/.test(u) && !/^https?:\/\/(127\.0\.0\.1|localhost)[:/]/.test(u));
+  check(requests.length > 20 && outside.length === 0, `all ${requests.length} requests stayed on this machine${outside.length ? `; outside: ${[...new Set(outside)].join(', ')}` : ''}`);
+  check(await evaluate("document.fonts.check('16px \"Source Serif 4\"') && document.fonts.check('16px \"DM Serif Display\"')")
+    && await evaluate("[...document.fonts].filter((f) => f.status === 'loaded').length") >= 2, 'the self-hosted fonts are loaded');
 
 });

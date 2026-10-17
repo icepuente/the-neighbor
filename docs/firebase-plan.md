@@ -435,6 +435,13 @@ deny everything from browsers until phase 1 opens what each page needs.
   Functions. `npm run sync-shared` copies it into `web/js/shared/` and `functions/shared/`
   (git-ignored copies: edit `shared/` only); `npm run dev` and Hosting's predeploy run it first.
   `npm test` runs `test/*.test.js`. (The old Express server is now `npm run dev:express`.)
+- **Nothing loaded from Google's servers:** `npm run sync-shared` also runs
+  `scripts/sync-vendor.js`, which copies the Firebase JS SDK (the `firebase` npm package, pinned
+  exactly in `package.json`; each module's gstatic import of firebase-app.js is rewritten to the
+  local copy) and the fonts (Fontsource, OFL-1.1, Latin and Latin Extended) into the git-ignored
+  `web/vendor/`; `web/css/fonts.css` declares the fonts. To upgrade Firebase, change the version in
+  `package.json` and run `npm install`. The browser test fails if any request leaves the machine.
+  The Functions emulator writes `functions/.env.local` with parameter defaults (git-ignored).
 - **Functions:** `functions/` (Node 24, firebase-functions 7, firebase-admin 14), region
   `europe-west1`, at most 5 instances each. The owner's notification address is the `OWNER_EMAIL`
   parameter (`functions/.env`, not committed; default owner@example.com).
@@ -453,7 +460,7 @@ deny everything from browsers until phase 1 opens what each page needs.
 **Phase 1 steps** (the public site; the account page and dashboard follow in phases 2 and 3):
 
 1. *Done 2026-10-17:* copy the mock into `web/` and connect Firebase (`js/firebase-config.js`,
-   `js/firebase.js`: SDK 13.0.0 from the gstatic CDN, emulators on localhost with a
+   `js/firebase.js`: SDK 13.0.0, self-hosted since 2026-10-17, emulators on localhost with a
    test-environment bar). The page still runs on the mock backend.
 2. *Done 2026-10-17:* `shared/booking-rules.js` (services, prices, discounts, opening hours, the
    45-minute limit, lead time and urgent visit, form checks), pure functions with dates in
@@ -480,12 +487,14 @@ deny everything from browsers until phase 1 opens what each page needs.
    (and the clean-up), so the real bucket stays fully locked until then. Consider Firebase App Check
    before launch, to make anonymous uploads harder to abuse.
 6. *Drafted 2026-10-17:* `web/privacy.html` and `web/terms.html` (Danish and English, placeholders
-   highlighted), linked from the footer and the consent dialog; the footer's address, email and CVR
+   highlighted), linked from the footer and the price page; the footer's address, email and CVR
    are placeholders too. What the owner must provide or decide, and the Danish rules checked, are in
    [`docs/legal-checklist.md`](legal-checklist.md). Not a lawyer's text: to be checked before launch
-   and the Danish proofread. Open: a booking checkbox for the right of withdrawal
-   (forbrugeraftaleloven § 18(2)(2)); reworking the consent popup (booking data rests on the
-   contract, not consent); the withdrawal information and form in the confirmation email.
+   and the Danish proofread. *Then, same day:* the consent popup was removed (booking data rests on
+   the agreement, not consent); the price page has two required boxes, the terms and the early start
+   of work with the withdrawal acknowledgement (forbrugeraftaleloven § 18(2)(2)), recorded on the
+   booking as `accepted`; fonts and the Firebase SDK are self-hosted. Still open: the withdrawal
+   information and form in the confirmation email.
 
 Waiting for Alec's go-ahead (cost or live services): deploying Functions, a Google Maps key (the
 postcode estimate stays until then), an email service, the HTTPS proof of concept.
