@@ -1,0 +1,700 @@
+﻿"Hvor";"Nøgle";"Dansk";"English";"Rettelse";"Kommentar"
+"Hjemmeside";"nav.business";"For virksomheder";"For businesses";"";""
+"Hjemmeside";"nav.private";"For privatkunder";"For private customers";"";""
+"Hjemmeside";"nav.faq";"Spørgsmål";"FAQ";"";""
+"Hjemmeside";"nav.login";"Log ind";"Log in";"";""
+"Hjemmeside";"nav.account";"Min konto";"My account";"";""
+"Hjemmeside";"nav.dashboard";"Kontrolpanel";"Dashboard";"";""
+"Hjemmeside";"nav.book";"Book service";"Book a service";"";""
+"Hjemmeside";"nav.services";"Services";"Services";"";""
+"Hjemmeside";"nav.signout";"Log ud";"Sign out";"";""
+"Hjemmeside";"nav.home";"Forside";"Home";"";""
+"Hjemmeside";"footer.terms";"Vilkår";"Terms";"";""
+"Hjemmeside";"footer.privacy";"Privatliv";"Privacy";"";""
+"Hjemmeside";"legal.back";"Til forsiden";"Back to the front page";"";""
+"Hjemmeside";"legal.privacyTitle";"Privatlivspolitik · The Neighbor";"Privacy policy · The Neighbor";"";""
+"Hjemmeside";"legal.termsTitle";"Handelsbetingelser · The Neighbor";"Terms and conditions · The Neighbor";"";""
+"Hjemmeside";"perMonth";"/ md.";"/ month";"";""
+"Hjemmeside";"byAgreement";"Pris efter aftale";"Price by agreement";"";""
+"Hjemmeside";"dateAt";"{date} kl. {time}";"{date} at {time}";"";""
+"Hjemmeside";"co.acceptTerms";"Jeg accepterer handelsbetingelserne";"I accept the terms and conditions";"";""
+"Hjemmeside";"co.readTerms";"læs dem her";"read them here";"";""
+"Hjemmeside";"co.earlyStart";"Jeg beder jer udføre arbejdet, også hvis besøget ligger inden for fortrydelsesfristen på 14 dage, og jeg ved, at min fortrydelsesret ophører, når arbejdet er fuldt udført.";"I ask you to do the work even if the visit falls within the 14-day withdrawal period, and I know that my right of withdrawal ends once the work is fully done.";"";""
+"Hjemmeside";"co.privacy";"Sådan behandler vi dine oplysninger";"How we handle your information";"";""
+"Hjemmeside";"err.accept.terms";"Sæt flueben ved handelsbetingelserne for at booke.";"Tick the box to accept the terms and conditions.";"";""
+"Hjemmeside";"err.accept.earlyStart";"Sæt flueben ved fortrydelsesretten for at booke.";"Tick the box about the right of withdrawal.";"";""
+"Hjemmeside";"rules.title";"Kørsel";"Travel";"";""
+"Hjemmeside";"rules.rate";"{rate} kr. pr. km fra {base}, kun den ene vej.";"{rate} DKK per km from {base}, one way only.";"";""
+"Hjemmeside";"rules.max";"Op til {max} km væk.";"Up to {max} km away.";"";""
+"Hjemmeside";"rules.exact";"Prisen bygger på den præcise køreafstand og vises, før du booker.";"The price uses the exact driving distance and is shown before you book.";"";""
+"Hjemmeside";"rules.ok";"Forstået";"Got it";"";""
+"Hjemmeside";"hero.title";"Dine cykler, altid klar til at køre.";"Your bikes, always ready to ride.";"";""
+"Hjemmeside";"hero.lead";"En mobil cykelmekaniker, der kommer til dig. For virksomheder og privatkunder i København.";"A mobile bike mechanic who comes to you, for businesses and private customers in Copenhagen.";"";""
+"Hjemmeside";"hero.fleet";"Jeg har en cykelflåde";"I manage a fleet";"";""
+"Hjemmeside";"hero.fleetSub";"Månedsaftaler fra 250 kr. pr. cykel";"Monthly plans from 250 DKK per bike";"";""
+"Hjemmeside";"hero.own";"Jeg har min egen cykel";"I have my own bike";"";""
+"Hjemmeside";"hero.ownSub";"Service ved din dør fra 129 kr.";"Service at your door from 129 DKK";"";""
+"Hjemmeside";"pt.come";"Vi kommer til dig";"We come to you";"";""
+"Hjemmeside";"pt.comeSub";"Intet slæb med cykler til værkstedet.";"No hauling bikes to a workshop.";"";""
+"Hjemmeside";"pt.prices";"Klare priser";"Clear prices";"";""
+"Hjemmeside";"pt.pricesSub";"Faste aftaler. Ekstra arbejde kun efter dit ja.";"Fixed plans. Extras only after you say yes.";"";""
+"Hjemmeside";"pt.reports";"Klare rapporter";"Clear reports";"";""
+"Hjemmeside";"pt.reportsSub";"Se, hvilke cykler der er klar til at køre.";"See which bikes are ready to ride.";"";""
+"Hjemmeside";"pt.one";"Én person";"One person";"";""
+"Hjemmeside";"pt.oneSub";"Tal direkte med din mekaniker.";"Talk directly to your mechanic.";"";""
+"Hjemmeside";"biz.title";"For virksomheder";"For businesses";"";""
+"Hjemmeside";"biz.sub";"Hold jeres cykler klar til gæster og ansatte uden at ansætte en mekaniker.";"Keep your fleet ready for guests and staff, without hiring a mechanic.";"";""
+"Hjemmeside";"biz.perBike";"/ cykel / md.";"/ bike / month";"";""
+"Hjemmeside";"biz.extra";"Dele og større reparationer koster ekstra. Vi spørger altid først.";"Parts and bigger repairs are extra. We always ask first.";"";""
+"Hjemmeside";"biz.notIncluded";"Hvad er ikke inkluderet?";"What's not included?";"";""
+"Hjemmeside";"biz.who";"For hoteller, hostels, cykeludlejning, kontorer, ejendomsadministration og ";"For hotels, hostels, rentals, offices, property managers and ";"";""
+"Hjemmeside";"biz.whoLink";"offentlige flåder";"public fleets";"";""
+"Hjemmeside";"plan.basic.tag";"Kom i gang";"Get started";"";""
+"Hjemmeside";"plan.standard.tag";"Mest populær";"Most popular";"";""
+"Hjemmeside";"plan.premium.tag";"Op til 35 cykler";"Up to 35 bikes";"";""
+"Hjemmeside";"plan.basic.1";"Opstartstjek og rapport";"Start-up fleet check and report";"";""
+"Hjemmeside";"plan.basic.2";"Forebyggende vedligehold";"Preventive maintenance";"";""
+"Hjemmeside";"plan.basic.3";"Sikkerhedseftersyn";"Safety inspection";"";""
+"Hjemmeside";"plan.standard.1";"Opstartstjek og rapport";"Start-up fleet check and report";"";""
+"Hjemmeside";"plan.standard.2";"Månedligt eftersyn";"Monthly check-up";"";""
+"Hjemmeside";"plan.standard.3";"Månedlig rapport";"Monthly report";"";""
+"Hjemmeside";"plan.premium.1";"Månedligt eftersyn og rapport";"Monthly check-up and report";"";""
+"Hjemmeside";"plan.premium.2";"Prioriteret service";"Priority service";"";""
+"Hjemmeside";"plan.premium.3";"Billigere slangereparationer";"Cheaper tube repairs";"";""
+"Hjemmeside";"ex.tubes";"Slanger";"Inner tubes";"";""
+"Hjemmeside";"ex.tires";"Dæk";"Tires";"";""
+"Hjemmeside";"ex.chains";"Kæder";"Chains";"";""
+"Hjemmeside";"ex.cassettes";"Kassetter";"Cassettes";"";""
+"Hjemmeside";"ex.pads";"Bremseklodser";"Brake pads";"";""
+"Hjemmeside";"ex.wheels";"Hjulreparationer";"Wheel repairs";"";""
+"Hjemmeside";"ex.hydraulic";"Hydrauliske bremser";"Hydraulic brakes";"";""
+"Hjemmeside";"ex.suspension";"Affjedring";"Suspension";"";""
+"Hjemmeside";"ex.drivetrain";"Større arbejde på drivlinjen";"Major drivetrain work";"";""
+"Hjemmeside";"ex.emergency";"Akutte reparationer";"Emergency repairs";"";""
+"Hjemmeside";"how.title";"Sådan foregår det";"How it works";"";""
+"Hjemmeside";"how.b1";"Gratis konsultation";"Free consultation";"";""
+"Hjemmeside";"how.b2";"Flådetjek";"Fleet check";"";""
+"Hjemmeside";"how.b3";"Vælg en aftale";"Pick a plan";"";""
+"Hjemmeside";"how.b4";"Månedlige besøg";"Monthly visits";"";""
+"Hjemmeside";"how.p1";"Book online";"Book online";"";""
+"Hjemmeside";"how.p2";"Vi kommer";"We arrive";"";""
+"Hjemmeside";"how.p3";"Kør videre";"Ride away";"";""
+"Hjemmeside";"sample.title";"Eksempel på månedsrapport";"Sample monthly report";"";""
+"Hjemmeside";"sample.brake";"Bremsejustering";"Brake adjustment";"";""
+"Hjemmeside";"sample.tube";"Slange";"Inner tube";"";""
+"Hjemmeside";"col.bike";"Cykel";"Bike";"";""
+"Hjemmeside";"col.status";"Status";"Status";"";""
+"Hjemmeside";"col.action";"Handling";"Action";"";""
+"Hjemmeside";"col.location";"Placering";"Location";"";""
+"Hjemmeside";"st.ready";"Klar";"Ready";"";""
+"Hjemmeside";"st.attention";"Opmærksomhed";"Attention";"";""
+"Hjemmeside";"st.repair";"Skal repareres";"Repair needed";"";""
+"Hjemmeside";"cf.title";"Book en gratis konsultation";"Book a free consultation";"";""
+"Hjemmeside";"cf.sub";"Uforpligtende. Vi ringer dig op.";"No commitment. We'll call you back.";"";""
+"Hjemmeside";"f.name";"Navn";"Name";"";""
+"Hjemmeside";"f.company";"Firma";"Company";"";""
+"Hjemmeside";"f.email";"E-mail";"Email";"";""
+"Hjemmeside";"f.phone";"Telefon";"Phone";"";""
+"Hjemmeside";"f.type";"Type";"Type";"";""
+"Hjemmeside";"f.bikes";"Cykler";"Bikes";"";""
+"Hjemmeside";"f.prefDate";"Ønsket dato";"Preferred date";"";""
+"Hjemmeside";"f.time";"Tidspunkt";"Time";"";""
+"Hjemmeside";"f.message";"Besked";"Message";"";""
+"Hjemmeside";"f.optional";"(valgfri)";"(optional)";"";""
+"Hjemmeside";"f.select";"Vælg";"Select";"";""
+"Hjemmeside";"f.noPref";"Ingen præference";"No preference";"";""
+"Hjemmeside";"cf.send";"Send forespørgsel";"Send request";"";""
+"Hjemmeside";"cf.done";"Forespørgsel sendt";"Request sent";"";""
+"Hjemmeside";"cf.doneMsg";"Tak, {name}. Din forespørgsel er gemt, og vi har sendt en kopi til {email}.";"Thanks, {name}. Your request is saved and we have emailed a copy to {email}.";"";""
+"Hjemmeside";"cf.again";"Ny forespørgsel";"New request";"";""
+"Hjemmeside";"cf.err.missing";"Udfyld navn, firma, e-mail, telefon, type og antal cykler.";"Fill in name, company, email, phone, type and number of bikes.";"";""
+"Hjemmeside";"cf.err.email";"Tjek din e-mailadresse.";"Check your email address.";"";""
+"Hjemmeside";"ctype.Hotel";"Hotel";"Hotel";"";""
+"Hjemmeside";"ctype.Hostel";"Hostel";"Hostel";"";""
+"Hjemmeside";"ctype.Bike rental";"Cykeludlejning";"Bike rental";"";""
+"Hjemmeside";"ctype.Property management";"Ejendomsadministration";"Property management";"";""
+"Hjemmeside";"ctype.Office";"Kontor";"Office";"";""
+"Hjemmeside";"ctype.Tourism company";"Turismevirksomhed";"Tourism company";"";""
+"Hjemmeside";"ctype.Municipality / public organization";"Kommune / offentlig organisation";"Municipality / public organization";"";""
+"Hjemmeside";"ctype.Other";"Andet";"Other";"";""
+"Hjemmeside";"priv.title";"For privatkunder";"For private customers";"";""
+"Hjemmeside";"priv.sub";"Vi servicerer din cykel, hvor den står. Dele koster ekstra.";"We service your bike where it is. Parts are extra.";"";""
+"Hjemmeside";"svc.time";"ca. {m} min.";"~{m} min";"";""
+"Hjemmeside";"svc.tubeIncl";"slange inkluderet";"tube included";"";""
+"Hjemmeside";"check.title";"Hvad indeholder The Neighbor Cykeltjek?";"What's in The Neighbor Bike Check?";"";""
+"Hjemmeside";"check.1";"Tjek af bremser";"Brake check";"";""
+"Hjemmeside";"check.2";"Tjek af gear";"Gear check";"";""
+"Hjemmeside";"check.3";"Tjek af dæk";"Tyre check";"";""
+"Hjemmeside";"check.4";"Tjek af dæktryk";"Tyre pressure check";"";""
+"Hjemmeside";"check.5";"Tjek af kæde";"Chain check";"";""
+"Hjemmeside";"check.6";"Smøring af kæde";"Chain lubrication";"";""
+"Hjemmeside";"check.7";"Tjek af de vigtigste bolte";"Check of main bolts";"";""
+"Hjemmeside";"check.8";"Tjek af styr og sadel";"Handlebar and saddle check";"";""
+"Hjemmeside";"check.9";"Hurtigt sikkerhedstjek";"Quick safety check";"";""
+"Hjemmeside";"check.10";"Anbefalinger til videre reparationer";"Recommendations for further repairs";"";""
+"Hjemmeside";"care.title";"Abonnement";"Subscription";"";""
+"Hjemmeside";"care.sub";"Hold cyklen i god stand med et fast eftersyn hver måned.";"Keep your bike in good shape with a regular check-up every month.";"";""
+"Hjemmeside";"care.monthly.1";"1 eftersyn om måneden";"1 check-up a month";"";""
+"Hjemmeside";"care.monthly.2";"Bremser, gear, dæk, dæktryk og kæde";"Brakes, gears, tyres, tyre pressure and chain";"";""
+"Hjemmeside";"care.monthly.3";"Smøring, justeringer og sikkerhedstjek";"Lubrication, adjustments and safety check";"";""
+"Hjemmeside";"care.monthly.4";"Du vælger selv tidspunktet";"You choose the time";"";""
+"Hjemmeside";"care.premium-monthly.1";"Alt i The Neighbor Care";"Everything in The Neighbor Care";"";""
+"Hjemmeside";"care.premium-monthly.2";"Prioriteret booking";"Priority scheduling";"";""
+"Hjemmeside";"care.premium-monthly.3";"1 akut besøg om måneden, fx ved punktering (næste dag, hvis muligt)";"1 urgent visit a month, e.g. a flat tyre (next day where possible)";"";""
+"Hjemmeside";"care.premium-monthly.4";"5 % rabat på services";"5% off paid services";"";""
+"Hjemmeside";"care.pick";"Vælg {name}";"Choose {name}";"";""
+"Hjemmeside";"care.terms";"Mindst 3 måneder, derefter kan du opsige når som helst. Månedens eftersyn kan ikke gemmes til næste måned. Dele og større reparationer koster ekstra.";"Minimum 3 months, then cancel any time. The monthly check-up does not roll over to the next month. Parts and major repairs are extra.";"";""
+"Hjemmeside";"bk.title";"Book en service";"Book a service";"";""
+"Hjemmeside";"bk.signedIn";"Logget ind som {name}. Bookingen kommer med på din konto.";"Signed in as {name}. This booking will appear in your account.";"";""
+"Hjemmeside";"bk.urgent";"Med Neighbor Care Plus kan du booke i morgen som månedens akutte besøg.";"With Neighbor Care Plus you can book tomorrow as this month's urgent visit.";"";""
+"Hjemmeside";"bk.what";"1. Hvad";"1. What";"";""
+"Hjemmeside";"bk.whatSub";"vælg én eller flere";"choose one or more";"";""
+"Hjemmeside";"bk.selectServices";"Vælg services";"Select services";"";""
+"Hjemmeside";"bk.bike";"Cykel";"Bike";"";""
+"Hjemmeside";"bk.when";"2. Hvornår";"2. When";"";""
+"Hjemmeside";"bk.date";"Dato";"Date";"";""
+"Hjemmeside";"bk.arrival";"Ankomst";"Arrival";"";""
+"Hjemmeside";"bk.selectTime";"Vælg et tidspunkt";"Select a time";"";""
+"Hjemmeside";"bk.selectDate";"Vælg en dato";"Select a date";"";""
+"Hjemmeside";"cal.prev";"Forrige måned";"Previous month";"";""
+"Hjemmeside";"cal.next";"Næste måned";"Next month";"";""
+"Hjemmeside";"cal.unavailable";"ikke ledig";"not available";"";""
+"Hjemmeside";"bk.noTimes";"Ingen ledige tider den dag.";"No free times that day.";"";""
+"Hjemmeside";"bk.loadingTimes";"Henter ledige tider …";"Loading free times …";"";""
+"Hjemmeside";"bk.hours";"Åbent mandag til lørdag, 8.30–15.30.";"Open Monday to Saturday, 08:30–15:30.";"";""
+"Hjemmeside";"bk.where";"3. Hvor og hvem";"3. Where & who";"";""
+"Hjemmeside";"bk.address";"Adresse";"Address";"";""
+"Hjemmeside";"bk.addressPh";"Begynd at skrive, fx Jagtvej 10";"Start typing, e.g. Jagtvej 10";"";""
+"Hjemmeside";"bk.apartment";"Etage og dør";"Floor and door";"";""
+"Hjemmeside";"bk.apartmentPh";"fx 2. tv.";"e.g. 2. tv.";"";""
+"Hjemmeside";"bk.suggestions";"Adresseforslag";"Address suggestions";"";""
+"Hjemmeside";"bk.note";"Noget, vi skal vide?";"Anything we should know?";"";""
+"Hjemmeside";"bk.noteSub";"(skal udfyldes ved fejlfinding)";"(required for diagnostics)";"";""
+"Hjemmeside";"bk.notePh";"fx bagbremsen hviner";"e.g. rear brake squeals";"";""
+"Hjemmeside";"bk.remember";"Husk mig";"Remember me";"";""
+"Hjemmeside";"bk.rememberSub";"Gem mine oplysninger på denne enhed";"Save my details on this device";"";""
+"Hjemmeside";"bk.create";"Opret en konto";"Create an account";"";""
+"Hjemmeside";"bk.createSub";"Følg dine bookinger og din servicehistorik";"Follow your bookings and service history";"";""
+"Hjemmeside";"bk.password";"Adgangskode";"Password";"";""
+"Hjemmeside";"bk.passwordSub";"(mindst 8 tegn)";"(at least 8 characters)";"";""
+"Hjemmeside";"bk.seePrice";"Se pris";"See price";"";""
+"Hjemmeside";"bike.city";"By / pendler";"City / commuter";"";""
+"Hjemmeside";"bike.road";"Racer";"Road";"";""
+"Hjemmeside";"bike.mtb";"Mountainbike";"Mountain";"";""
+"Hjemmeside";"bike.e";"Elcykel";"E-bike";"";""
+"Hjemmeside";"bike.cargo";"Ladcykel / andet";"Cargo / other";"";""
+"Hjemmeside";"co.title";"Din pris";"Your price";"";""
+"Hjemmeside";"co.discount.combo";"Kombirabat (−5 %)";"Combo discount (−5%)";"";""
+"Hjemmeside";"co.discount.carePlus";"Care Plus-rabat (−5 %)";"Care Plus discount (−5%)";"";""
+"Hjemmeside";"co.servicesTotal";"Services i alt";"Services total";"";""
+"Hjemmeside";"co.monthly";"Månedsabonnement";"Monthly subscription";"";""
+"Hjemmeside";"co.travel";"Kørsel";"Travel";"";""
+"Hjemmeside";"co.travelVal";"{amount} ({km} km, én vej)";"{amount} ({km} km, one way)";"";""
+"Hjemmeside";"co.total";"I alt at betale";"Total to pay";"";""
+"Hjemmeside";"co.special";"specialreparation efter aftale";"special repair by agreement";"";""
+"Hjemmeside";"co.visit";"Besøget tager op til {min} minutter.";"The visit takes up to {min} minutes.";"";""
+"Hjemmeside";"co.urgent";"Dette er dit akutte besøg for måneden (Neighbor Care Plus).";"This is your urgent visit for the month (Neighbor Care Plus).";"";""
+"Hjemmeside";"co.estimateTravel";"Afstanden er indtil videre anslået ud fra postnummeret. Snart bruger vi den præcise køreafstand fra Google Maps.";"For now, the distance is estimated from the postcode. Soon we will use the exact driving distance from Google Maps.";"";""
+"Hjemmeside";"co.noteSpecial";"Specialreparation: vi aftaler prisen, når vi har læst din beskrivelse.";"Special repair: we agree the price after reading your description.";"";""
+"Hjemmeside";"co.noteCombo";"Tip: tilføj en reparation til Cykeltjekket, og få 5 % rabat på det hele.";"Tip: add a repair to the Bike Check and get 5% off everything.";"";""
+"Hjemmeside";"co.confirm";"Bekræft booking";"Confirm booking";"";""
+"Hjemmeside";"co.change";"Ret";"Change";"";""
+"Hjemmeside";"done.title";"Booket!";"Booked!";"";""
+"Hjemmeside";"done.msg";"Booking {ref} er gemt. En bekræftelse er på vej til {email}.";"Booking {ref} is saved. A confirmation is on its way to {email}.";"";""
+"Hjemmeside";"done.account";"Din konto er oprettet, og bookingen ligger på den.";"Your account is created and the booking is in it.";"";""
+"Hjemmeside";"done.see";"Se den på Min konto";"See it in My account";"";""
+"Hjemmeside";"done.create";"Opret en konto for at følge din booking";"Create an account to follow your booking";"";""
+"Hjemmeside";"done.again";"Ny booking";"New booking";"";""
+"Hjemmeside";"sum.date";"Dato";"Date";"";""
+"Hjemmeside";"sum.arrival";"Ankomst";"Arrival";"";""
+"Hjemmeside";"sum.bike";"Cykel";"Bike";"";""
+"Hjemmeside";"sum.address";"Adresse";"Address";"";""
+"Hjemmeside";"sum.notes";"Bemærkninger";"Notes";"";""
+"Hjemmeside";"sum.total";"I alt";"Total";"";""
+"Hjemmeside";"sum.company";"Firma";"Company";"";""
+"Hjemmeside";"sum.bikes";"Cykler";"Bikes";"";""
+"Hjemmeside";"sum.pref";"Ønsket";"Preferred";"";""
+"Hjemmeside";"sum.message";"Besked";"Message";"";""
+"Hjemmeside";"err.services";"Vælg mindst én service.";"Choose at least one service.";"";""
+"Hjemmeside";"err.past";"Vælg en dato fra i dag og frem.";"Choose a date from today onward.";"";""
+"Hjemmeside";"err.lead";"Book mindst 2 dage frem. Med Neighbor Care Plus kan du booke i morgen én gang om måneden.";"Please book at least 2 days ahead. With Neighbor Care Plus you can book tomorrow once a month.";"";""
+"Hjemmeside";"err.urgentUsed";"Du har allerede brugt månedens akutte besøg. Book mindst 2 dage frem.";"You have already used this month's urgent visit. Please book at least 2 days ahead.";"";""
+"Hjemmeside";"err.photosMax";"Du kan højst vedhæfte 3 billeder.";"You can attach at most 3 photos.";"";""
+"Hjemmeside";"err.photos";"Billederne kunne ikke gemmes. Fjern dem og tilføj dem igen, eller book uden billeder.";"The photos could not be saved. Remove them and add them again, or book without photos.";"";""
+"Hjemmeside";"err.server";"Noget gik galt. Prøv igen om lidt.";"Something went wrong. Please try again shortly.";"";""
+"Hjemmeside";"pics.bookingLabel";"Billeder af cyklen";"Photos of the bike";"";""
+"Hjemmeside";"pics.bookingHint";"Vis os cyklen eller problemet, så er vi bedre forberedt. Op til 3 billeder.";"Show us the bike or the problem so we come prepared. Up to 3 photos.";"";""
+"Hjemmeside";"pics.add";"Tilføj billede";"Add photo";"";""
+"Hjemmeside";"pics.alt";"Billede {n}";"Photo {n}";"";""
+"Hjemmeside";"pics.ofBike";"Billede af {name}";"Photo of {name}";"";""
+"Hjemmeside";"pics.remove";"Fjern billede {n}";"Remove photo {n}";"";""
+"Hjemmeside";"pics.count";"{n} af {max} billeder";"{n} of {max} photos";"";""
+"Hjemmeside";"pics.max";"Du kan højst tilføje {max} billeder.";"You can add at most {max} photos.";"";""
+"Hjemmeside";"pics.notImage";"Kun billedfiler kan tilføjes.";"Only image files can be added.";"";""
+"Hjemmeside";"pics.tooBig";"Billedet er for stort (højst 20 MB).";"That photo is too large (20 MB at most).";"";""
+"Hjemmeside";"pics.unreadable";"Billedet kunne ikke læses. Prøv et andet.";"That photo could not be read. Try another one.";"";""
+"Hjemmeside";"pics.close";"Luk";"Close";"";""
+"Hjemmeside";"pics.toBike";"Billederne gemmes også på din cykel under Mine cykler.";"The photos are also saved on your bike under My bikes.";"";""
+"Hjemmeside";"pics.addedToBike";"{n} billede(r) er også gemt på {name}.";"{n} photo(s) also saved on {name}.";"";""
+"Hjemmeside";"pics.ofFleetBike";"Cykel {bike}, billede {n}";"Bike {bike}, photo {n}";"";""
+"Hjemmeside";"pics.attached";"{n} billede(r) vedhæftet";"{n} photo(s) attached";"";""
+"Hjemmeside";"bike.edit";"Rediger";"Edit";"";""
+"Hjemmeside";"bike.editTitle";"Rediger {name}";"Edit {name}";"";""
+"Hjemmeside";"bike.saveChanges";"Gem ændringer";"Save changes";"";""
+"Hjemmeside";"bike.cancel";"Annuller";"Cancel";"";""
+"Hjemmeside";"bike.none";"Du har ingen gemte cykler endnu. Tilføj en, så kan du vælge den, når du booker.";"You have no saved bikes yet. Add one, and you can choose it when you book.";"";""
+"Hjemmeside";"bike.delete";"Slet cyklen";"Delete this bike";"";""
+"Hjemmeside";"bike.deleteArmed";"Klik igen for at slette";"Click again to delete";"";""
+"Hjemmeside";"bike.photos";"Billeder";"Photos";"";""
+"Hjemmeside";"bike.photosHint";"Op til 4 billeder. Det første bliver forsidebillede.";"Up to 4 photos. The first one is the cover photo.";"";""
+"Hjemmeside";"err.sunday";"Vi har lukket om søndagen. Vælg en anden dag.";"We are closed on Sundays. Please pick another day.";"";""
+"Hjemmeside";"err.closed";"Vi har lukket den dag. Vælg en anden dato.";"We are closed that day. Please pick another date.";"";""
+"Hjemmeside";"err.arrival";"Vælg et ankomsttidspunkt.";"Choose an arrival time.";"";""
+"Hjemmeside";"err.taken";"Det tidspunkt er lige blevet optaget. Vælg et andet.";"That time was just taken. Please pick another.";"";""
+"Hjemmeside";"err.note";"Beskriv problemet, så vi ved, hvad vi skal kigge efter.";"Describe the problem so we know what to look for.";"";""
+"Hjemmeside";"err.tooLong";"Det er mere, end der kan nås på ét besøg (højst 45 minutter). Fjern en service, eller book to besøg.";"That is more than fits in one visit (45 minutes at most). Remove a service, or book two visits.";"";""
+"Hjemmeside";"err.contact";"Udfyld adresse, navn, telefon og e-mail.";"Fill in your address, name, phone and email.";"";""
+"Hjemmeside";"err.email";"Skriv en gyldig e-mail, så vi kan bekræfte bookingen.";"Add a valid email so we can confirm the booking.";"";""
+"Hjemmeside";"err.address";"Vi kan ikke finde adressen. Skriv den med postnummer.";"We can't find that address. Please include the postcode.";"";""
+"Hjemmeside";"err.far";"Adressen ligger mere end 18 km fra os. Kontakt os, så finder vi en løsning.";"That address is more than 18 km from us. Contact us and we will find a solution.";"";""
+"Hjemmeside";"err.consent";"Accepter samtykket først.";"Please accept the consent notice first.";"";""
+"Hjemmeside";"err.password";"Vælg en adgangskode på mindst 8 tegn.";"Choose a password of at least 8 characters.";"";""
+"Hjemmeside";"err.exists";"Der findes allerede en konto med den e-mail. Log ind, eller fjern fluebenet ved Opret en konto.";"An account with that email already exists. Log in, or untick Create an account.";"";""
+"Hjemmeside";"about.title";"Om os";"About";"";""
+"Hjemmeside";"about.quote";"Du behøver ikke et værksted. Du har brug for en nabo, der kan sit håndværk med cykler.";"You don't need a workshop. You need a neighbor who knows bikes.";"";""
+"Hjemmeside";"about.sub";"Ejeren udfører selv hvert job med værktøjet i varevognen.";"The owner does every job personally, with the tools in the van.";"";""
+"Hjemmeside";"faq.parts";"Er dele inkluderet?";"Are parts included?";"";""
+"Hjemmeside";"faq.partsA";"Nej. Dele og større reparationer koster ekstra, og vi spørger altid først.";"No. Parts and bigger repairs are extra, and we always ask before doing them.";"";""
+"Hjemmeside";"faq.come";"Kommer I ud til os?";"Do you come to us?";"";""
+"Hjemmeside";"faq.comeA";"Ja. Alt arbejde foregår hos dig.";"Yes. All work is done at your location.";"";""
+"Hjemmeside";"faq.min";"Er der et minimum antal cykler?";"Is there a minimum number of bikes?";"";""
+"Hjemmeside";"faq.minA";"Nej. Premium er til flåder på op til 35 cykler.";"No. Premium is for fleets of up to 35 bikes.";"";""
+"Hjemmeside";"faq.hours";"Hvornår har I åbent?";"When are you open?";"";""
+"Hjemmeside";"faq.hoursA";"Mandag til lørdag, 8.30–15.30. Søndag har vi lukket.";"Monday to Saturday, 08:30–15:30. Closed on Sundays.";"";""
+"Hjemmeside";"faq.prev";"Hvad indeholder forebyggende vedligehold?";"What's in preventive maintenance?";"";""
+"Hjemmeside";"faq.prevA";"Bremser, gear, dæktryk, kæde, sikkerhedstjek og grundlæggende justeringer.";"Brakes, gears, tyre pressure, chain, safety check and basic adjustments.";"";""
+"Hjemmeside";"faq.hist";"Kan jeg se min servicehistorik?";"Can I see my service history?";"";""
+"Hjemmeside";"faq.histA";"Ja. Din konto viser bookinger, historik, dine cykler og vores anbefalinger.";"Yes. Your account shows bookings, history, your bikes and our recommendations.";"";""
+"Hjemmeside";"acc.title";"The Neighbor – Min konto";"The Neighbor – My account";"";""
+"Hjemmeside";"acc.welcome";"Velkommen tilbage";"Welcome back";"";""
+"Hjemmeside";"acc.createTitle";"Opret din konto";"Create your account";"";""
+"Hjemmeside";"acc.lead";"Se dine bookinger, reparationer, cykler og anbefalinger ét sted.";"See your bookings, repair records, bikes and recommendations in one place.";"";""
+"Hjemmeside";"acc.login";"Log ind";"Log in";"";""
+"Hjemmeside";"acc.create";"Opret konto";"Create account";"";""
+"Hjemmeside";"acc.forgot";"Glemt adgangskoden? På den rigtige side sender vi dig et link til at nulstille den.";"Forgot your password? In the real site, a reset link is emailed to you.";"";""
+"Hjemmeside";"acc.createNote";"Bookinger, du allerede har lavet med denne e-mail, kommer med på din konto. Erhvervskonti opretter vi efter en konsultation.";"Bookings you already made with this email are added to your account. Business accounts are set up by us after a consultation.";"";""
+"Hjemmeside";"acc.demoTitle";"Eller kig rundt med en demokonto";"Or look around with a demo account";"";""
+"Hjemmeside";"acc.demoPrivate";"Privatkunde";"Private customer";"";""
+"Hjemmeside";"acc.demoPrivateSub";"Anna Jensen: to cykler, servicehistorik, anbefalinger";"Anna Jensen: two bikes, service history, recommendations";"";""
+"Hjemmeside";"acc.demoBusiness";"Eller som virksomhed: hotel@demo.dk.";"Or as a business: hotel@demo.dk.";"";""
+"Hjemmeside";"acc.demoBusinessSub";"Hotel ABC: 8 cykler på Standard-aftalen, månedsrapporter";"Hotel ABC: 8 bikes on the Standard plan, monthly reports";"";""
+"Hjemmeside";"acc.demoOwner";"Ejer";"Owner";"";""
+"Hjemmeside";"acc.demoOwnerSub";"The Neighbors kontrolpanel: bookinger, forespørgsler, besøg, rapporter";"The Neighbor's dashboard: bookings, leads, visits, reports";"";""
+"Hjemmeside";"acc.err.noAccount";"Ingen konto med den e-mail. Opret en, eller brug en demokonto.";"No account with that email. Create one, or use a demo account.";"";""
+"Hjemmeside";"acc.err.nameEmail";"Udfyld dit navn og en gyldig e-mail.";"Fill in your name and a valid email.";"";""
+"Hjemmeside";"acc.err.password";"Vælg en adgangskode på mindst 8 tegn.";"Choose a password of at least 8 characters.";"";""
+"Hjemmeside";"acc.err.exists";"Der findes allerede en konto med den e-mail. Log ind i stedet.";"An account with that email already exists. Log in instead.";"";""
+"Hjemmeside";"acc.owner";"Logget ind som ejer";"Signed in as the owner";"";""
+"Hjemmeside";"acc.ownerSub";"Ejeren arbejder i kontrolpanelet i stedet for en kundekonto.";"The owner works from the dashboard rather than a customer account.";"";""
+"Hjemmeside";"acc.openDashboard";"Åbn kontrolpanelet";"Open the dashboard";"";""
+"Hjemmeside";"acc.hello";"Hej, {name}";"Hello, {name}";"";""
+"Hjemmeside";"acc.since";"Kunde siden {month}";"Customer since {month}";"";""
+"Hjemmeside";"acc.forgotLink";"Glemt adgangskoden?";"Forgot your password?";"";""
+"Hjemmeside";"acc.forgotEmail";"Skriv din e-mail ovenfor, så sender vi et link.";"Enter your email above, and we will send a link.";"";""
+"Hjemmeside";"acc.forgotSent";"Hvis der findes en konto med {email}, har vi sendt et link til at vælge en ny adgangskode.";"If there is an account for {email}, we have sent a link to choose a new password.";"";""
+"Hjemmeside";"acc.demoLogin";"Demo: log ind som anna@demo.dk / neighbor-demo.";"Demo: log in as anna@demo.dk / neighbor-demo.";"";""
+"Hjemmeside";"acc.fill";"Udfyld";"Fill in";"";""
+"Hjemmeside";"acc.verifyText";"Bekræft din e-mail med linket, vi har sendt dig. Så kommer bookinger, du tidligere har lavet med denne e-mail, med på din konto.";"Confirm your email with the link we sent you. Then bookings you made earlier with this email join your account.";"";""
+"Hjemmeside";"acc.verifyAgain";"Send linket igen";"Send the link again";"";""
+"Hjemmeside";"acc.verifyDone";"Jeg har bekræftet";"I have confirmed";"";""
+"Hjemmeside";"acc.verifyDemo";"Bekræft (kun i demoen)";"Confirm (demo only)";"";""
+"Hjemmeside";"acc.verifySent";"Vi har sendt linket til {email}.";"We have sent the link to {email}.";"";""
+"Hjemmeside";"acc.notVerifiedYet";"Din e-mail er ikke bekræftet endnu. Tjek din indbakke.";"Your email is not confirmed yet. Check your inbox.";"";""
+"Hjemmeside";"acc.verified";"Din e-mail er bekræftet. {n} tidligere booking(er) er knyttet til din konto.";"Your email is confirmed. {n} earlier booking(s) are now in your account.";"";""
+"Hjemmeside";"acc.linked";"{n} tidligere booking(er) er knyttet til din konto.";"{n} earlier booking(s) are now in your account.";"";""
+"Hjemmeside";"acc.err.wrong";"Forkert e-mail eller adgangskode.";"Wrong email or password.";"";""
+"Hjemmeside";"acc.err.tooMany";"For mange forsøg. Vent lidt, og prøv igen.";"Too many attempts. Wait a moment and try again.";"";""
+"Hjemmeside";"acc.err.server";"Noget gik galt. Prøv igen om lidt.";"Something went wrong. Please try again shortly.";"";""
+"Hjemmeside";"tab.profile";"Mine oplysninger";"My details";"";""
+"Hjemmeside";"prof.title";"Dine kontaktoplysninger";"Your contact details";"";""
+"Hjemmeside";"prof.email";"E-mail: {email} (bruges til at logge ind)";"Email: {email} (used to log in)";"";""
+"Hjemmeside";"prof.save";"Gem";"Save";"";""
+"Hjemmeside";"prof.saved";"Gemt.";"Saved.";"";""
+"Hjemmeside";"tab.overview";"Overblik";"Overview";"";""
+"Hjemmeside";"tab.bookings";"Bookinger";"Bookings";"";""
+"Hjemmeside";"tab.history";"Historik";"History";"";""
+"Hjemmeside";"tab.bikes";"Mine cykler";"My bikes";"";""
+"Hjemmeside";"tab.recs";"Anbefalinger";"Recommendations";"";""
+"Hjemmeside";"tab.report";"Månedsrapport";"Monthly report";"";""
+"Hjemmeside";"tab.fleet";"Flådeoversigt";"Fleet list";"";""
+"Hjemmeside";"tab.plan";"Aftale og besøg";"Plan & visits";"";""
+"Hjemmeside";"ov.bikes";"Cykler";"Bikes";"";""
+"Hjemmeside";"ov.services";"Services i {year}";"Services in {year}";"";""
+"Hjemmeside";"ov.spent";"Brugt i alt i {year}";"Total spent in {year}";"";""
+"Hjemmeside";"ov.next";"Næste besøg";"Next visit";"";""
+"Hjemmeside";"ov.none";"Intet booket.";"Nothing booked.";"";""
+"Hjemmeside";"ov.last";"Seneste service";"Last service";"";""
+"Hjemmeside";"ov.rec";"Næste anbefaling";"Next recommendation";"";""
+"Hjemmeside";"ov.allRecs";"Se alle anbefalinger";"See all recommendations";"";""
+"Hjemmeside";"bs.pending";"Afventer";"Pending";"";""
+"Hjemmeside";"bs.confirmed";"Bekræftet";"Confirmed";"";""
+"Hjemmeside";"bs.completed";"Udført";"Completed";"";""
+"Hjemmeside";"bs.cancelled";"Aflyst";"Cancelled";"";""
+"Hjemmeside";"bks.upcoming";"Kommende";"Upcoming";"";""
+"Hjemmeside";"bks.none";"Ingen kommende besøg.";"No upcoming visits.";"";""
+"Hjemmeside";"bks.earlier";"Tidligere og aflyste";"Earlier and cancelled";"";""
+"Hjemmeside";"bks.new";"Book et nyt besøg";"Book a new visit";"";""
+"Hjemmeside";"bks.price";"Kørsel {travel} · i alt {total}";"Travel {travel} · total {total}";"";""
+"Hjemmeside";"bks.cancel";"Aflys bookingen";"Cancel this booking";"";""
+"Hjemmeside";"bks.cancelAsk";"Aflys booking {ref}?";"Cancel booking {ref}?";"";""
+"Hjemmeside";"bks.cancelArmed";"Klik igen for at aflyse";"Click again to cancel";"";""
+"Hjemmeside";"bks.late";"Der er under {hours} timer til besøget. Ring eller skriv til os, hvis du vil aflyse.";"The visit is less than {hours} hours away. Call or write to us if you want to cancel.";"";""
+"Hjemmeside";"hist.empty";"Ingen services endnu. Efter hvert besøg kan du se arbejdet, dele, noter og billeder her.";"No services yet. After each visit, the work done, parts, notes and photos appear here.";"";""
+"Hjemmeside";"hist.work";"Udført arbejde";"Work done";"";""
+"Hjemmeside";"hist.parts";"Brugte dele";"Parts used";"";""
+"Hjemmeside";"hist.notes";"Noter";"Notes";"";""
+"Hjemmeside";"hist.photo";"Billede {n}";"Photo {n}";"";""
+"Hjemmeside";"hist.cost";"Pris";"Cost";"";""
+"Hjemmeside";"hist.travel";"Kørsel";"Travel";"";""
+"Hjemmeside";"hist.total";"I alt";"Total";"";""
+"Hjemmeside";"bike.size";"Stelstørrelse";"Frame size";"";""
+"Hjemmeside";"bike.frame";"Stel";"Frame";"";""
+"Hjemmeside";"bike.gears";"Gear";"Gears";"";""
+"Hjemmeside";"bike.brakes";"Bremser";"Brakes";"";""
+"Hjemmeside";"bike.tyres";"Dæk";"Tyres";"";""
+"Hjemmeside";"bike.colour";"Farve";"Colour";"";""
+"Hjemmeside";"bike.usage";"Brug";"Usage";"";""
+"Hjemmeside";"bike.last";"Seneste service";"Last service";"";""
+"Hjemmeside";"bike.notYet";"Endnu ikke";"Not yet";"";""
+"Hjemmeside";"bike.year";"Årgang";"Year";"";""
+"Hjemmeside";"bike.type";"Type";"Type";"";""
+"Hjemmeside";"bike.add";"Tilføj en cykel";"Add a bike";"";""
+"Hjemmeside";"bike.name";"Navn eller model";"Name or model";"";""
+"Hjemmeside";"bike.namePh";"fx Trek FX 3";"e.g. Trek FX 3";"";""
+"Hjemmeside";"bike.typePh";"fx bycykel";"e.g. City bike";"";""
+"Hjemmeside";"bike.usagePh";"fx daglig pendling";"e.g. Daily commute";"";""
+"Hjemmeside";"bike.usageLabel";"Hvordan du bruger den";"How you use it";"";""
+"Hjemmeside";"bike.err";"Giv cyklen et navn eller en model.";"Give the bike a name or model.";"";""
+"Hjemmeside";"bike.save";"Gem cykel";"Save bike";"";""
+"Hjemmeside";"rec.empty";"Ingen anbefalinger lige nu.";"No recommendations right now.";"";""
+"Hjemmeside";"rec.soon";"Gør det snart";"Do soon";"";""
+"Hjemmeside";"rec.later";"Planlæg";"Plan ahead";"";""
+"Hjemmeside";"rec.book";"Book det";"Book this";"";""
+"Hjemmeside";"rep.empty";"Jeres første flåderapport kommer her efter det første flådetjek.";"Your first fleet report appears here after the initial fleet check.";"";""
+"Hjemmeside";"rep.month";"Rapportmåned";"Report month";"";""
+"Hjemmeside";"rep.ready";"Klar til at køre";"Ready to ride";"";""
+"Hjemmeside";"rep.of";"{a} af {b}";"{a} of {b}";"";""
+"Hjemmeside";"rep.attention";"Kræver opmærksomhed";"Need attention";"";""
+"Hjemmeside";"rep.repair";"Skal repareres";"Repair needed";"";""
+"Hjemmeside";"rep.title";"{company}: flåderapport, {month}";"{company}: Fleet report, {month}";"";""
+"Hjemmeside";"rep.visit";"Besøg {date}";"Visit on {date}";"";""
+"Hjemmeside";"rep.hint";"Vælg et cykelnummer for at se detaljer.";"Select a bike number to see its details.";"";""
+"Hjemmeside";"rep.details";"Detaljer for cykel {n}";"Details for bike {n}";"";""
+"Hjemmeside";"rep.bike";"Cykel {n}";"Bike {n}";"";""
+"Hjemmeside";"rep.size";"Størrelse";"Size";"";""
+"Hjemmeside";"rep.note";"Mekanikerens note";"Mechanic's note";"";""
+"Hjemmeside";"rep.foot";"Dele og reparationer uden for aftalen koster ekstra. I får prisen, før vi går i gang.";"Parts and repairs outside the plan are charged separately. You are told the price before any extra work.";"";""
+"Hjemmeside";"fleet.count";"{n} cykler i flåden, grupperet efter placering.";"{n} bikes in the fleet, grouped by location.";"";""
+"Hjemmeside";"rep.print";"Udskriv / gem som PDF";"Print / save as PDF";"";""
+"Hjemmeside";"plan.name";"{plan}-aftale";"{plan} plan";"";""
+"Hjemmeside";"plan.header";"{plan}-aftale · {price} / cykel / md. · {n} cykler";"{plan} plan · {price} / bike / month · {n} bikes";"";""
+"Hjemmeside";"plan.nextVisit";" · Næste besøg {date}";" · Next visit {date}";"";""
+"Hjemmeside";"plan.calc";"{n} cykler × {price}";"{n} bikes × {price}";"";""
+"Hjemmeside";"plan.visits";"Besøg";"Visits";"";""
+"Hjemmeside";"plan.next";"Næste besøg";"Next visit";"";""
+"Hjemmeside";"plan.tba";"Aftales";"To be agreed";"";""
+"Hjemmeside";"plan.since";"Kunde siden";"Customer since";"";""
+"Hjemmeside";"plan.contact";"Kontakt";"Contact";"";""
+"Hjemmeside";"plan.help";"Brug for en anden aftale eller et ekstra besøg? Svar på en rapportmail, eller ring til os.";"Need a change of plan or an extra visit? Reply to any report email or call us.";"";""
+"E-mail";"bookingReceived.subject";"Vi har modtaget din booking TN-1042";"Booking received TN-1042";"";""
+"E-mail";"bookingReceived.text";"Hej Anna
+
+Tak for din booking hos The Neighbor. Vi har modtaget:
+- Punkteringsreparation / Puncture Fix: 199 kr.
+
+tirsdag den 20. oktober 2026 kl. 10:00
+Fuglebakkevej 12, 3. th., 2000 Frederiksberg
+
+I alt: 212 kr.
+
+Vi bekræfter din booking hurtigst muligt.
+
+Venlig hilsen
+The Neighbor";"Hi Anna,
+
+Thanks for booking with The Neighbor. We have received:
+- Punkteringsreparation / Puncture Fix: 199 DKK
+
+Tuesday, 20 October 2026 at 10:00
+Fuglebakkevej 12, 3. th., 2000 Frederiksberg
+
+Total: 212 DKK
+
+We will confirm your booking shortly.
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"bookingConfirmed.subject";"Din booking TN-1042 er bekræftet";"Your booking TN-1042 is confirmed";"";""
+"E-mail";"bookingConfirmed.text";"Hej Anna
+
+Din booking tirsdag den 20. oktober 2026 kl. 10:00 er bekræftet.
+Fuglebakkevej 12, 3. th., 2000 Frederiksberg
+
+Vi glæder os til at se dig.
+
+Venlig hilsen
+The Neighbor";"Hi Anna,
+
+Your booking on Tuesday, 20 October 2026 at 10:00 is confirmed.
+Fuglebakkevej 12, 3. th., 2000 Frederiksberg
+
+We look forward to seeing you.
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"bookingCompleted.subject";"Din booking TN-1042 er gennemført";"Your booking TN-1042 is complete";"";""
+"E-mail";"bookingCompleted.text";"Hej Anna
+
+Din booking tirsdag den 20. oktober 2026 kl. 10:00 er gennemført.
+
+Tak, fordi du valgte The Neighbor.
+
+Venlig hilsen
+The Neighbor";"Hi Anna,
+
+Your booking on Tuesday, 20 October 2026 at 10:00 is complete.
+
+Thank you for choosing The Neighbor.
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"bookingCancelled.subject";"Din booking TN-1042 er aflyst";"Your booking TN-1042 has been cancelled";"";""
+"E-mail";"bookingCancelled.text";"Hej Anna
+
+Din booking tirsdag den 20. oktober 2026 kl. 10:00 er aflyst.
+Fuglebakkevej 12, 3. th., 2000 Frederiksberg
+
+Skriv til os, hvis du gerne vil have en ny tid.
+
+Venlig hilsen
+The Neighbor";"Hi Anna,
+
+Your booking on Tuesday, 20 October 2026 at 10:00 has been cancelled.
+Fuglebakkevej 12, 3. th., 2000 Frederiksberg
+
+Get in touch if you would like a new time.
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"bookingMoved.subject";"Ny tid for din booking TN-1042";"Your booking TN-1042 has a new time";"";""
+"E-mail";"bookingMoved.text";"Hej Anna
+
+Din booking er flyttet til tirsdag den 20. oktober 2026 kl. 10:00 (før: mandag den 19. oktober 2026 kl. 13:00).
+Fuglebakkevej 12, 3. th., 2000 Frederiksberg
+
+Svar på denne e-mail, hvis den nye tid ikke passer dig.
+
+Venlig hilsen
+The Neighbor";"Hi Anna,
+
+Your booking has been moved to Tuesday, 20 October 2026 at 10:00 (it was Monday, 19 October 2026 at 13:00).
+Fuglebakkevej 12, 3. th., 2000 Frederiksberg
+
+Reply to this email if the new time does not suit you.
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"ownerMessage.subject";"Angående din booking TN-1042";"About your booking TN-1042";"";""
+"E-mail";"ownerMessage.text";"Hej Anna
+
+(Ejerens egen besked / the owner's own message)
+
+Venlig hilsen
+The Neighbor";"Hi Anna,
+
+(Ejerens egen besked / the owner's own message)
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"visitDone.subject";"Din cykel er klar (TN-1042)";"Your bike service is done (TN-1042)";"";""
+"E-mail";"visitDone.text";"Hej Anna
+
+Vi har serviceret din cykel (tirsdag den 20. oktober 2026, TN-1042). Udført arbejde:
+- Punkteret bagslange skiftet / Rear inner tube replaced
+
+Brugte dele:
+- Slange 700×35c / Inner tube: 59 kr.
+
+Noter: Bagdækket er slidt. / The rear tyre is worn.
+
+Vores anbefaling: Skift bagdækket / Replace the rear tyre (slidt / worn)
+
+I alt: 212 kr.
+
+Du kan se hele servicehistorikken med billeder på din konto.
+
+Venlig hilsen
+The Neighbor";"Hi Anna,
+
+Your bike has been serviced (Tuesday, 20 October 2026, TN-1042). Work done:
+- Punkteret bagslange skiftet / Rear inner tube replaced
+
+Parts:
+- Slange 700×35c / Inner tube: 59 DKK
+
+Notes: Bagdækket er slidt. / The rear tyre is worn.
+
+Our recommendation: Skift bagdækket / Replace the rear tyre (slidt / worn)
+
+Total: 212 DKK
+
+The full record, with photos, is in your account.
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"consultationReceived.subject";"Vi har modtaget jeres henvendelse";"We have received your consultation request";"";""
+"E-mail";"consultationReceived.text";"Hej Anna
+
+Tak for jeres interesse. Vi kontakter dig snarest for at aftale et møde om Hotel ABC.
+
+Venlig hilsen
+The Neighbor";"Hi Anna,
+
+Thanks for your interest. We will contact you shortly to arrange a meeting about Hotel ABC.
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"businessInvite.subject";"Jeres erhvervskonto hos The Neighbor";"Your business account at The Neighbor";"";""
+"E-mail";"businessInvite.text";"Hej Mette
+
+Velkommen! Hotel ABC er nu oprettet på Standard-aftalen (300 kr. pr. cykel pr. måned).
+På kontoen kan I se jeres flåde og servicerapporten efter hvert besøg.
+
+Vælg din adgangskode her: https://…/account.html
+
+Venlig hilsen
+The Neighbor";"Hi Mette,
+
+Welcome aboard: Hotel ABC is set up on the Standard plan (300 DKK per bike per month).
+In your account you will find your fleet and the service report after each visit.
+
+Choose your password here: https://…/account.html
+
+Best regards,
+The Neighbor";"";""
+"E-mail";"fleetReport.subject";"Flåderapport klar: oktober 2026";"Fleet report ready: October 2026";"";""
+"E-mail";"fleetReport.text";"Hej Mette
+
+Rapporten for Hotel ABC for oktober 2026 er klar på jeres konto (besøg torsdag den 8. oktober 2026).
+4 er klar, 1 kræver opmærksomhed, og 1 skal repareres.
+
+Venlig hilsen
+The Neighbor";"Hi Mette,
+
+The October 2026 report for Hotel ABC is ready in your account (visit on Thursday, 8 October 2026).
+4 ready, 1 need attention, 1 need repair.
+
+Best regards,
+The Neighbor";"";""
+"Privatlivspolitik";"privacy.html#1";"Privatlivspolitik";"Privacy policy";"";""
+"Privatlivspolitik";"privacy.html#2";"Senest opdateret: [dato for offentliggørelse]";"Last updated: [date of publication]";"";""
+"Privatlivspolitik";"privacy.html#3";"Her kan du læse, hvilke oplysninger The Neighbor behandler om dig, hvorfor, hvor længe, og hvilke rettigheder du har.";"This page explains what information The Neighbor processes about you, why, for how long, and what your rights are.";"";""
+"Privatlivspolitik";"privacy.html#4";"1. Hvem er ansvarlig?";"1. Who is responsible?";"";""
+"Privatlivspolitik";"privacy.html#5";"Dataansvarlig er: [Virksomhedens juridiske navn], [virksomhedsform, fx enkeltmandsvirksomhed] [Adresse] CVR-nr. [CVR-nummer] E-mail: [e-mail] · Telefon: [telefon]";"The data controller is: [Legal name of the business], [type of business, e.g. sole proprietorship] [Address] CVR no. [CVR number] Email: [email] · Phone: [phone]";"";""
+"Privatlivspolitik";"privacy.html#6";"Skriv til os på e-mailadressen ovenfor, hvis du har spørgsmål til, hvordan vi behandler dine oplysninger.";"Write to us at the email address above with any question about how we handle your information.";"";""
+"Privatlivspolitik";"privacy.html#7";"2. Hvilke oplysninger, og hvorfor?";"2. What information, and why?";"";""
+"Privatlivspolitik";"privacy.html#8";"Når du booker en service";"When you book a service";"";""
+"Privatlivspolitik";"privacy.html#9";"Vi behandler dit navn, din adresse, dit telefonnummer og din e-mail, de services du vælger, tidspunktet, din cykeltype, din besked til os, eventuelle billeder du vedhæfter, prisen, og at du har accepteret handelsbetingelserne og bedt os udføre arbejdet inden for fortrydelsesfristen. Vi bruger oplysningerne til at planlægge og udføre besøget, kontakte dig om bookingen og sende faktura.";"We process your name, address, phone number and email, the services you choose, the time, your type of bike, your message to us, any photos you attach, the price, and that you accepted the terms and asked us to do the work within the withdrawal period. We use them to plan and carry out the visit, contact you about the booking and send the invoice.";"";""
+"Privatlivspolitik";"privacy.html#10";"Retsgrundlag: Behandlingen er nødvendig for at opfylde aftalen med dig (databeskyttelsesforordningens artikel 6, stk. 1, litra b). Oplysninger, der indgår i vores regnskab, gemmer vi, fordi bogføringsloven kræver det (artikel 6, stk. 1, litra c).";"Legal basis: processing is necessary to perform our agreement with you (Article 6(1)(b) of the General Data Protection Regulation). Information that forms part of our accounts is kept because the Danish Bookkeeping Act requires it (Article 6(1)(c)).";"";""
+"Privatlivspolitik";"privacy.html#11";"Billeder";"Photos";"";""
+"Privatlivspolitik";"privacy.html#12";"Du kan vedhæfte op til 3 billeder af din cykel eller problemet. Billederne bliver gjort mindre i din browser, før de sendes, og det fjerner også oplysninger om, hvor billedet er taget (GPS). Undgå venligst billeder, hvor andre personer kan genkendes.";"You can attach up to 3 photos of your bike or the problem. They are made smaller in your browser before they are sent, which also removes information about where the photo was taken (GPS). Please avoid photos in which other people can be recognised.";"";""
+"Privatlivspolitik";"privacy.html#13";"For at kunne modtage billeder fra besøgende uden en konto, logger siden dig ind anonymt i baggrunden. Det anonyme login indeholder ingen oplysninger om dig; det bruges kun til at sikre, at kun du kan lægge billeder i din egen mappe.";"To accept photos from visitors without an account, the site signs you in anonymously in the background. The anonymous sign-in holds no information about you; it only makes sure that only you can put photos in your own folder.";"";""
+"Privatlivspolitik";"privacy.html#14";"Når du opretter en konto";"When you create an account";"";""
+"Privatlivspolitik";"privacy.html#15";"En konto er frivillig. Opretter du en, gemmer vi dit navn, din e-mail, dit telefonnummer og din adresse, så de er udfyldt, når du booker, og så du kan se og aflyse dine bookinger. Login håndteres af Google (Firebase Authentication), og din adgangskode gemmes kun i en form, der ikke kan læses tilbage; vi kender den ikke. Når du har bekræftet din e-mail, knytter vi de bookinger til kontoen, som du tidligere har lavet med den samme e-mail.";"An account is optional. If you create one, we keep your name, email, phone number and address, so they are filled in when you book and you can see and cancel your bookings. Sign-in is handled by Google (Firebase Authentication), and your password is stored only in a form that cannot be read back; we do not know it. Once you have confirmed your email, we add the bookings you made earlier with the same email to your account.";"";""
+"Privatlivspolitik";"privacy.html#16";"På kontoen kan du gemme oplysninger om dine cykler (fx model, størrelse og bremser) med op til 4 billeder pr. cykel. Efter et besøg gemmer vi en servicehistorik: hvad vi lavede, brugte dele, priser, mekanikerens noter, billeder fra besøget og eventuelle anbefalinger til næste gang. Du kan se det hele på din konto.";"In your account you can save details of your bikes (such as model, size and brakes), with up to 4 photos per bike. After a visit we keep a service history: what we did, parts used, prices, the mechanic's notes, photos from the visit and any recommendations for next time. You can see all of it in your account.";"";""
+"Privatlivspolitik";"privacy.html#17";"Retsgrundlag: Behandlingen er nødvendig for at levere kontoen og vores service til dig (artikel 6, stk. 1, litra b).";"Legal basis: processing is necessary to provide the account and our service to you (Article 6(1)(b)).";"";""
+"Privatlivspolitik";"privacy.html#18";"Når en virksomhed beder om et møde";"When a business asks for a meeting";"";""
+"Privatlivspolitik";"privacy.html#19";"Vi behandler kontaktpersonens navn, e-mail og telefon, virksomhedens navn og type, antallet af cykler, det ønskede tidspunkt og beskeden. Retsgrundlag: vores legitime interesse i at besvare henvendelsen og indgå en aftale med virksomheden (artikel 6, stk. 1, litra f).";"We process the contact person's name, email and phone, the business's name and type, the number of bikes, the preferred time and the message. Legal basis: our legitimate interest in answering the enquiry and entering into an agreement with the business (Article 6(1)(f)).";"";""
+"Privatlivspolitik";"privacy.html#20";"Virksomhedskunder";"Business customers";"";""
+"Privatlivspolitik";"privacy.html#21";"Har en virksomhed en aftale med os, opretter vi et login til virksomhedens kontaktperson. Vi gemmer kontaktpersonens navn, e-mail og telefon, virksomhedens navn og adresse, aftalen, oplysninger om flådens cykler (nummer, type, placering og billeder, som vi tager ved eftersynet) og de månedlige rapporter. Rapporterne handler om cyklerne, ikke om de personer, der bruger dem. Retsgrundlag: vores legitime interesse i at opfylde aftalen med virksomheden (artikel 6, stk. 1, litra f).";"When a business has an agreement with us, we create a login for its contact person. We keep the contact person's name, email and phone, the business's name and address, the agreement, details of the fleet's bikes (number, type, location and photos we take at the check-up) and the monthly reports. The reports are about the bikes, not about the people who use them. Legal basis: our legitimate interest in performing the agreement with the business (Article 6(1)(f)).";"";""
+"Privatlivspolitik";"privacy.html#22";"Sikkerhed og drift";"Security and operation";"";""
+"Privatlivspolitik";"privacy.html#23";"Vores leverandør registrerer tekniske oplysninger som IP-adresse og tidspunkt, når siden bruges, for at holde tjenesten sikker og stabil (artikel 6, stk. 1, litra f).";"Our provider records technical information such as IP address and time when the site is used, to keep the service secure and working (Article 6(1)(f)).";"";""
+"Privatlivspolitik";"privacy.html#24";"3. Hvem får oplysningerne?";"3. Who receives the information?";"";""
+"Privatlivspolitik";"privacy.html#25";"Google (Firebase) driver hjemmesiden og login og opbevarer bookinger, konti og billeder for os som databehandler. Data opbevares i EU (Belgien). Google er en amerikansk virksomhed; eventuel overførsel til USA sker på grundlag af EU-U.S. Data Privacy Framework og EU's standardkontraktbestemmelser i Googles databehandleraftale.";"Google (Firebase) runs the website and sign-in and stores bookings, accounts and photos for us as a data processor. Data is stored in the EU (Belgium). Google is a US company; any transfer to the US is based on the EU-U.S. Data Privacy Framework and the EU standard contractual clauses in Google's data processing terms.";"";""
+"Privatlivspolitik";"privacy.html#26";"Adresseforslag: mens du skriver din adresse, sender vores server det, du har skrevet, til Klimadatastyrelsens Adressevælger (Danmarks officielle adresseregister) for at finde forslag. Der sendes kun adresseteksten, ikke dit navn eller andre oplysninger.";"Address suggestions: while you type your address, our server sends what you have typed to Klimadatastyrelsen's Adressevælger (Denmark's official address register) to find suggestions. Only the address text is sent, not your name or anything else.";"";""
+"Privatlivspolitik";"privacy.html#27";"E-mail: bekræftelser og beskeder sendes via [e-mailudbyder].";"Email: confirmations and messages are sent through [email provider].";"";""
+"Privatlivspolitik";"privacy.html#28";"Regnskab: [revisor/bogholder, hvis relevant] får de oplysninger, der står på fakturaen.";"Accounts: [accountant or bookkeeper, if any] receives the information on the invoice.";"";""
+"Privatlivspolitik";"privacy.html#29";"Vi sælger aldrig dine oplysninger og bruger dem ikke til markedsføring uden dit samtykke.";"We never sell your information, and we do not use it for marketing without your consent.";"";""
+"Privatlivspolitik";"privacy.html#30";"4. Hvor længe gemmer vi dem?";"4. How long do we keep it?";"";""
+"Privatlivspolitik";"privacy.html#31";"Bookinger: [3 år] efter besøget. Oplysninger, der indgår i regnskabet (fx fakturaer), gemmes i 5 år fra udgangen af det regnskabsår, de vedrører, som bogføringsloven kræver.";"Bookings: [3 years] after the visit. Information that forms part of the accounts (such as invoices) is kept for 5 years from the end of the financial year it relates to, as the Bookkeeping Act requires.";"";""
+"Privatlivspolitik";"privacy.html#32";"Billeder: gemmes som en del af din cykels servicehistorik, indtil vi sletter dem, eller du beder os om det. Når et billede slettes, er det helt væk inden for 7 dage.";"Photos: kept as part of your bike's service history until we delete them or you ask us to. Once a photo is deleted, it is completely gone within 7 days.";"";""
+"Privatlivspolitik";"privacy.html#33";"Billeder, du lagde op uden at gennemføre bookingen: slettes automatisk efter cirka et døgn.";"Photos uploaded without completing the booking: deleted automatically after about a day.";"";""
+"Privatlivspolitik";"privacy.html#34";"Henvendelser fra virksomheder: [12 måneder], hvis der ikke bliver indgået en aftale.";"Enquiries from businesses: [12 months] if no agreement is made.";"";""
+"Privatlivspolitik";"privacy.html#35";"Din konto: så længe du har den. Skriv til os, hvis du vil have den slettet; så sletter vi profilen, dine gemte cykler og deres billeder. Bookinger og servicehistorik gemmes som beskrevet under Bookinger.";"Your account: for as long as you have it. Write to us if you want it deleted; we then delete your profile, your saved bikes and their photos. Bookings and service history are kept as described under Bookings.";"";""
+"Privatlivspolitik";"privacy.html#36";"Virksomhedsaftaler: mens aftalen løber og [3 år] efter, at den er ophørt. Regnskabsoplysninger gemmes i 5 år, som nævnt ovenfor.";"Business agreements: while the agreement runs and [3 years] after it ends. Accounting information is kept for 5 years, as above.";"";""
+"Privatlivspolitik";"privacy.html#37";"5. Oplysninger i din browser";"5. Information in your browser";"";""
+"Privatlivspolitik";"privacy.html#38";"Vi bruger ikke cookies til statistik eller markedsføring. Siden gemmer kun det, der er nødvendigt, i din egen browser:";"We do not use cookies for statistics or marketing. The site keeps only what is needed, in your own browser:";"";""
+"Privatlivspolitik";"privacy.html#39";"dit valg af sprog (dansk eller engelsk),";"your choice of language (Danish or English),";"";""
+"Privatlivspolitik";"privacy.html#40";"dine kontaktoplysninger, hvis du sætter flueben ved Husk mig, så formularen er udfyldt næste gang. Fjern fluebenet ved næste booking for at slette dem,";"your contact details, if you tick Remember me, so the form is filled in next time. Untick it at your next booking to delete them,";"";""
+"Privatlivspolitik";"privacy.html#41";"det anonyme login, når du vedhæfter billeder,";"the anonymous sign-in, when you attach photos,";"";""
+"Privatlivspolitik";"privacy.html#42";"dit login, når du er logget ind på din konto, så du ikke skal logge ind hver gang. Log ud for at fjerne det.";"your sign-in, when you are logged in to your account, so you do not have to log in every time. Log out to remove it.";"";""
+"Privatlivspolitik";"privacy.html#43";"6. Dine rettigheder";"6. Your rights";"";""
+"Privatlivspolitik";"privacy.html#44";"Du har ret til at få indsigt i de oplysninger, vi har om dig, få forkerte oplysninger rettet, få oplysninger slettet, få behandlingen begrænset, få dine oplysninger udleveret (dataportabilitet) og gøre indsigelse mod behandling, der sker på grundlag af vores legitime interesse. Skriv til os, så svarer vi inden for en måned.";"You have the right to see the information we hold about you, have incorrect information corrected, have information deleted, have processing restricted, receive your information in a portable form, and object to processing based on our legitimate interest. Write to us and we will reply within one month.";"";""
+"Privatlivspolitik";"privacy.html#45";"Nogle oplysninger skal vi dog gemme, fx fordi bogføringsloven kræver det.";"Some information we must keep, for example because the Bookkeeping Act requires it.";"";""
+"Privatlivspolitik";"privacy.html#46";"Du kan klage til Datatilsynet, datatilsynet.dk, hvis du er utilfreds med vores behandling af dine oplysninger.";"You can complain to the Danish Data Protection Agency (Datatilsynet), datatilsynet.dk, if you are unhappy with how we handle your information.";"";""
+"Privatlivspolitik";"privacy.html#47";"7. Ændringer";"7. Changes";"";""
+"Privatlivspolitik";"privacy.html#48";"Ændrer vi denne politik, opdaterer vi datoen øverst. Væsentlige ændringer fortæller vi om på siden.";"If we change this policy, we update the date at the top. We announce significant changes on the site.";"";""
+"Handelsbetingelser";"terms.html#1";"Handelsbetingelser";"";"";""
+"Handelsbetingelser";"terms.html#2";"Gælder for privatkunder · Senest opdateret: [dato for offentliggørelse]";"";"";""
+"Handelsbetingelser";"terms.html#3";"1. Om os";"";"";""
+"Handelsbetingelser";"terms.html#4";"[Virksomhedens juridiske navn], [virksomhedsform], [adresse], CVR-nr. [CVR-nummer]. E-mail: [e-mail], telefon: [telefon].";"";"";""
+"Handelsbetingelser";"terms.html#5";"Vi er en mobil cykelmekaniker i København og kommer ud til dig. Aftaler med virksomheder indgås særskilt og er ikke omfattet af disse betingelser.";"";"";""
+"Handelsbetingelser";"terms.html#6";"2. Priser";"";"";""
+"Handelsbetingelser";"terms.html#7";"Alle priser er i danske kroner og inklusive moms. [Bekræft, at virksomheden er momsregistreret; ellers: ""Virksomheden er ikke momsregistreret.""]";"";"";""
+"Handelsbetingelser";"terms.html#8";"Prisen for de valgte services står på siden.";"";"";""
+"Handelsbetingelser";"terms.html#9";"Kørsel koster 2,50 kr. pr. km én vej fra vores base. Vi kører højst 18 km.";"";"";""
+"Handelsbetingelser";"terms.html#10";"Reservedele og større reparationer er ikke inkluderet. Vi fortæller dig altid prisen og spørger, før vi går i gang.";"";"";""
+"Handelsbetingelser";"terms.html#11";"Bestiller du The Neighbor Cykeltjek sammen med mindst én anden service, får du 5 % rabat. Med Neighbor Care Plus får du 5 % rabat på services. Du får højst én af rabatterne.";"";"";""
+"Handelsbetingelser";"terms.html#12";"Du ser den samlede pris, inklusive kørsel, før du bekræfter bookingen.";"";"";""
+"Handelsbetingelser";"terms.html#13";"3. Booking";"";"";""
+"Handelsbetingelser";"terms.html#14";"Når du booker, modtager vi din forespørgsel og sender en kvittering. Aftalen er indgået, når vi har bekræftet bookingen på e-mail. [Du skal være fyldt 18 år for at booke. — bekræft eller fjern]";"";"";""
+"Handelsbetingelser";"terms.html#15";"Vi skal kunne komme til cyklen på adressen. Er du der ikke selv, så skriv i beskeden, hvor cyklen står.";"";"";""
+"Handelsbetingelser";"terms.html#16";"4. Ændring og afbud";"";"";""
+"Handelsbetingelser";"terms.html#17";"Du kan ændre eller aflyse gratis indtil [24 timer] før besøget ved at skrive eller ringe til os. Har du en konto, kan du også selv aflyse på kontoen indtil da. [Ved senere afbud, eller hvis vi ikke kan komme til cyklen: gebyr på … kr. / intet gebyr]";"";"";""
+"Handelsbetingelser";"terms.html#18";"Må vi aflyse, fx ved sygdom, giver vi besked hurtigst muligt og finder en ny tid med dig. Du betaler intet for et aflyst besøg.";"";"";""
+"Handelsbetingelser";"terms.html#19";"5. Fortrydelsesret";"";"";""
+"Handelsbetingelser";"terms.html#20";"Du har 14 dages fortrydelsesret. Fristen løber fra den dag, aftalen er indgået (se punkt 3).";"";"";""
+"Handelsbetingelser";"terms.html#21";"Ligger besøget inden for de 14 dage, beder du os om at udføre arbejdet, før fristen udløber. Det betyder:";"";"";""
+"Handelsbetingelser";"terms.html#22";"Fortryder du, før vi er gået i gang, betaler du intet.";"";"";""
+"Handelsbetingelser";"terms.html#23";"Fortryder du, mens arbejdet er i gang, betaler du for den del, der er udført, i forhold til den samlede pris.";"";"";""
+"Handelsbetingelser";"terms.html#24";"Når arbejdet er fuldt udført, har du ikke længere fortrydelsesret.";"";"";""
+"Handelsbetingelser";"terms.html#25";"Du beder om dette og bekræfter, at du kender reglerne, ved at sætte flueben, før du booker. Vi gemmer, at du har gjort det.";"";"";""
+"Handelsbetingelser";"terms.html#26";"Du fortryder ved at give os en tydelig besked, fx på e-mail. Du kan bruge formularen nedenfor, men det er ikke et krav. Vi tilbagebetaler et eventuelt beløb senest 14 dage efter, at vi har fået din besked.";"";"";""
+"Handelsbetingelser";"terms.html#27";"Standardfortrydelsesformular";"";"";""
+"Handelsbetingelser";"terms.html#28";"(Denne formular udfyldes og returneres kun, hvis fortrydelsesretten gøres gældende)";"";"";""
+"Handelsbetingelser";"terms.html#29";"Til [navn, adresse og e-mail]:";"";"";""
+"Handelsbetingelser";"terms.html#30";"Jeg/vi (*) meddeler herved, at jeg/vi (*) ønsker at gøre fortrydelsesretten gældende i forbindelse med min/vores (*) købsaftale om følgende varer (*)/levering af følgende tjenesteydelser (*)";"";"";""
+"Handelsbetingelser";"terms.html#31";"Bestilt den (*)/modtaget den (*)";"";"";""
+"Handelsbetingelser";"terms.html#32";"Forbrugerens/forbrugernes navn";"";"";""
+"Handelsbetingelser";"terms.html#33";"Forbrugerens/forbrugernes adresse";"";"";""
+"Handelsbetingelser";"terms.html#34";"Forbrugerens/forbrugernes underskrift (kun hvis formularens indhold meddeles på papir)";"";"";""
+"Handelsbetingelser";"terms.html#35";"Dato";"";"";""
+"Handelsbetingelser";"terms.html#36";"(*) Det ikke-relevante udstreges.";"";"";""
+"Handelsbetingelser";"terms.html#37";"6. The Neighbor Care og Care Plus";"";"";""
+"Handelsbetingelser";"terms.html#38";"The Neighbor Care koster 79 kr. pr. måned og Neighbor Care Plus 99 kr. pr. måned.";"";"";""
+"Handelsbetingelser";"terms.html#39";"Abonnementet løber mindst 3 måneder. Derefter kan du opsige det når som helst, til udgangen af den måned, hvor du opsiger. [Bekræft]";"";"";""
+"Handelsbetingelser";"terms.html#40";"Et eftersyn om måneden er inkluderet. Et eftersyn, der ikke bliver brugt, kan ikke gemmes til næste måned.";"";"";""
+"Handelsbetingelser";"terms.html#41";"Care Plus giver ét akut besøg om måneden. Vi bestræber os på at komme dagen efter, men kan ikke love det.";"";"";""
+"Handelsbetingelser";"terms.html#42";"Reservedele og større reparationer betales særskilt.";"";"";""
+"Handelsbetingelser";"terms.html#43";"Du har 14 dages fortrydelsesret på abonnementet som beskrevet i punkt 5. Har du allerede fået et eftersyn, betaler du for det.";"";"";""
+"Handelsbetingelser";"terms.html#44";"7. Betaling";"";"";""
+"Handelsbetingelser";"terms.html#45";"Du betaler efter besøget mod faktura, som vi sender på e-mail. Betalingsfristen er [8 dage]. Abonnementer faktureres [månedsvis forud].";"";"";""
+"Handelsbetingelser";"terms.html#46";"8. Reklamation";"";"";""
+"Handelsbetingelser";"terms.html#47";"Er du utilfreds med vores arbejde, så kontakt os hurtigst muligt, så vi kan rette det. Fejl i vores arbejde udbedrer vi uden beregning. For reservedele har du 2 års reklamationsret efter købeloven.";"";"";""
+"Handelsbetingelser";"terms.html#48";"9. Billeder";"";"";""
+"Handelsbetingelser";"terms.html#49";"Vedhæft kun billeder, du selv har taget eller må bruge, og helst uden andre personer. Hvordan vi behandler billederne, står i vores privatlivspolitik.";"";"";""
+"Handelsbetingelser";"terms.html#50";"10. Ansvar";"";"";""
+"Handelsbetingelser";"terms.html#51";"Vi er ansvarlige efter dansk rets almindelige regler.";"";"";""
+"Handelsbetingelser";"terms.html#52";"11. Klager";"";"";""
+"Handelsbetingelser";"terms.html#53";"Kontakt os først, så finder vi som regel en løsning. Hvis ikke, kan du klage til Nævnenes Hus, Center for Klageløsning, via naevneneshus.dk.";"";"";""
+"Handelsbetingelser";"terms.html#54";"Aftalen er underlagt dansk ret.";"";"";""

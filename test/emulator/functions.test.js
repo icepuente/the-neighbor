@@ -114,7 +114,7 @@ test('createBooking: saves the booking, numbers it, queues both emails', async (
   assert.equal(b.guestToken.length, 48);
   const mail = await list('mail');
   assert.equal(mail.length, 2);
-  assert.ok(mail.some((m) => m.to === 'guest@example.com' && m.message.subject === 'Booking received TN-1041'));
+  assert.ok(mail.some((m) => m.to === 'guest@example.com' && m.message.subject === 'Vi har modtaget din booking TN-1041' && m.message.text.includes(' kl. ') && m.message.text.includes('I alt: ')));
   assert.ok(mail.some((m) => m.to === 'owner@example.com' && m.message.subject === 'New booking TN-1041'));
 });
 

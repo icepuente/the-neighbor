@@ -33,11 +33,33 @@ especially, and have a native speaker proofread the Danish.
 - [ ] How long to keep bookings after the visit (draft: 3 years; invoices must be kept 5 years under
       the Bookkeeping Act regardless)
 - [ ] How long to keep business enquiries that do not lead to an agreement (draft: 12 months)
+- [ ] How long to keep business agreements' data after the agreement ends (draft: 3 years; accounting
+      information 5 years)
 - [ ] Which email provider sends confirmations (chosen later, with the .dk domain)
 - [ ] An accountant or bookkeeper who receives invoice data, if any
 - [ ] Address suggestions use Klimadatastyrelsen's Adressevælger (named in the privacy policy).
       Before launch, create a free Dataforsyningen account and token for the business and set it
       as the Functions parameter `ADDRESS_TOKEN` (now the public sample token from its docs).
+
+## 3a. Accounts and business customers (added 2026-10-17)
+
+The privacy policy has new sections for these, drafted in Danish and English; review them with
+the rest.
+
+- [ ] **Customer accounts:** profile, sign-in (Firebase Authentication), linking earlier guest
+      bookings once the email is confirmed, saved bikes with up to 4 photos, and the service history
+      and recommendations from logged visits. Legal basis drafted as the agreement (6(1)(b)).
+- [ ] **Deleting an account:** the policy says "write to us"; there is no delete button yet. The
+      owner would delete it by hand. A self-service "Slet konto" can be built if wanted.
+- [ ] **Business customers:** the contact person's login and details, the fleet's bikes and photos,
+      and the monthly reports. Legal basis drafted as legitimate interest in performing the agreement
+      with the business (6(1)(f)), since the contact person is not the party to it.
+- [ ] **Terms for business customers:** the terms on the site are written for private customers
+      (consumers). Fleet plans are agreed after a meeting; decide whether they need written business
+      terms (price per bike per month, invoicing, notice period, what the plan includes, extra
+      repairs), or an agreement per customer.
+- [ ] **Online cancellation:** the terms now say customers with an account can cancel there until
+      the free-cancellation deadline (24 hours in the draft).
 
 ## 4. Actions before launch
 
@@ -50,7 +72,13 @@ especially, and have a native speaker proofread the Danish.
       acknowledgement; the booking records both, with the terms version and the time. The old consent
       popup is gone: booking data rests on the agreement, not on consent. Check the wording of the
       early-start box (`co.earlyStart` in `web/js/i18n.js`) with the rest.
-- [ ] Native-speaker proofreading of the Danish text; legal review of the terms.
+- [ ] Native-speaker proofreading of the Danish text; legal review of the terms. The sheet for the
+      proofreader is [`docs/review/proofreading.csv`](review/proofreading.csv); see
+      [`docs/review/README.md`](review/README.md).
+- [ ] Customer emails are now in Danish (or English, if the customer used the English site); they
+      are in the proofreading sheet.
+- [ ] Set the Functions parameter `SITE_URL` to the .dk address: the business invite's
+      set-password link returns there.
 
 ## Rules checked (2026-10-17)
 

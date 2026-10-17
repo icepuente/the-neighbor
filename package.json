@@ -17,7 +17,9 @@
     "seed": "node scripts/seed-demo.js",
     "set-owner": "node scripts/set-owner.js",
     "deploy:demo": "bash scripts/deploy-demo.sh",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "export-texts": "node scripts/texts.js export",
+    "import-texts": "node scripts/texts.js import"
   },
   "engines": {
     "node": ">=20"

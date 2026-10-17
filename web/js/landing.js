@@ -269,6 +269,8 @@ $('f').addEventListener('submit', async (e) => {
     email: $('email').value.trim(),
     note: $('note').value.trim(),
     photos: bookingPhotos.get(),
+    // The customer's emails come in the language they booked in.
+    lang: I18N.lang,
   };
   // The same checks the server runs, for a quick answer. Whether the time is still free, and the
   // exact price, come from the server.
@@ -485,7 +487,7 @@ $('cf').addEventListener('submit', async (e) => {
   const v = (id) => $(id).value.trim();
   const input = {
     name: v('cname'), company: v('ccomp'), email: v('cemail'), phone: v('ctel'), companyType: v('ctype'),
-    bikes: v('cnum'), preferredDate: v('cdate'), preferredTime: v('ctime'), message: v('cmsg'),
+    bikes: v('cnum'), preferredDate: v('cdate'), preferredTime: v('ctime'), message: v('cmsg'), lang: I18N.lang,
   };
   // A quick check here; the server checks again.
   const local = R.checkConsultation(input);

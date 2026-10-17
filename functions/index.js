@@ -15,6 +15,7 @@ import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { defineString } from 'firebase-functions/params';
 import * as R from './shared/booking-rules.js';
 import * as P from './photos.js';
+import { email as mail, langOf } from './shared/emails.js';
 
 // Same region as the data. A low instance cap limits the bill if someone hammers the endpoints.
 setGlobalOptions({ region: 'europe-west1', maxInstances: 5 });
@@ -47,6 +48,8 @@ function bookingInput(raw = {}) {
     email: str(raw.email, 200).toLowerCase(),
     phone: str(raw.phone, 40),
     note: str(raw.note, 2000),
+    // The site's language when booking: the customer's emails follow it.
+    lang: langOf(raw.lang),
     // Photos the visitor uploaded to uploads/{uid}/: { id, w, h }. One more than allowed is kept,
     // so checkBooking can say "too many" instead of silently dropping one.
     photos: (Array.isArray(raw.photos) ? raw.photos : []).slice(0, R.CONFIG.maxBookingPhotos + 1).map((p) => ({
@@ -107,8 +110,13 @@ async function customerContext(uid) {
 // Travel distance. Stand-in until the Google Maps Routes API is connected (plan, decision 2).
 const distanceKm = async (address) => R.estimateKm(address);
 
-const queueMail = (batchOrTx, to, subject, text) =>
-  batchOrTx.set(db.collection('mail').doc(), { to, message: { subject, text }, createdAt: FieldValue.serverTimestamp() });
+// queueMail(batch, to, subject, text) for the owner's emails; queueMail(batch, to, { subject, text })
+// with a template from shared/emails.js for the customer's.
+const queueMail = (batchOrTx, to, subject, text) => {
+  const message = typeof subject === 'object' ? subject : { subject, text };
+  batchOrTx.set(db.collection('mail').doc(), { to, message, createdAt: FieldValue.serverTimestamp() });
+};
+const place = (b) => R.fullAddress(b.address, b.apartment);
 
 // ---- bookingOptions: what the booking form may offer ----
 // Returns today's date, the earliest bookable date for this visitor, and, for `date`, whether it is
@@ -268,6 +276,7 @@ export const createBooking = onCall(async (request) => {
       email: input.email,
       phone: input.phone,
       note: input.note,
+      lang: input.lang,
       photos,
       pricing: { oneOff: q.oneOff, discount: q.discount, discountReason: q.discountReason, monthly: q.monthly, travel: q.travel, total: q.total },
       // Proof of what the customer accepted, and when; the version is the server's, not the browser's.
@@ -284,9 +293,10 @@ export const createBooking = onCall(async (request) => {
         startDate: input.date, commitmentEnds: R.commitmentEnds(input.date), bookingId: ref.id, createdAt: FieldValue.serverTimestamp(),
       });
     }
-    const lines = q.services.map((s) => `- ${s.name}`).join('\n');
-    queueMail(tx, input.email, `Booking received ${booking.ref}`,
-      `Hi ${input.name},\n\nThanks for booking with The Neighbor. We have received:\n${lines}\n\n${input.date} at ${input.arrival}\n${R.fullAddress(input.address, input.apartment)}\n\nTotal: ${q.total} DKK\n\nWe will confirm your booking shortly.`);
+    queueMail(tx, input.email, mail('bookingReceived', {
+      name: input.name, ref: booking.ref, date: input.date, time: input.arrival, address: R.fullAddress(input.address, input.apartment), total: q.total,
+      services: q.services.map((s) => ({ name: input.lang === 'da' ? R.service(s.id)?.da || s.name : s.name, price: s.price })),
+    }, input.lang));
     queueMail(tx, OWNER_EMAIL.value(), `${booking.urgent ? 'URGENT ' : ''}New booking ${booking.ref}`,
       `${input.name} (${input.phone}, ${input.email}) booked ${q.services.map((s) => s.name).join(', ')} on ${input.date} at ${input.arrival}.\n${R.fullAddress(input.address, input.apartment)}\n\nNote: ${input.note || '–'}`);
     return { booking: { id: ref.id, ref: booking.ref, date: booking.date, arrival: booking.arrival, urgent: booking.urgent, email: booking.email, pricing: booking.pricing, photos: photos.length, guestToken } };
@@ -416,15 +426,9 @@ export const logVisit = onCall(async (request) => {
   batch.create(db.doc(`serviceRecords/${recordId}`), record);
   if (rec) batch.set(db.collection('recommendations').doc(), rec);
   batch.update(ref, { status: 'completed', statusAt: FieldValue.serverTimestamp(), visitLogged: true, recordId });
-  const lines = [
-    `Hi ${b.name},`, '', `Your bike has been serviced (${b.date}, ${b.ref}). Work done:`, ...work.map((w) => `- ${w}`),
-    ...(parts.length ? ['', 'Parts:', ...parts.map((p) => `- ${p.name}: ${p.price} DKK`)] : []),
-    ...(record.notes ? ['', `Notes: ${record.notes}`] : []),
-    ...(rec ? ['', `Our recommendation: ${rec.title}${rec.reason ? ` (${rec.reason})` : ''}`] : []),
-    '', `Total: ${record.cost.total} DKK`,
-    ...(b.customerUid ? ['', 'The full record, with photos, is in your account.'] : []), '', 'The Neighbor',
-  ];
-  queueMail(batch, b.email, `Your bike service is done (${b.ref})`, lines.join('\n'));
+  queueMail(batch, b.email, mail('visitDone', {
+    name: b.name, ref: b.ref, date: b.date, work, parts, notes: record.notes, recommendation: rec, total: record.cost.total, hasAccount: Boolean(b.customerUid),
+  }, b.lang));
   await batch.commit();
   return { ok: true, recordId };
 });
@@ -455,8 +459,7 @@ export const rescheduleBooking = onCall(async (request) => {
     if (!slot) return { error: 'arrival' };
     if (!slot.free) return { error: 'taken' };
     tx.update(ref, { date, arrival, urgent: false, rescheduledAt: FieldValue.serverTimestamp(), previous: { date: b.date, arrival: b.arrival } });
-    queueMail(tx, b.email, `Your booking ${b.ref} has a new time`,
-      `Hi ${b.name},\n\nYour booking has been moved to ${date} at ${arrival} (it was ${b.date} at ${b.arrival}).\n${R.fullAddress(b.address, b.apartment)}\n\nReply to this email if the new time does not suit you.\n\nThe Neighbor`);
+    queueMail(tx, b.email, mail('bookingMoved', { name: b.name, ref: b.ref, date, time: arrival, oldDate: b.date, oldTime: b.arrival, address: place(b) }, b.lang));
     return { ok: true, date, arrival };
   });
   return result;
@@ -475,7 +478,7 @@ export const messageCustomer = onCall(async (request) => {
   const b = snap.data();
   const batch = db.batch();
   batch.set(ref.collection('messages').doc(), { direction: 'out', text, to: b.email, createdAt: FieldValue.serverTimestamp() });
-  queueMail(batch, b.email, `About your booking ${b.ref}`, `Hi ${b.name},\n\n${text}\n\nThe Neighbor`);
+  queueMail(batch, b.email, mail('ownerMessage', { name: b.name, ref: b.ref, message: text }, b.lang));
   await batch.commit();
   return { ok: true };
 });
@@ -483,24 +486,16 @@ export const messageCustomer = onCall(async (request) => {
 // ---- bookingStatusChanged: tell the customer when the owner confirms, completes or cancels ----
 // The dashboard only changes the booking's status (firestore.rules allow nothing else); this sends
 // the matching email, so it cannot be forgotten and the customer's address never leaves the server.
-const STATUS_MAIL = {
-  confirmed: ['is confirmed', 'We look forward to seeing you'],
-  completed: ['is complete', 'Thank you for choosing The Neighbor'],
-  cancelled: ['has been cancelled', 'Get in touch if you would like a new time'],
-};
+const STATUS_MAIL = { confirmed: 'bookingConfirmed', completed: 'bookingCompleted', cancelled: 'bookingCancelled' };
 export const bookingStatusChanged = onDocumentUpdated('bookings/{id}', async (event) => {
   const before = event.data.before.data();
   const b = event.data.after.data();
   if (before.status === b.status || !STATUS_MAIL[b.status]) return;
   // A visit logged with logVisit sends its own, fuller email.
   if (b.status === 'completed' && b.visitLogged && !before.visitLogged) return;
-  const [what, closing] = STATUS_MAIL[b.status];
   await db.collection('mail').add({
     to: b.email,
-    message: {
-      subject: `Your booking ${b.ref} ${what}`,
-      text: `Hi ${b.name},\n\nYour booking on ${b.date} at ${b.arrival} ${what}.\n${R.fullAddress(b.address, b.apartment)}\n\n${closing}.\n\nThe Neighbor`,
-    },
+    message: mail(STATUS_MAIL[b.status], { name: b.name, ref: b.ref, date: b.date, time: b.arrival, address: place(b) }, b.lang),
     bookingId: event.params.id,
     createdAt: FieldValue.serverTimestamp(),
   });
@@ -514,14 +509,14 @@ export const createConsultation = onCall(async (request) => {
     phone: str(raw.phone, 40), companyType: str(raw.companyType, 60), bikes: str(raw.bikes, 20),
     preferredDate: R.isDate(raw.preferredDate) ? raw.preferredDate : '', preferredTime: R.isTime(raw.preferredTime) ? raw.preferredTime : '',
     message: str(raw.message, 2000),
+    lang: langOf(raw.lang),
   };
   const error = R.checkConsultation(input);
   if (error) return { error };
   const batch = db.batch();
   const ref = db.collection('consultations').doc();
   batch.set(ref, { ...input, status: 'new', createdAt: FieldValue.serverTimestamp() });
-  queueMail(batch, input.email, 'We have received your consultation request',
-    `Hi ${input.name},\n\nThanks for your interest. We will contact you shortly to arrange a consultation for ${input.company}.`);
+  queueMail(batch, input.email, mail('consultationReceived', { name: input.name, company: input.company }, input.lang));
   queueMail(batch, OWNER_EMAIL.value(), `New consultation request: ${input.company}`,
     `${input.name} (${input.phone}, ${input.email})\n${input.companyType}, ${input.bikes} bikes\nPreferred: ${input.preferredDate || '–'} ${input.preferredTime}\n\n${input.message}`);
   await batch.commit();
@@ -551,6 +546,8 @@ export const createCompany = onCall(async (request) => {
     email: (str(d.email, 200) || lead?.email || '').toLowerCase(),
     phone: str(d.phone, 40) || lead?.phone || '',
     address: str(d.address, 200),
+    // The language of the request: the contact's emails follow it.
+    lang: langOf(d.lang || lead?.lang),
   };
   if (!input.name || !input.contact) return { error: 'name' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email)) return { error: 'email' };
@@ -586,13 +583,10 @@ export const createCompany = onCall(async (request) => {
     role: 'business', companyId: ref.id, name: input.contact, email: input.email, phone: input.phone, createdAt: FieldValue.serverTimestamp(),
   });
   if (leadRef) batch.update(leadRef, { status: 'won', companyId: ref.id });
-  queueMail(batch, input.email, 'Your business account at The Neighbor', [
-    `Hi ${input.contact},`, '',
-    `Welcome aboard: ${input.name} is set up on the ${plan.name} plan (${plan.pricePerBike} DKK per bike per month).`,
-    'In your account you will find your fleet and the service report after each visit.', '',
-    demo ? `Demo: log in at ${link} with ${input.email} and the password ${DEMO_PASSWORD}.` : `Choose your password here: ${link}`,
-    '', 'The Neighbor',
-  ].join('\n'));
+  queueMail(batch, input.email, mail('businessInvite', {
+    contact: input.contact, company: input.name, plan: plan.name, price: plan.pricePerBike, link,
+    demo: demo ? { email: input.email, password: DEMO_PASSWORD } : null,
+  }, input.lang));
   await batch.commit();
   return { ok: true, companyId: ref.id };
 });
@@ -622,13 +616,7 @@ export const saveFleetReport = onCall(async (request) => {
   const updated = (await reportRef.get()).exists;
   const batch = db.batch();
   batch.set(reportRef, { month, visitDate: d.visitDate, entries, counts, updatedAt: FieldValue.serverTimestamp() });
-  const label = R.monthLabel(month);
-  queueMail(batch, c.email, `Fleet report ${updated ? 'updated' : 'ready'}: ${label}`, [
-    `Hi ${c.contact},`, '',
-    `The ${label} report for ${c.name} is ${updated ? 'updated' : 'ready'} in your account (visit on ${d.visitDate}).`,
-    `${counts.ready} ready, ${counts.attention} need attention, ${counts.repair} need repair.`,
-    '', 'The Neighbor',
-  ].join('\n'));
+  queueMail(batch, c.email, mail('fleetReport', { contact: c.contact, company: c.name, month, visitDate: d.visitDate, counts, updated }, c.lang));
   await batch.commit();
   return { ok: true, counts };
 });

@@ -55,7 +55,7 @@ async function seed() {
 
   const svc = (id, name, price, monthly = false) => ({ id, name, price, monthly });
   const accepted = { terms: true, earlyStart: true, termsVersion: '2026-10', at: FieldValue.serverTimestamp() };
-  const base = { customerUid: null, bikeId: null, photos: [], urgent: false, note: '', apartment: '', accepted, createdAt: FieldValue.serverTimestamp() };
+  const base = { customerUid: null, bikeId: null, photos: [], urgent: false, note: '', apartment: '', lang: 'da', accepted, createdAt: FieldValue.serverTimestamp() };
   const bookings = [
     { ...base, ref: 'TN-1041', status: 'confirmed', services: [svc('bike-check', 'The Neighbor Bike Check', 199)], date: day(3), arrival: '10:00', workMin: 25, blockMin: 40,
       bikeType: 'By / pendler', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.', distanceKm: 5, name: 'Anna Jensen', email: ANNA.email, phone: '+45 20 12 34 56',
@@ -65,7 +65,7 @@ async function seed() {
       bikeType: 'Trek FX 3', bikeId: 'trek', visitLogged: true, recordId: 'seedrecordtrek000001', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.', distanceKm: 5, name: 'Anna Jensen', email: ANNA.email, phone: '+45 20 12 34 56',
       pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, total: 212 }, customerUid: anna.uid },
     { ...base, ref: 'TN-1042', status: 'pending', services: [svc('puncture', 'Puncture Fix', 199), svc('chain', 'Chain Service', 149)], date: day(4), arrival: '13:00', workMin: 35, blockMin: 50,
-      bikeType: 'Racer', address: 'Jagtvej 120, 2200 København N', distanceKm: 5, name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77',
+      bikeType: 'Racer', address: 'Jagtvej 120, 2200 København N', distanceKm: 5, lang: 'en', name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77',
       pricing: { oneOff: 348, discount: 0, discountReason: null, monthly: 0, travel: 13, total: 361 } },
     { ...base, ref: 'TN-1043', status: 'pending', services: [svc('bike-check', 'The Neighbor Bike Check', 199), svc('gears', 'Gear Adjustment', 129)], date: day(6), arrival: '09:00', workMin: 40, blockMin: 55,
       bikeType: 'Ladcykel', address: 'Istedgade 50, 1650 København V', apartment: 'st.', distanceKm: 5, name: 'Sara Nielsen', email: 'sara@example.com', phone: '+45 31 22 33 44',
@@ -107,7 +107,7 @@ async function seed() {
   seedHotel(batch, hotel.uid);
   batch.set(db.collection('consultations').doc(), {
     name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'sofie@example.com', phone: '+45 22 33 44 55', companyType: 'Hostel', bikes: '16–35',
-    preferredDate: day(5), preferredTime: '11:00', message: 'Vi udlejer 20 bycykler til gæster og har brug for månedlige eftersyn.', status: 'new', createdAt: FieldValue.serverTimestamp(),
+    preferredDate: day(5), preferredTime: '11:00', lang: 'da', message: 'Vi udlejer 20 bycykler til gæster og har brug for månedlige eftersyn.', status: 'new', createdAt: FieldValue.serverTimestamp(),
   });
   batch.set(db.doc(`closedDates/${day(9)}`), { reason: 'Ferie' });
   await batch.commit();

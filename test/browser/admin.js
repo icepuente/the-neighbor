@@ -127,10 +127,10 @@ run(9336, async () => {
 
   // Outbox: both emails queued.
   await tab('Outbox');
-  await waitFor("[...document.querySelectorAll('#view summary')].some((s)=>s.textContent.includes('TN-1043 has been cancelled'))", 'the emails', 15000);
+  await waitFor("[...document.querySelectorAll('#view summary')].some((s)=>s.textContent.includes('TN-1043 er aflyst'))", 'the emails', 15000);
   const subjects = await evaluate("[...document.querySelectorAll('#view summary')].map((s)=>s.textContent)");
   check(subjects.some((s) => s === 'Your booking TN-1042 is confirmed → mikkel@example.com'), 'the outbox shows the confirmation email to Mikkel');
-  check(subjects.some((s) => s.startsWith('Your booking TN-1043 has been cancelled')), 'and the cancellation email to Sara');
+  check(subjects.some((s) => s.startsWith('Din booking TN-1043 er aflyst')), 'and the cancellation email to Sara, in Danish');
   check(subjects.some((s) => s.startsWith('Your booking TN-1042 has a new time')) && subjects.some((s) => s.startsWith('About your booking TN-1042')),
     'and the new-time email and the message to Mikkel');
   check(subjects.includes('Your bike service is done (TN-1042) → mikkel@example.com') && !subjects.some((s) => s.startsWith('Your booking TN-1042 is complete')),
@@ -207,7 +207,7 @@ run(9336, async () => {
   check((await evaluate("document.querySelector('.fleet-report .meta').textContent")).startsWith('New report, starting from'), 'Hotel ABC: six bikes, and a new month starts from the last report');
   const outbox = async () => { await tab('Outbox'); await sleep(300); return evaluate("[...document.querySelectorAll('#view summary')].map((s)=>s.textContent)"); };
   const mails = await outbox();
-  check(mails.includes('Your business account at The Neighbor → sofie@example.com') && mails.some((s) => s.startsWith('Fleet report ready:') && s.endsWith('sofie@example.com')),
+  check(mails.includes('Jeres erhvervskonto hos The Neighbor → sofie@example.com') && mails.some((s) => s.startsWith('Flåderapport klar:') && s.endsWith('sofie@example.com')),
     'the Outbox has the invite and the report email to Sofie');
 
   // Closed days: close one with the calendar; the public booking calendar then greys it out.

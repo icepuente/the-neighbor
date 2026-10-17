@@ -31,7 +31,7 @@ const mailFor = async (to) => ((await (await fetch(`${FS}/mail?pageSize=300`, { 
 
 // A booking made through the Functions, as a customer would.
 async function makeBooking(email, arrival) {
-  const input = { serviceIds: ['chain'], date: R.nextOpenDay(R.addDays(R.today(), 30)), arrival, bike: 'City bike', address: 'Jagtvej 1, 2200 København N', apartment: '4. tv.', name: 'Rule Test', phone: '1', email };
+  const input = { serviceIds: ['chain'], date: R.nextOpenDay(R.addDays(R.today(), 30)), arrival, bike: 'City bike', address: 'Jagtvej 1, 2200 København N', apartment: '4. tv.', lang: 'en', name: 'Rule Test', phone: '1', email };
   const res = await (await fetch(`${FN}/createBooking`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: { input, accept: { terms: true, earlyStart: true } } }) })).json();
   return res.result.booking;
 }

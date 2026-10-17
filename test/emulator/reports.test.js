@@ -37,7 +37,7 @@ const write = (path, data, headers, mask) => fetch(`${FS}/${path}${mask ? `?${Ob
 const mailFor = async (to) => ((await (await fetch(`${FS}/mail?pageSize=300`, { headers: ADMIN })).json()).documents || [])
   .filter((d) => d.fields.to.stringValue === to).map((d) => d.fields.message.mapValue.fields);
 async function lead(company, email) {
-  const input = { name: 'Bo Hansen', company, email, phone: '+45 11 22 33 44', companyType: 'Hotel', bikes: '6–15', message: 'Fleet care, please.' };
+  const input = { name: 'Bo Hansen', company, email, phone: '+45 11 22 33 44', companyType: 'Hotel', bikes: '6–15', message: 'Fleet care, please.', lang: 'en' };
   return (await call('createConsultation', { input })).result.lead.id;
 }
 
