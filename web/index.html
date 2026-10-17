@@ -168,7 +168,12 @@
         <div class="opts" id="opts">
           <label class="opt"><input type="checkbox" id="remember">
             <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg><b data-i18n="bk.remember"></b><small data-i18n="bk.rememberSub"></small></span></label>
-          <!-- "Create an account" returns with accounts (phase 3); see mock/index.html. -->
+          <label class="opt"><input type="checkbox" id="mkacct">
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M1.5 21c0-4 3.4-7 7.5-7s7.5 3 7.5 7z"/><path d="M19 7v6M16 10h6" fill="none" stroke-width="2" stroke-linecap="round"/></svg><b data-i18n="bk.create"></b><small data-i18n="bk.createSub"></small></span></label>
+        </div>
+        <div id="pw-row" hidden>
+          <label for="pw"><span data-i18n="bk.password"></span> <small data-i18n="bk.passwordSub"></small></label>
+          <input type="password" id="pw" autocomplete="new-password">
         </div>
         <p class="err" id="e-form" role="alert"></p>
         <button class="pill" type="submit" data-i18n="bk.seePrice"></button>
@@ -193,6 +198,7 @@
         <h2 data-i18n="done.title"></h2>
         <p class="ok" id="done-msg"></p>
         <div class="sum" id="sum"></div>
+        <p id="done-acct"></p>
         <button class="alt" id="again" type="button" data-i18n="done.again"></button>
       </div>
     </div>

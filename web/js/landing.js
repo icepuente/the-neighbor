@@ -275,6 +275,7 @@ $('f').addEventListener('submit', async (e) => {
   const local = R.quote(draft.serviceIds, { distanceKm: R.estimateKm(draft.address) });
   const errors = R.checkBooking(draft, local, { todayDate: options.today });
   if (!errors.date && draft.date && draft.date < options.earliest) errors.date = 'lead';
+  if (!errors.form && wantsAccount() && $('pw').value.length < 8) errors.form = 'password';
   showErrors(errors);
   if (Object.keys(errors).length) return;
   try {
@@ -339,7 +340,18 @@ $('confirm').onclick = async () => {
   const btn = $('confirm');
   btn.disabled = true;
   let res;
+  let madeAccount = false;
   try {
+    // "Opret en konto": the account comes first, so the booking (and its photos) belong to it.
+    if (wantsAccount()) {
+      try {
+        await createAccountForBooking(draft, $('pw').value);
+        madeAccount = true;
+      } catch (e) {
+        $('e-confirm').textContent = t(e.code === 'auth/email-already-in-use' || e.code === 'auth/credential-already-in-use' ? 'err.exists' : 'err.server');
+        return;
+      }
+    }
     let photos;
     try {
       photos = await uploadPhotos(draft.photos);
@@ -385,8 +397,32 @@ $('confirm').onclick = async () => {
     `${t('sum.notes')}: ${draft.note || '–'}`,
     b.photos ? t('pics.attached', { n: b.photos }) : null,
   ].filter((x) => x != null).join('\n');
+  if (madeAccount) $('done-msg').textContent += ` ${t('done.account')}`;
+  // Signed in: a link to the account; a guest: an offer to create one with this email.
+  const { NBF } = await firebaseReady;
+  const signedIn = NBF.auth.currentUser && !NBF.auth.currentUser.isAnonymous;
+  const link = h('a', 'pill', t(signedIn ? 'done.see' : 'done.create'));
+  link.href = signedIn ? 'account.html' : `account.html?signup=${encodeURIComponent(draft.email)}`;
+  $('done-acct').replaceChildren(link);
   show('done');
 };
+
+// ---- "Opret en konto" on the booking form ----
+const wantsAccount = () => $('mkacct').checked && !$('opts').hidden;
+$('mkacct').onchange = () => { $('pw-row').hidden = !$('mkacct').checked; };
+// Creates the account (turning an anonymous photo session into it, so its uploads stay its own),
+// stores the profile, and sends the verification email.
+async function createAccountForBooking(d, password) {
+  const { NBF } = await firebaseReady;
+  const fa = NBF.sdk.auth;
+  const current = NBF.auth.currentUser;
+  const cred = current?.isAnonymous
+    ? await fa.linkWithCredential(current, fa.EmailAuthProvider.credential(d.email, password))
+    : await fa.createUserWithEmailAndPassword(NBF.auth, d.email, password);
+  await fa.updateProfile(cred.user, { displayName: d.name });
+  await callFn('syncAccount', { profile: { name: d.name, phone: d.phone, address: d.address, apartment: d.apartment } });
+  fa.sendEmailVerification(cred.user).catch(() => {});
+}
 
 $('again').onclick = () => location.reload();
 

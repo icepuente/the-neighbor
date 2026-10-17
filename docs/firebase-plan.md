@@ -229,6 +229,20 @@ Each phase ends with something usable, so it can stop at any point.
 3. **Private accounts.** Sign-up and log-in, linking past guest bookings by verified email; history,
    bikes (with **bike photos**, added and edited, decision 15) and recommendations; the owner's "log
    a visit" form with photo upload.
+   *3a done 2026-10-17:* `web/account.html` (Danish/English): sign-up, log-in, password reset;
+   `syncAccount` creates `users/{uid}` and links guest bookings **once the email is verified**;
+   bookings with online cancellation up to 24 hours before (`cancelMyBooking`); the booking form
+   fills in a signed-in customer's details. Demo customer: anna@demo.dk / neighbor-demo.
+   *3b done:* "Mine cykler": saved bikes with up to 4 photos (`users/{uid}/bikes/{id}`, photos in
+   Storage under the same path); a booking on a saved bike copies its photos to the bike.
+   *3c done:* the dashboard's "Log the visit" (owner-only Function `logVisit`: work done, parts,
+   notes, up to 6 photos, an optional recommendation; writes `serviceRecords` and
+   `recommendations`, completes the booking, emails a summary) and a Customers tab; the account's
+   Historik and Anbefalinger, and the overview's last service and next recommendation.
+   *3d done:* "Opret en konto" on the booking form: the account is created first (an anonymous
+   photo session is upgraded, so its uploads stay its own), then the booking joins it at once; the
+   confirmation links to the account, or offers a guest an account with the same email.
+   *Phase 3 done.*
 4. **Business accounts.** Invite-only company accounts, fleets (with **fleet bike photos** taken by
    the owner, decision 15), monthly reports, the scheduled report job, and a printable or PDF
    report.

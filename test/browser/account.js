@@ -145,4 +145,32 @@ run(9337, async () => {
   check(await evaluate("!document.getElementById('pics-to-bike').hidden"), 'with a saved bike chosen, the form says photos are kept on it too');
   await evaluate("(()=>{const s=document.getElementById('bike');s.value='By / pendler';s.dispatchEvent(new Event('change'))})()");
   check(await evaluate("document.getElementById('pics-to-bike').hidden"), 'not with a general bike type');
+
+  // "Opret en konto" while booking: signed out, a new customer books and gets an account with it.
+  await evaluate('NBF.auth.signOut()');
+  await open(`${SITE}index.html`);
+  await waitFor("!!window.NBF && !document.getElementById('opts').hidden", 'the signed-out form');
+  const newEmail = `booker-${Date.now()}@example.com`;
+  await evaluate("document.querySelector('input[name=svc][value=\"brakes\"]').click()");
+  await evaluate(`(()=>{const e=document.getElementById('date');e.value='${day}';e.dispatchEvent(new Event('change'))})()`);
+  await waitFor("!!document.querySelector('#slots input[value=\"09:00\"]:not(:disabled)')", 'free times');
+  await evaluate("document.querySelector('#slots input[value=\"09:00\"]').click()");
+  for (const [id, v] of [['addr', 'Jagtvej 1, 2200 København N'], ['name', 'Ole Berg'], ['tel', '88776655'], ['email', newEmail]]) await fill(id, v);
+  await evaluate("document.getElementById('mkacct').click()");
+  check(await evaluate("!document.getElementById('pw-row').hidden"), 'ticking "Opret en konto" asks for a password');
+  await fill('pw', 'kort');
+  await evaluate("document.querySelector('#f button[type=submit]').click()");
+  check(await text('e-form') === 'Vælg en adgangskode på mindst 8 tegn.', 'a short password is refused before the price page');
+  await fill('pw', 'ole-password');
+  await evaluate("document.querySelector('#f button[type=submit]').click()");
+  await waitFor("!document.getElementById('co').hidden", 'the price page');
+  await evaluate("document.getElementById('acc-terms').click(); document.getElementById('acc-start').click(); document.getElementById('confirm').click()");
+  await waitFor("!document.getElementById('done').hidden", 'the confirmation', 30000);
+  check((await text('done-msg')).includes('Din konto er oprettet'), `the booking is made and the account created ("${(await text('done-msg')).slice(0, 80)}…")`);
+  check(await evaluate("document.querySelector('#done-acct a').getAttribute('href')") === 'account.html', 'the confirmation links to the account');
+  await evaluate("document.querySelector('#done-acct a').click()");
+  await waitFor("document.getElementById('hi').textContent === 'Hej, Ole'", 'the new account page', 20000);
+  await tab(1);
+  await waitFor("document.querySelectorAll('.my-booking').length === 1", 'the booking in the new account', 15000);
+  check(true, 'the new account already holds the booking, without waiting for email verification');
 });

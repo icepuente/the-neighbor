@@ -44,7 +44,7 @@ run(9334, async () => {
   check((await evaluate("document.querySelector('#svc-cards a .price').textContent")) === '199 kr.', 'prices in Danish: 199 kr.');
   check(await evaluate("document.getElementById('acct-link')?.getAttribute('href') === 'account.html' && document.getElementById('acct-link').textContent === 'Log ind'"),
     'the header has "Log ind", to the account page');
-  check(await evaluate("!document.getElementById('mkacct') && !document.querySelector('.demo')"), 'no "create an account" on the form yet, no demo banner');
+  check(await evaluate("!!document.getElementById('mkacct') && document.getElementById('pw-row').hidden && !document.querySelector('.demo')"), '"Opret en konto" is offered (password hidden until ticked), no demo banner');
   check(await evaluate("!document.getElementById('bk-photo-block').hidden && !!document.getElementById('bk-photo-input')"), 'the photo field is shown');
 
   // The date picker and the times, used by clicking as a visitor would.
