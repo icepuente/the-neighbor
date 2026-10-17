@@ -27,9 +27,11 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     mem_limit: 128m
+    # Whole folders, not single files: a deploy replaces the files inside
+    # them (nginx sees the new ones), then reloads nginx.
     volumes:
       - ./web:/usr/share/nginx/html:ro
-      - ./deploy/demo/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/demo/nginx:/etc/nginx/conf.d:ro
     # Local access only, for checks before and after the switch; the
     # public comes through cloudflared.
     ports:

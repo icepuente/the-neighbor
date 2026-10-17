@@ -10,6 +10,11 @@ cd "$(dirname "$0")/.."
 
 npm run --silent sync-shared
 
+# A new asset path for every deploy (see deploy/demo/nginx/default.conf): the commit, plus a
+# timestamp when there are uncommitted changes.
+VERSION="$(git rev-parse --short HEAD)"
+git diff --quiet HEAD -- web || VERSION="$VERSION-$(date +%s)"
+
 tar -czf - \
   --exclude='functions/node_modules' --exclude='functions/.env*' \
   web functions/index.js functions/photos.js functions/package.json functions/package-lock.json \
@@ -19,11 +24,19 @@ tar -czf - \
       # through Jarvis: deploy cannot create folders in /opt).
       test -d $DIR
       cd $DIR
-      rm -rf web functions deploy
+      # Empty the folders rather than delete them: nginx has web/ and deploy/demo/nginx/ mounted, and
+      # a deleted folder would leave it serving nothing.
+      for d in web functions deploy; do mkdir -p \$d; find \$d -mindepth 1 -delete; done
       tar -xzf - --no-same-owner
+      # Pages load scripts, styles and fonts from r/$VERSION/ (relative paths inside follow).
+      sed -i -E 's#(src|href)=\"(js|css)/#\1=\"r/$VERSION/\2/#g' web/*.html
+      grep -q 'r/$VERSION/js/' web/index.html
       cp deploy/demo/compose.yaml compose.yaml
       profile=''
       if [ -f cloudflared/config.yml ]; then profile='--profile public'; fi
       docker compose \$profile up -d --build --remove-orphans --wait --wait-timeout 300
+      docker compose exec -T nginx nginx -t -q
+      docker compose exec -T nginx nginx -s reload
       docker image prune -f >/dev/null
-      docker compose \$profile ps"
+      docker compose \$profile ps --format '{{.Service}}: {{.Status}}'
+      echo 'deployed version $VERSION'"

@@ -1,4 +1,5 @@
-// Landing page: booking flow and consultation form.
+// Landing page (index.html): booking flow and consultation form. Named landing.js, not site.js:
+// Spoke & Go served a different /js/site.js on book.icepuente.com, and browsers kept that copy.
 // The page draws everything static from the shared rules (prices, services, plans) at once; free
 // times, the earliest date, the price and the bookings themselves come from the Cloud Functions,
 // so only the server's answer counts. Firebase loads in the background (js/firebase.js).
