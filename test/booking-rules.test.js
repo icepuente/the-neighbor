@@ -137,3 +137,10 @@ test('accepting the terms and the early start of work', () => {
   assert.equal(R.checkAcceptance({ terms: 'yes', earlyStart: true }), 'terms', 'only a real true counts');
   assert.equal(R.checkAcceptance(null), 'terms');
 });
+
+test('the address with floor and door, written the Danish way', () => {
+  assert.equal(R.fullAddress('Jagtvej 10, 2200 København N', '2. tv.'), 'Jagtvej 10, 2. tv., 2200 København N');
+  assert.equal(R.fullAddress('Jagtvej 10, Grønholt, 3480 Fredensborg', 'st.'), 'Jagtvej 10, st., Grønholt, 3480 Fredensborg');
+  assert.equal(R.fullAddress('Jagtvej 10, 2200 København N', ''), 'Jagtvej 10, 2200 København N', 'no apartment');
+  assert.equal(R.fullAddress('Jagtvej 10', ' 3. th, '), 'Jagtvej 10, 3. th', 'no comma in the address');
+});

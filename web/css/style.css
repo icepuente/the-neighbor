@@ -315,3 +315,11 @@ footer.small { padding: 40px 0; font-size: 15px; opacity: .75; }
 html[lang="da"] .legal[lang="en"], html[lang="en"] .legal[lang="da"] { display: none; }
 /* Text the business owner still has to fill in or confirm before launch. */
 mark.todo { background: #f2c14e; color: #102f33; padding: 0 4px; border-radius: 4px; }
+
+/* Address field: the street is wide, floor and door narrow; suggestions open under the street. */
+.addr-row { grid-template-columns: 2fr 1fr; }
+.suggest-wrap { position: relative; }
+.suggest { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 10; margin: 0; padding: 4px; list-style: none; background: #fff; border: 1.5px solid var(--field); border-radius: 12px; box-shadow: 0 12px 32px rgba(5, 20, 22, .22); max-height: 300px; overflow-y: auto; }
+.suggest-item { padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 16px; color: var(--ink); }
+.suggest-item:hover, .suggest-item[aria-selected=true] { background: var(--paper); }
+@media (max-width: 560px) { .addr-row { grid-template-columns: 1fr; } }

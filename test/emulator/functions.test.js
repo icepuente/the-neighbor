@@ -167,6 +167,23 @@ test('a signed-in Care Plus member gets the discount and the urgent visit; anony
   assert.equal((await list('bookings')).find((b) => b.id === mine.booking.id).customerUid, member.uid, 'a signed-in customer owns the booking');
 });
 
+test('addressSearch: Danish address suggestions from the address register', async () => {
+  assert.deepEqual((await call('addressSearch', { q: 'J' })).suggestions, [], 'one letter is too short to search');
+  const r = await call('addressSearch', { q: 'Jagtvej 1' });
+  assert.ok(r.suggestions.length > 0 && r.suggestions.length <= 6, `up to 6 suggestions (got ${r.suggestions.length}${r.unavailable ? ', register unreachable' : ''})`);
+  assert.ok(r.suggestions.some((s) => s.text === 'Jagtvej 1, 2200 København N'), 'the official address, with postcode and town');
+  assert.equal(R.estimateKm(r.suggestions[0].text) !== null, true, 'a suggestion can be priced');
+});
+
+test('createBooking: floor and door are stored and written into the emails', async () => {
+  const r = await call('createBooking', { input: input({ arrival: '15:00', email: 'flat@example.com', apartment: '2. tv.' }), accept: ACCEPT });
+  assert.ok(r.booking, JSON.stringify(r.errors));
+  const b = (await list('bookings')).find((x) => x.id === r.booking.id);
+  assert.equal(b.apartment, '2. tv.');
+  const mail = (await list('mail')).find((m) => m.to === 'flat@example.com');
+  assert.ok(mail.message.text.includes('Jagtvej 1, 2. tv., 2200 København N'), 'the address is written the Danish way');
+});
+
 test('createConsultation: stores the lead and queues both emails', async () => {
   assert.equal((await call('createConsultation', { input: { name: 'Sofie' } })).error, 'missing');
   const r = await call('createConsultation', { input: { name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'Sofie@Example.com', phone: '22334455', companyType: 'Hostel', bikes: '16–35', preferredDate: D1, preferredTime: '11:00', message: 'Monthly checks, please.' } });

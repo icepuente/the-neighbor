@@ -110,7 +110,19 @@ run(9334, async () => {
   await setDate(D1);
   await waitFor(slotsReady, 'start times');
   await evaluate(`${slot('10:00')}.click()`);
-  await fill('addr', 'Jagtvej 1, 2200 København N');
+  // The address: type part of it, then choose a suggestion with the keyboard.
+  await evaluate("(()=>{const a=document.getElementById('addr');a.focus();a.value='Jagtvej 1';a.dispatchEvent(new Event('input',{bubbles:true}))})()");
+  await waitFor("!document.getElementById('addr-suggest').hidden", 'address suggestions', 10000);
+  const suggestions = await evaluate("[...document.querySelectorAll('#addr-suggest [role=option]')].map((o)=>o.textContent)");
+  check(suggestions.includes('Jagtvej 1, 2200 København N') && suggestions.length <= 6, `typing shows Danish address suggestions (${suggestions.length}: ${suggestions.slice(0, 2).join(' | ')} …)`);
+  await shotEl('address.png', '#f');
+  const pickIndex = suggestions.indexOf('Jagtvej 1, 2200 København N');
+  for (let i = 0; i <= pickIndex; i++) await evaluate("document.getElementById('addr').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}))");
+  await evaluate("document.getElementById('addr').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))");
+  check(await evaluate("document.getElementById('addr').value") === 'Jagtvej 1, 2200 København N' && await evaluate("document.getElementById('addr-suggest').hidden"),
+    'arrow keys and Enter choose a suggestion and close the list');
+  check(await evaluate("document.activeElement.id") === 'addr2', 'and move on to floor and door');
+  await fill('addr2', '2. tv.');
   await fill('name', 'Mikkel Holm');
   await fill('tel', '40556677');
   await fill('email', 'mikkel@example.com');
@@ -140,6 +152,8 @@ run(9334, async () => {
   check(done.includes('TN-1041'), `the confirmation shows the booking number: "${done.slice(0, 60)}…"`);
   const bookings = await list('bookings');
   check(bookings.length === 1 && bookings[0].arrival === '10:00' && bookings[0].date === D1 && bookings[0].status === 'pending', 'the booking is in the database');
+  check(bookings[0].apartment === '2. tv.' && (await evaluate("document.getElementById('sum').textContent")).includes('Jagtvej 1, 2. tv., 2200 København N'),
+    'floor and door are stored, and shown in the address the Danish way');
   check((await evaluate("document.getElementById('sum').textContent")).includes(await evaluate("I18N.t('pics.attached', { n: 1 })")), 'the confirmation mentions the photo');
   const photo = bookings[0].photos?.[0]?.mapValue?.fields;
   check(bookings[0].photos?.length === 1 && photo.path.stringValue === `bookings/${bookings[0].id}/${photo.id.stringValue}.jpg`, 'the booking records its photo');
@@ -154,7 +168,8 @@ run(9334, async () => {
   await evaluate("document.getElementById('again').click()");
   await sleep(500);
   await waitFor("document.getElementById('name')?.value", 'remembered details');
-  check(await evaluate("document.getElementById('name').value") === 'Mikkel Holm', '"Husk mig" fills in the form next time');
+  check(await evaluate("document.getElementById('name').value") === 'Mikkel Holm' && await evaluate("document.getElementById('addr2').value") === '2. tv.',
+    '"Husk mig" fills in the form next time, floor and door included');
   await tick('chain');
   await setDate(D1);
   await waitFor(slotsReady, 'start times');

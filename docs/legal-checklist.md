@@ -35,6 +35,9 @@ especially, and have a native speaker proofread the Danish.
 - [ ] How long to keep business enquiries that do not lead to an agreement (draft: 12 months)
 - [ ] Which email provider sends confirmations (chosen later, with the .dk domain)
 - [ ] An accountant or bookkeeper who receives invoice data, if any
+- [ ] Address suggestions use Klimadatastyrelsen's Adressevælger (named in the privacy policy).
+      Before launch, create a free Dataforsyningen account and token for the business and set it
+      as the Functions parameter `ADDRESS_TOKEN` (now the public sample token from its docs).
 
 ## 4. Actions before launch
 

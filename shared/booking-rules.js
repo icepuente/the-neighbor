@@ -135,6 +135,16 @@ export function estimateKm(address) {
 }
 export const travelFee = (distanceKm) => (distanceKm == null ? null : Math.round(distanceKm * CONFIG.kmRate));
 
+// The address written the Danish way, with floor and door after the street and number:
+// fullAddress('Jagtvej 10, 2200 København N', '2. tv.') -> 'Jagtvej 10, 2. tv., 2200 København N'.
+export function fullAddress(address, apartment) {
+  const a = String(address || '').trim();
+  const apt = String(apartment || '').trim().replace(/,+$/, '');
+  if (!apt) return a;
+  const i = a.indexOf(',');
+  return i < 0 ? `${a}, ${apt}` : `${a.slice(0, i)}, ${apt}${a.slice(i)}`;
+}
+
 // ---- Price ----
 // `distanceKm` comes from the route lookup (or the estimate); `carePlus` is true when the customer
 // already holds Care Plus. Money is kept in whole kroner.

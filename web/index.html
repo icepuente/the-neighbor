@@ -139,8 +139,13 @@
         <p class="err" id="e-arrival"></p>
 
         <h3 class="step" data-i18n="bk.where"></h3>
-        <label for="addr" data-i18n="bk.address"></label>
-        <input type="text" id="addr" autocomplete="street-address" data-i18n-ph="bk.addressPh">
+        <!-- Address suggestions from the Danish address register (js/address.js); floor and door apart. -->
+        <div class="row addr-row">
+          <div><label for="addr" data-i18n="bk.address"></label>
+            <input type="text" id="addr" autocomplete="street-address" data-i18n-ph="bk.addressPh"></div>
+          <div><label for="addr2"><span data-i18n="bk.apartment"></span> <small data-i18n="f.optional"></small></label>
+            <input type="text" id="addr2" maxlength="40" autocomplete="address-line2" data-i18n-ph="bk.apartmentPh"></div>
+        </div>
         <div class="row">
           <div><label for="name" data-i18n="f.name"></label><input type="text" id="name" autocomplete="name"></div>
           <div><label for="tel" data-i18n="f.phone"></label><input type="tel" id="tel" autocomplete="tel"></div>

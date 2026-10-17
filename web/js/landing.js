@@ -5,6 +5,7 @@
 // so only the server's answer counts. Firebase loads in the background (js/firebase.js).
 import * as R from './shared/booking-rules.js';
 import { attachDatePicker } from './datepicker.js';
+import { attachAddressSuggest } from './address.js';
 
 const { $, h, A, t } = UI;
 const { CONFIG, SERVICES, PLANS } = R;
@@ -175,8 +176,16 @@ if (remembered) {
   $('tel').value = remembered.phone || '';
   $('email').value = remembered.email || '';
   $('addr').value = remembered.address || '';
+  $('addr2').value = remembered.apartment || '';
   $('remember').checked = true;
 }
+
+// Danish address suggestions while typing (js/address.js); free text still works.
+attachAddressSuggest($('addr'), {
+  label: t('bk.suggestions'),
+  search: async (q) => (await callFn('addressSearch', { q })).suggestions || [],
+  onPick: () => $('addr2').focus(),
+});
 
 // Photos of the bike or the problem: shrunk in the browser (which also drops GPS data), with a
 // small thumbnail, and uploaded only when the customer confirms.
@@ -220,6 +229,7 @@ $('f').addEventListener('submit', async (e) => {
     arrival: slot ? slot.value : '',
     bike: bikeSel.value,
     address: $('addr').value.trim(),
+    apartment: $('addr2').value.trim(),
     name: $('name').value.trim(),
     phone: $('tel').value.trim(),
     email: $('email').value.trim(),
@@ -245,7 +255,7 @@ $('f').addEventListener('submit', async (e) => {
 
 function renderCheckout() {
   const q = quote;
-  $('codet').textContent = `${t('dateAt', { date: fmtDate(draft.date), time: draft.arrival })} · ${draft.bike} · ${draft.address}`;
+  $('codet').textContent = `${t('dateAt', { date: fmtDate(draft.date), time: draft.arrival })} · ${draft.bike} · ${R.fullAddress(draft.address, draft.apartment)}`;
   const tb = $('tbl');
   tb.textContent = '';
   const add = (a, b, cls) => {
@@ -322,7 +332,7 @@ $('confirm').onclick = async () => {
   }
   const b = res.booking;
   if ($('remember').checked) {
-    localStorage.setItem(REMEMBER_KEY, JSON.stringify({ name: draft.name, phone: draft.phone, email: draft.email, address: draft.address }));
+    localStorage.setItem(REMEMBER_KEY, JSON.stringify({ name: draft.name, phone: draft.phone, email: draft.email, address: draft.address, apartment: draft.apartment }));
   } else {
     localStorage.removeItem(REMEMBER_KEY);
   }
@@ -336,7 +346,7 @@ $('confirm').onclick = async () => {
     `${t('sum.date')}: ${fmtDate(b.date)}`,
     `${t('sum.arrival')}: ${b.arrival}`,
     `${t('sum.bike')}: ${draft.bike}`,
-    `${t('sum.address')}: ${draft.address}`,
+    `${t('sum.address')}: ${R.fullAddress(draft.address, draft.apartment)}`,
     `${t('sum.notes')}: ${draft.note || '–'}`,
     b.photos ? t('pics.attached', { n: b.photos }) : null,
   ].filter((x) => x != null).join('\n');

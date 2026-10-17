@@ -21,6 +21,11 @@ const db = getFirestore();
 
 // Where the owner's notifications go. Set OWNER_EMAIL in functions/.env (not committed) or at deploy.
 const OWNER_EMAIL = defineString('OWNER_EMAIL', { default: 'owner@example.com' });
+// Token for Adressevælgeren, the Danish address register's search (Klimadatastyrelsen; replaced DAWA,
+// which closed on 1 October 2026). The default is the public sample token from its documentation;
+// before launch, set the business's own (free) token as ADDRESS_TOKEN.
+const ADDRESS_TOKEN = defineString('ADDRESS_TOKEN', { default: 'adressevaelger123' });
+const ADDRESS_API = 'https://adressevaelger.dk';
 
 // ---- Input cleaning: keep known fields only, as trimmed strings of bounded length ----
 const str = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -34,6 +39,8 @@ function bookingInput(raw = {}) {
     bike: str(raw.bike, 100),
     bikeId: str(raw.bikeId, 64) || null,
     address: str(raw.address, 200),
+    // Floor and door, e.g. "2. tv." (optional).
+    apartment: str(raw.apartment, 40),
     name: str(raw.name, 100),
     email: str(raw.email, 200).toLowerCase(),
     phone: str(raw.phone, 40),
@@ -119,6 +126,26 @@ export const bookingOptions = onCall(async (request) => {
     out.times = closedReason || q.tooLong ? [] : R.startTimes(q.workMin, await dayBookings(date));
   }
   return out;
+});
+
+// ---- addressSearch: address suggestions while the visitor types ----
+// Asks the address register server-side, so the token stays private and the browser only talks to
+// this site. Returns up to 6 official addresses (street, number, postcode and town) as text; an
+// empty list when nothing matches or the register cannot be reached, and free text still works.
+export const addressSearch = onCall(async (request) => {
+  const q = str(request.data?.q, 73);
+  if (q.length < 2) return { suggestions: [] };
+  const url = `${ADDRESS_API}/husnumre/soeg?${new URLSearchParams({ tekst: q, maksimum: '6', token: ADDRESS_TOKEN.value() })}`;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const data = await res.json();
+    if (data.status !== 'ok') throw new Error(data.beskrivelse || 'error');
+    return { suggestions: (data.fund || []).filter((f) => typeof f.titel === 'string').map((f) => ({ id: f.id, text: f.titel })) };
+  } catch (e) {
+    logger.warn('addressSearch failed', e.message);
+    return { suggestions: [], unavailable: true };
+  }
 });
 
 // ---- quoteBooking: the full price, travel included, before the customer confirms ----
@@ -210,6 +237,7 @@ export const createBooking = onCall(async (request) => {
       bikeType: input.bike,
       bikeId: null, // linking a saved bike comes with accounts (phase 3)
       address: input.address,
+      apartment: input.apartment,
       distanceKm: q.distanceKm,
       name: input.name,
       email: input.email,
@@ -233,9 +261,9 @@ export const createBooking = onCall(async (request) => {
     }
     const lines = q.services.map((s) => `- ${s.name}`).join('\n');
     queueMail(tx, input.email, `Booking received ${booking.ref}`,
-      `Hi ${input.name},\n\nThanks for booking with The Neighbor. We have received:\n${lines}\n\n${input.date} at ${input.arrival}\n${input.address}\n\nTotal: ${q.total} DKK\n\nWe will confirm your booking shortly.`);
+      `Hi ${input.name},\n\nThanks for booking with The Neighbor. We have received:\n${lines}\n\n${input.date} at ${input.arrival}\n${R.fullAddress(input.address, input.apartment)}\n\nTotal: ${q.total} DKK\n\nWe will confirm your booking shortly.`);
     queueMail(tx, OWNER_EMAIL.value(), `${booking.urgent ? 'URGENT ' : ''}New booking ${booking.ref}`,
-      `${input.name} (${input.phone}, ${input.email}) booked ${q.services.map((s) => s.name).join(', ')} on ${input.date} at ${input.arrival}.\n${input.address}\n\nNote: ${input.note || '–'}`);
+      `${input.name} (${input.phone}, ${input.email}) booked ${q.services.map((s) => s.name).join(', ')} on ${input.date} at ${input.arrival}.\n${R.fullAddress(input.address, input.apartment)}\n\nNote: ${input.note || '–'}`);
     return { booking: { id: ref.id, ref: booking.ref, date: booking.date, arrival: booking.arrival, urgent: booking.urgent, email: booking.email, pricing: booking.pricing, photos: photos.length, guestToken } };
   }); }
 });
