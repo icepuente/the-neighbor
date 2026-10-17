@@ -4,6 +4,7 @@
 // can never write to the real project.
 //
 // Demo owner login (shown on the demo's dashboard page): owner@demo.dk / neighbor-demo
+// Demo business login (shown on the account page): hotel@demo.dk / neighbor-demo (Hotel ABC)
 import { createRequire } from 'node:module';
 
 const PROJECT = process.argv[2] || 'my-first-firebase-projec-b242f';
@@ -24,6 +25,8 @@ const db = getFirestore(app);
 const OWNER = { email: 'owner@demo.dk', password: 'neighbor-demo' };
 // Demo customer login (shown on the demo's account page): anna@demo.dk / neighbor-demo
 const ANNA = { email: 'anna@demo.dk', password: 'neighbor-demo', displayName: 'Anna Jensen' };
+const HOTEL = { email: 'hotel@demo.dk', password: 'neighbor-demo', displayName: 'Mette Lund' };
+const HOTEL_ID = 'hotel-abc';
 
 // Dates in Copenhagen time; the shop is closed on Sundays.
 const todayCph = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Copenhagen' }).format(new Date());
@@ -42,6 +45,10 @@ async function seed() {
   // A customer with an account.
   let anna;
   try { anna = await auth.getUserByEmail(ANNA.email); } catch { anna = await auth.createUser({ ...ANNA, emailVerified: true }); }
+  // A business customer's contact: the claim shows them Hotel ABC's fleet and reports.
+  let hotel;
+  try { hotel = await auth.getUserByEmail(HOTEL.email); } catch { hotel = await auth.createUser({ ...HOTEL, emailVerified: true }); }
+  await auth.setCustomUserClaims(hotel.uid, { companyId: HOTEL_ID });
 
   // Only once per empty database.
   if ((await db.collection('bookings').limit(1).get()).size) return 'already seeded';
@@ -97,13 +104,49 @@ async function seed() {
     reason: 'Der er ca. 40 % tilbage af klodserne.', dueBy: 'Inden for 3 måneder', status: 'open', createdAt: FieldValue.serverTimestamp(),
   });
   batch.set(db.doc('counters/bookings'), { last: 1043 });
+  seedHotel(batch, hotel.uid);
   batch.set(db.collection('consultations').doc(), {
     name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'sofie@example.com', phone: '+45 22 33 44 55', companyType: 'Hostel', bikes: '16–35',
     preferredDate: day(5), preferredTime: '11:00', message: 'Vi udlejer 20 bycykler til gæster og har brug for månedlige eftersyn.', status: 'new', createdAt: FieldValue.serverTimestamp(),
   });
   batch.set(db.doc(`closedDates/${day(9)}`), { reason: 'Ferie' });
   await batch.commit();
-  return `seeded 4 bookings, 1 request, closed ${day(9)}, customer ${ANNA.email}`;
+  return `seeded 4 bookings, 1 request, closed ${day(9)}, customer ${ANNA.email}, business ${HOTEL.email}`;
+}
+
+// Hotel ABC on the Standard plan: six bikes in two places and the last two monthly reports.
+function seedHotel(batch, uid) {
+  const company = db.doc(`companies/${HOTEL_ID}`);
+  batch.set(company, {
+    name: 'Hotel ABC', type: 'Hotel', contact: 'Mette Lund', email: HOTEL.email, phone: '+45 33 12 34 56', address: 'Vesterbrogade 10, 1620 København V',
+    plan: 'standard', pricePerBike: 300, memberUids: [uid], nextVisit: day(8), status: 'active', since: day(-120), leadId: null,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  batch.set(db.doc(`users/${uid}`), { role: 'business', companyId: HOTEL_ID, name: 'Mette Lund', email: HOTEL.email, phone: '+45 33 12 34 56', createdAt: FieldValue.serverTimestamp() });
+  const city = { type: 'Bycykel', year: '2022', size: '54 cm', gears: '7-gear nav', brakes: 'Fælgbremser', photos: [] };
+  const bikes = {
+    b001: { ...city, number: '#001', location: 'Reception' },
+    b002: { ...city, number: '#002', location: 'Reception' },
+    b003: { ...city, number: '#003', location: 'Reception', size: '50 cm' },
+    b004: { number: '#004', type: 'Ladcykel', location: 'Gården', year: '2021', size: '', gears: '8-gear nav', brakes: 'Hydrauliske skivebremser', photos: [] },
+    b005: { ...city, number: '#005', location: 'Gården' },
+    b006: { ...city, number: '#006', location: 'Gården', year: '2023' },
+  };
+  for (const [id, b] of Object.entries(bikes)) batch.set(company.collection('bikes').doc(id), b);
+  const ok = { status: 'ready', action: '–', note: '' };
+  const month = (n) => { const d = new Date(`${todayCph.slice(0, 7)}-15T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 7); };
+  const reports = {
+    [month(-2)]: { b001: ok, b002: ok, b003: ok, b005: ok, b006: ok,
+      b004: { status: 'attention', action: 'Bremseklodser slidte', note: 'Skiftes ved næste besøg.' } },
+    [month(-1)]: { b001: ok, b003: ok, b006: ok, b004: { status: 'ready', action: 'Bremseklodser skiftet', note: '' },
+      b002: { status: 'repair', action: 'Nyt baghjul bestilt', note: 'Fælgen er bøjet. Cyklen er taget ud af brug.' },
+      b005: { status: 'attention', action: 'Kæden strammet', note: 'Kæden er slidt: skift inden for 2 måneder.' } },
+  };
+  for (const [m, entries] of Object.entries(reports)) {
+    const counts = { ready: 0, attention: 0, repair: 0 };
+    for (const e of Object.values(entries)) counts[e.status] += 1;
+    batch.set(company.collection('reports').doc(m), { month: m, visitDate: `${m}-08`, entries, counts, updatedAt: FieldValue.serverTimestamp() });
+  }
 }
 
 if (!/^(127\.0\.0\.1|localhost|emulators):/.test(process.env.FIRESTORE_EMULATOR_HOST)) {

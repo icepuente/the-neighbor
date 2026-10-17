@@ -75,6 +75,17 @@ export const PLANS = [
 
 export const STATUS = { ready: 'Ready', attention: 'Attention', repair: 'Repair needed' };
 
+// A fleet report's entries ({ bikeId: { status, action, note } }) counted by status.
+export function fleetCounts(entries) {
+  const c = { ready: 0, attention: 0, repair: 0 };
+  for (const e of Object.values(entries || {})) if (e.status in c) c[e.status] += 1;
+  return c;
+}
+export const isMonth = (s) => typeof s === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+// "2026-10" -> "October 2026" (or "oktober 2026" with locale 'da-DK').
+export const monthLabel = (m, locale = 'en-GB') =>
+  new Date(`${m}-01T12:00:00Z`).toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
 // ---- Dates (calendar arithmetic in UTC, so the machine's time zone never matters) ----
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;

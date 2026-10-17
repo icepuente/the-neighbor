@@ -155,3 +155,14 @@ test('customers can cancel online until 24 hours before the visit, in Copenhagen
   assert.equal(R.customerCanCancel(b('2026-10-20', '09:00', 'completed'), now), false, 'not when completed');
   assert.equal(R.minutesUntil('2026-10-26', '10:00', new Date('2026-10-24T08:00:00Z')), 2 * 1440, 'across the clock change');
 });
+
+test('fleet reports: counts by status, months and their names', () => {
+  const ok = { status: 'ready' };
+  assert.deepEqual(R.fleetCounts({ a: ok, b: ok, c: { status: 'repair' }, d: { status: 'attention' }, e: { status: 'odd' } }), { ready: 2, attention: 1, repair: 1 });
+  assert.deepEqual(R.fleetCounts(undefined), { ready: 0, attention: 0, repair: 0 });
+  assert.equal(R.isMonth('2026-10'), true);
+  assert.equal(R.isMonth('2026-13'), false);
+  assert.equal(R.isMonth('2026-1'), false);
+  assert.equal(R.monthLabel('2026-10'), 'October 2026');
+  assert.equal(R.monthLabel('2026-01', 'da-DK'), 'januar 2026');
+});

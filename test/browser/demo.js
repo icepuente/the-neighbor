@@ -87,6 +87,11 @@ run(9335, async () => {
   await evaluate("[...document.querySelectorAll('#tabs button')].find((b)=>b.textContent.startsWith('Customers')).click()");
   await waitFor(`!!document.querySelector('.customer[data-email="anna@demo.dk"]') && !!document.querySelector('.customer[data-email="${email}"]')`, 'the customers', 20000);
   check(true, 'the Customers tab lists Anna and the new account');
+  await evaluate("[...document.querySelectorAll('#tabs button')].find((b)=>b.textContent.startsWith('Companies')).click()");
+  await waitFor("!!document.querySelector('#company-select option[value=\"hotel-abc\"]')", 'the companies', 20000);
+  await evaluate("(()=>{const s=document.getElementById('company-select');s.value='hotel-abc';s.dispatchEvent(new Event('change'))})()");
+  await waitFor("document.querySelectorAll('.fleet tbody tr').length > 0 && !!document.querySelector('.fleet-report')", "Hotel ABC's fleet", 20000);
+  check(true, 'the Companies tab shows Hotel ABC with its fleet and the report form');
 
   // The customer side: the demo customer logs in and sees her own bookings.
   await evaluate("document.getElementById('out').click()");
@@ -104,6 +109,14 @@ run(9335, async () => {
   // Visitors may have marked the seeded recommendations done in the dashboard: either is fine.
   await waitFor("!!document.querySelector('#view .rec, #view p.sub')", 'her recommendations', 20000);
   check(true, 'Anbefalinger loads');
+
+  // The business side: Hotel ABC's contact sees the monthly report.
+  await evaluate("document.getElementById('out').click()");
+  await waitFor("!document.getElementById('login').hidden", 'signed out');
+  await evaluate("document.getElementById('demo-business').click(); document.querySelector('#lf button[type=submit]').click()");
+  await waitFor("document.getElementById('hi').textContent === 'Hotel ABC'", 'the business account', 30000);
+  await waitFor("document.querySelectorAll('table.rep tbody tr').length > 0 && !!document.querySelector('.stats .stat')", 'the fleet report', 20000);
+  check(true, 'the business demo login sees its monthly fleet report');
   await evaluate("document.getElementById('out').click()");
 
   const elsewhere = requests.filter((u) => /^https?:/.test(u) && !u.startsWith(origin));

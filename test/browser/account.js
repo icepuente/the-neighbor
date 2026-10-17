@@ -173,4 +173,41 @@ run(9337, async () => {
   await tab(1);
   await waitFor("document.querySelectorAll('.my-booking').length === 1", 'the booking in the new account', 15000);
   check(true, 'the new account already holds the booking, without waiting for email verification');
+
+  // A business customer: Hotel ABC (demo data) sees its monthly reports, fleet and plan.
+  await evaluate("document.getElementById('out').click()");
+  await waitFor("!document.getElementById('login').hidden", 'the log-in form');
+  await evaluate("document.getElementById('demo-business').click(); document.querySelector('#lf button[type=submit]').click()");
+  await waitFor("document.getElementById('hi').textContent === 'Hotel ABC'", 'the business account', 20000);
+  check(await evaluate("[...document.querySelectorAll('#tabs button')].map((b)=>b.textContent).join(' | ')") === 'Månedsrapport | Flådeoversigt | Aftale og besøg',
+    'a business contact gets Månedsrapport, Flådeoversigt and Aftale og besøg');
+  check((await text('hs')).startsWith('Standard-aftale · 300 kr. / cykel / md. · 6 cykler'), `the header shows the plan (${await text('hs')})`);
+  await waitFor("document.querySelectorAll('#mo option').length === 2 && document.querySelectorAll('table.rep tbody tr').length === 6", 'the latest report');
+  check(await evaluate("[...document.querySelectorAll('.stats .stat')].map((s)=>s.textContent).join(' | ')") === '4 af 6 | 1 | 1', 'the latest report: 4 of 6 ready, 1 needs attention, 1 repair');
+  await evaluate("document.querySelector('tr[data-bike=\"#002\"] button').click()");
+  await waitFor("!!document.querySelector('.bike-detail')", 'the bike details');
+  check((await evaluate("document.querySelector('.bike-detail').textContent")).includes('Fælgen er bøjet'), 'selecting a bike shows the mechanic\'s note');
+  await shotEl('account-report.png', '#view');
+  await evaluate("(()=>{const s=document.getElementById('mo');s.value=s.options[1].value;s.dispatchEvent(new Event('change'))})()");
+  await waitFor("document.querySelector('.stats .stat')?.textContent === '5 af 6'", 'the earlier month');
+  check(true, 'the month picker shows the earlier report (5 of 6 ready)');
+  check(await evaluate("!!document.querySelector('.toolbar button.print')"), 'with a Print / save as PDF button');
+  await tab(1);
+  await waitFor("document.querySelectorAll('.fleet-bike').length === 6", 'the fleet');
+  check(await evaluate("[...document.querySelectorAll('#view > h3')].map((h)=>h.textContent).join(' | ')") === 'Reception | Gården', 'Flådeoversigt groups the six bikes by location');
+  await tab(2);
+  check((await evaluate("document.getElementById('view').textContent")).includes(await evaluate('I18N.dkk(1800)')), 'Aftale og besøg shows the monthly price for 6 bikes');
+
+  // The company the owner created in the dashboard test: its contact logs in with the demo password.
+  await evaluate("document.getElementById('out').click()");
+  await waitFor("!document.getElementById('login').hidden", 'the log-in form');
+  await fill('le', 'sofie@example.com');
+  await fill('lp', 'neighbor-demo');
+  await evaluate("document.querySelector('#lf button[type=submit]').click()");
+  await waitFor("document.getElementById('hi').textContent === 'Hostel Nørrebro'", 'the new business account', 20000);
+  await waitFor("document.querySelector('tr[data-bike=\"#001\"] .st')?.textContent === 'Opmærksomhed'", 'the report from the dashboard', 15000);
+  check(true, 'the new company\'s contact signs in and sees the report the owner saved');
+  await tab(1);
+  await waitFor("document.querySelector('.fleet-bike .cover img')?.naturalWidth > 0", 'the fleet photo', 20000);
+  check(true, 'and the fleet bike\'s photo, read from Storage');
 });

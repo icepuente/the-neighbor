@@ -383,3 +383,14 @@ pre.mail { white-space: pre-wrap; font: 15px/1.5 'Source Serif 4', serif; margin
 .sent-msg { background: #fff; border-radius: 10px; padding: 6px 10px; margin: 6px 0; }
 .sent-msg p { margin: 2px 0; font-size: 15px; white-space: pre-wrap; }
 .toolbar .alt.csv { color: #fff; border-color: #fff; margin: 0 0 10px; }
+
+/* A business's monthly fleet report, printed or saved as PDF from the browser ("Print / save as PDF"). */
+.bike-detail { border-top: 2px solid var(--ink, #102f33); margin-top: 12px; padding-top: 10px; }
+@media print {
+  header, footer, .env-bar, #tabs, #verify, .toolbar, .no-print, .demo { display: none !important; }
+  body, .paper, .card { background: #fff !important; color: #000 !important; box-shadow: none !important; }
+  .paper, .card { border: 1px solid #bbb; break-inside: avoid; }
+  .stats { grid-template-columns: repeat(3, 1fr); }
+  table.rep { min-width: 0; font-size: 11pt; }
+  table.rep button { color: #000; text-decoration: none; }
+}

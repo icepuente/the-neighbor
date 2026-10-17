@@ -1,5 +1,7 @@
-// Customer account (account.html): log in, create an account, and see one's own bookings and
-// details. Phase 3a; bikes, history and recommendations follow.
+// Customer account (account.html): log in, create an account, and see one's own bookings, bikes,
+// service history, recommendations and details. A business contact (an account with the custom
+// claim `companyId`, set up by the owner with the Function createCompany) sees their company's
+// monthly fleet reports, fleet list and plan instead.
 //
 // Accounts are Firebase Authentication email accounts. The profile (users/{uid}) is created by the
 // Function syncAccount, which also links bookings made earlier as a guest once the email address is
@@ -102,6 +104,9 @@ if (NBF.environment !== 'production') {
   const hint = $('demo-login');
   hint.hidden = false;
   A(hint, `${t('acc.demoLogin')} `, button(t('acc.fill'), 'lnk', () => { $('le').value = 'anna@demo.dk'; $('lp').value = 'neighbor-demo'; }));
+  const business = button(t('acc.fill'), 'lnk', () => { $('le').value = 'hotel@demo.dk'; $('lp').value = 'neighbor-demo'; });
+  business.id = 'demo-business';
+  A(hint, h('br'), `${t('acc.demoBusiness')} `, business);
 }
 
 // ---- Signed in ----
@@ -114,6 +119,10 @@ let myBikes = [];
 let records = [];
 let recommendations = [];
 let current = 0;
+// A business contact's company, its fleet and its monthly reports (newest first).
+let company = null;
+let fleetBikes = [];
+let reports = [];
 
 onAuthStateChanged(auth, async (user) => {
   if (signingUp) return;
@@ -131,7 +140,11 @@ function show(section) {
 
 async function enter(user) {
   me = user;
+  current = 0;
   show('app');
+  const { companyId } = (await user.getIdTokenResult()).claims;
+  if (companyId) { enterBusiness(companyId); return; }
+  tabs = PRIVATE_TABS;
   // Creates the profile if a sign-up was interrupted, and links guest bookings once verified.
   try {
     const r = await callFn('syncAccount', { profile: { name: user.displayName || user.email.split('@')[0] } });
@@ -154,6 +167,21 @@ async function enter(user) {
   }));
   unsubscribe.push(onSnapshot(query(collection(db, 'recommendations'), where('customerUid', '==', user.uid)), (s) => {
     recommendations = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+    render();
+  }));
+}
+
+function enterBusiness(id) {
+  tabs = BUSINESS_TABS;
+  $('verify').hidden = true;
+  const list = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
+  unsubscribe.push(onSnapshot(doc(db, 'companies', id), (s) => { company = s.exists() ? { id, ...s.data() } : null; render(); }));
+  unsubscribe.push(onSnapshot(collection(db, 'companies', id, 'bikes'), (s) => {
+    fleetBikes = list(s).sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+    render();
+  }));
+  unsubscribe.push(onSnapshot(collection(db, 'companies', id, 'reports'), (s) => {
+    reports = list(s).sort((a, b) => b.month.localeCompare(a.month));
     render();
   }));
 }
@@ -185,7 +213,7 @@ $('verify-demo').onclick = async () => {
 // ---- Tabs ----
 const upcoming = () => bookings.filter((b) => b.date >= R.today() && ['pending', 'confirmed'].includes(b.status))
   .sort((a, b) => (a.date + a.arrival).localeCompare(b.date + b.arrival));
-const tabs = [
+const PRIVATE_TABS = [
   [() => t('tab.overview'), overview],
   [() => t('tab.bookings'), bookingsView, () => upcoming().length],
   [() => t('tab.history'), historyView],
@@ -193,12 +221,24 @@ const tabs = [
   [() => t('tab.recs'), recsView, () => openRecs().length],
   [() => t('tab.profile'), profileView],
 ];
+const BUSINESS_TABS = [
+  [() => t('tab.report'), reportView],
+  [() => t('tab.fleet'), fleetView],
+  [() => t('tab.plan'), planView],
+];
+let tabs = PRIVATE_TABS;
 
 function render() {
   if (!me) return;
   const first = (profile?.name || me.displayName || '').split(' ')[0];
   $('hi').textContent = t('acc.hello', { name: first });
-  if (profile?.createdAt?.toDate && !$('hs').dataset.fixed) {
+  if (tabs === BUSINESS_TABS) {
+    if (!company) return;
+    const plan = R.PLANS.find((p) => p.id === company.plan);
+    $('hi').textContent = company.name;
+    $('hs').textContent = t('plan.header', { plan: plan?.name || company.plan, price: dkk(company.pricePerBike), n: fleetBikes.length })
+      + (company.nextVisit ? t('plan.nextVisit', { date: fmtDate(company.nextVisit) }) : '');
+  } else if (profile?.createdAt?.toDate && !$('hs').dataset.fixed) {
     $('hs').textContent = t('acc.since', { month: profile.createdAt.toDate().toLocaleDateString(locale, { month: 'long', year: 'numeric' }) });
   }
   const bar = $('tabs');
@@ -573,4 +613,143 @@ async function saveBike(form) {
     f.error = t('acc.err.server');
   }
   render();
+}
+
+// ---- Business: monthly fleet report, fleet list, plan ----
+const statusLabel = (s) => t(`st.${s}`);
+const monthName = (m) => R.monthLabel(m, locale);
+function stat(value, label) {
+  const c = h('div', 'card');
+  A(c, h('div', 'stat', String(value)), h('small', '', label));
+  return c;
+}
+// Thumbnails of photos in Storage that open full size; `label(n)` names photo n.
+function storagePhotos(photos, label, from = 0) {
+  const row = h('div', 'pics-grid');
+  photos.forEach((p, i) => {
+    const btn = h('button', 'pic');
+    btn.type = 'button';
+    const img = h('img');
+    img.alt = label(from + i + 1);
+    photoUrl(p.thumbPath).then((u) => { img.src = u; }, () => {});
+    btn.onclick = async () => UI.openPhoto(await photoUrl(p.path), img.alt);
+    btn.append(img);
+    row.append(btn);
+  });
+  return row;
+}
+
+let reportMonth = null;
+let reportBike = null; // the bike whose details are open under the report
+function reportView(v) {
+  if (!reports.length) { v.append(h('p', 'sub', t('rep.empty'))); return; }
+  if (!reports.some((r) => r.id === reportMonth)) reportMonth = reports[0].id;
+  const rep = reports.find((r) => r.id === reportMonth);
+
+  const top = h('div', 'toolbar');
+  const wrap = h('div');
+  const lb = h('label', '', t('rep.month'));
+  const sel = h('select');
+  sel.id = 'mo';
+  lb.htmlFor = 'mo';
+  for (const r of reports) sel.append(new Option(monthName(r.id), r.id, false, r.id === reportMonth));
+  sel.onchange = () => { reportMonth = sel.value; reportBike = null; render(); };
+  A(wrap, lb, sel);
+  A(top, wrap, button(t('rep.print'), 'alt sm print', () => window.print()));
+  v.append(top);
+
+  const n = R.fleetCounts(rep.entries);
+  const g = h('div', 'grid stats');
+  A(g, stat(t('rep.of', { a: n.ready, b: Object.keys(rep.entries).length }), t('rep.ready')), stat(n.attention, t('rep.attention')), stat(n.repair, t('rep.repair')));
+  v.append(g);
+
+  const p = h('div', 'paper report');
+  A(p, h('h3', '', t('rep.title', { company: company.name, month: monthName(rep.id) })), h('p', 'meta', t('rep.visit', { date: fmtDate(rep.visitDate) })));
+  const tbl = h('table', 'rep');
+  const hd = tbl.createTHead().insertRow();
+  for (const x of ['col.bike', 'col.location', 'col.status', 'col.action']) { const th = h('th', '', t(x)); th.scope = 'col'; hd.append(th); }
+  const tb = tbl.createTBody();
+  for (const b of fleetBikes) {
+    const e = rep.entries[b.id];
+    if (!e) continue;
+    const r = tb.insertRow();
+    r.dataset.bike = b.number;
+    const btn = button(b.number, 'lnk', () => { reportBike = reportBike === b.id ? null : b.id; render(); });
+    btn.setAttribute('aria-label', t('rep.details', { n: b.number }));
+    btn.setAttribute('aria-expanded', String(reportBike === b.id));
+    r.insertCell().append(btn);
+    r.insertCell().textContent = b.location;
+    const sc = r.insertCell();
+    sc.className = `st ${e.status}`;
+    sc.textContent = statusLabel(e.status);
+    r.insertCell().textContent = e.action;
+  }
+  const tw = h('div', 'tw');
+  tw.append(tbl);
+  A(p, tw, h('p', 'meta no-print', t('rep.hint')));
+  const b = fleetBikes.find((x) => x.id === reportBike);
+  const e = b && rep.entries[b.id];
+  if (e) {
+    const box = h('div', 'bike-detail');
+    box.setAttribute('aria-live', 'polite');
+    A(box, h('h3', '', t('rep.bike', { n: b.number })), UI.defList([
+      [t('col.bike'), [b.number, b.type, b.year && `(${b.year})`].filter(Boolean).join(' · ')], [t('col.location'), b.location],
+      [t('rep.size'), b.size], [t('bike.gears'), b.gears], [t('bike.brakes'), b.brakes], [t('col.status'), statusLabel(e.status)],
+      [t('col.action'), e.action], [t('rep.note'), e.note],
+    ]));
+    if (b.photos?.length) box.append(storagePhotos(b.photos, (k) => t('pics.ofFleetBike', { bike: b.number, n: k })));
+    p.append(box);
+  }
+  v.append(p);
+  v.append(h('p', 'sub', t('rep.foot')));
+}
+
+function fleetView(v) {
+  const latest = reports[0];
+  v.append(h('p', 'sub', t('fleet.count', { n: fleetBikes.length })));
+  for (const loc of [...new Set(fleetBikes.map((b) => b.location))]) {
+    v.append(h('h3', '', loc));
+    const g = h('div', 'grid');
+    for (const b of fleetBikes.filter((x) => x.location === loc)) {
+      const e = latest?.entries[b.id];
+      const card = h('div', 'paper bike-card fleet-bike');
+      card.dataset.bike = b.number;
+      const photos = b.photos || [];
+      const alt = (n) => t('pics.ofFleetBike', { bike: b.number, n });
+      if (photos.length) {
+        const cover = h('button', 'cover');
+        cover.type = 'button';
+        const img = h('img');
+        img.alt = alt(1);
+        photoUrl(photos[0].thumbPath).then((u) => { img.src = u; }, () => {});
+        cover.onclick = async () => UI.openPhoto(await photoUrl(photos[0].path), img.alt);
+        cover.append(img);
+        card.append(cover);
+      }
+      A(card, h('h3', '', `${b.number} · ${b.type}`), e ? h('p', `st ${e.status}`, statusLabel(e.status)) : null,
+        UI.defList([[t('bike.year'), b.year], [t('rep.size'), b.size], [t('bike.gears'), b.gears], [t('bike.brakes'), b.brakes]]));
+      if (photos.length > 1) card.append(storagePhotos(photos.slice(1), alt, 1));
+      g.append(card);
+    }
+    v.append(g);
+  }
+}
+
+function planView(v) {
+  const plan = R.PLANS.find((p) => p.id === company.plan);
+  const n = fleetBikes.length;
+  const g = h('div', 'grid');
+  const p1 = h('div', 'paper');
+  const ul = h('ul');
+  for (const x of (I18N.lang === 'da' ? plan.includesDa : plan.includes)) ul.append(h('li', '', x));
+  A(p1, h('h3', '', t('plan.name', { plan: plan.name })), h('p', 'price', `${dkk(company.pricePerBike * n)} ${t('perMonth')}`),
+    h('p', 'det', t('plan.calc', { n, price: dkk(company.pricePerBike) })), ul, h('p', 'no', t('rep.foot')));
+  const p2 = h('div', 'paper');
+  A(p2, h('h3', '', t('plan.visits')), UI.defList([
+    [t('plan.next'), company.nextVisit ? fmtDate(company.nextVisit) : t('plan.tba')],
+    [t('plan.since'), company.since ? fmtDate(company.since) : '–'],
+    [t('plan.contact'), company.contact], [t('f.email'), company.email], [t('f.phone'), company.phone],
+  ]), h('p', 'det', t('plan.help')));
+  A(g, p1, p2);
+  v.append(g);
 }

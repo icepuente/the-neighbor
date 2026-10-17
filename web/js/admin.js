@@ -11,14 +11,14 @@ const { $, h, A, button, defList, tag } = UI;
 const { auth, db, storage, sdk } = NBF;
 const { onAuthStateChanged, signInWithEmailAndPassword, signOut } = sdk.auth;
 const { collection, doc, getDocs, onSnapshot, updateDoc, setDoc, deleteDoc, serverTimestamp } = sdk.firestore;
-const { ref: storageRef, getBlob, uploadBytes } = sdk.storage;
+const { ref: storageRef, getBlob, uploadBytes, deleteObject } = sdk.storage;
 
 const dkk = (n) => `${Math.round(n).toLocaleString('da-DK')} DKK`;
 const fmtDate = (s) => new Date(`${s}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const fmtTime = (ts) => (ts?.toDate ? ts.toDate().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: R.TIME_ZONE }) : '');
 
 // ---- Live data: each collection is watched once; tabs re-draw from these lists ----
-const data = { bookings: [], consultations: [], closedDates: [], mail: [], users: [], recommendations: [], serviceRecords: [] };
+const data = { bookings: [], consultations: [], closedDates: [], mail: [], users: [], recommendations: [], serviceRecords: [], companies: [] };
 const unsubscribe = [];
 function watch() {
   for (const name of Object.keys(data)) {
@@ -28,7 +28,7 @@ function watch() {
     }, (e) => showError(`Could not load ${name}: ${e.code || e.message}`)));
   }
 }
-function stopWatching() { while (unsubscribe.length) unsubscribe.pop()(); }
+function stopWatching() { while (unsubscribe.length) unsubscribe.pop()(); watchCompany(null); }
 const showError = (msg) => { $('view').prepend(h('p', 'err', msg)); };
 
 // ---- Sign-in: only an account with the owner (admin) claim gets in ----
@@ -71,6 +71,7 @@ const tabs = [
   ['Bookings', bookingsView, () => data.bookings.filter((b) => b.status === 'pending').length],
   ['Requests', requestsView, () => data.consultations.filter((c) => c.status === 'new' && !c.archived).length],
   ['Customers', customersView],
+  ['Companies', companiesView],
   ['Closed days', closedView],
   ['Outbox', outboxView],
 ];
@@ -548,6 +549,7 @@ function requestsView(v) {
       ]));
     const bar = h('div', 'toolbar');
     const st = select([['new', 'New'], ['contacted', 'Contacted'], ['won', 'Won'], ['lost', 'Lost']], l.status);
+    st.dataset.keep = `status-${l.id}`;
     st.onchange = () => updateDoc(doc(db, 'consultations', l.id), { status: st.value })
       .catch((e) => showError(`Could not update: ${e.code || e.message}`));
     bar.append(field('Status', st));
@@ -556,6 +558,26 @@ function requestsView(v) {
       : button('Archive', 'alt sm', () => setArchived(l, true)));
     c.dataset.company = l.company;
     c.append(bar);
+    // A won consultation becomes a business customer: the company, its contact's login, an invite.
+    const bar2 = h('div', 'toolbar');
+    if (l.companyId) {
+      bar2.append(button('Open the company', 'alt sm', () => openCompany(l.companyId)));
+    } else if (!l.archived) {
+      const plan = select(R.PLANS.map((p) => [p.id, `${p.name} · ${p.pricePerBike} DKK / bike / month`]), 'standard');
+      plan.dataset.keep = `plan-${l.id}`;
+      const create = button('Create business account', 'alt sm', () => {
+        if (!create.dataset.armed) {
+          create.dataset.armed = '1';
+          create.textContent = `Click again to create it and email ${l.email}`;
+          setTimeout(() => { delete create.dataset.armed; create.textContent = 'Create business account'; }, 5000);
+          return;
+        }
+        createCompany(l, plan.value);
+      });
+      A(bar2, field('Plan', plan), create);
+    }
+    if (l.id === companyErrorLead) bar2.append(h('p', 'err', companyError));
+    c.append(bar2);
     wrap.append(c);
   }
   v.append(wrap);
@@ -763,4 +785,292 @@ function customersView(v) {
     wrap.append(c);
   }
   v.append(wrap);
+}
+
+// ---- Companies: business customers, their fleet bikes and monthly fleet reports ----
+// The Function createCompany sets up the company and its contact's login from a request; the fleet
+// is kept here (Firestore and Storage directly, as the owner), and saveFleetReport saves a month's
+// report and emails the contact.
+let companyError = '';
+let companyErrorLead = null;
+const COMPANY_ERRORS = {
+  taken: 'That email already has a private customer account (or another company). Use another email for the business.',
+  exists: 'This request already has a business account.', email: 'The request has no valid email.', name: 'The request needs a company and contact name.',
+};
+async function createCompany(l, plan) {
+  companyErrorLead = null;
+  try {
+    const r = await callFn('createCompany', { leadId: l.id, plan });
+    if (r.error) throw new Error(COMPANY_ERRORS[r.error] || r.error);
+    companyNote = `${l.company} is set up. The invite to ${l.email} is in the Outbox.`;
+    openCompany(r.companyId);
+  } catch (e) {
+    companyErrorLead = l.id;
+    companyError = `Could not create the business account: ${e.message}`;
+    render();
+  }
+}
+
+let companyId = null; // the company open in the Companies tab
+let companyNote = '';
+const fleet = { id: null, bikes: [], reports: [], unsub: [] };
+function watchCompany(id) {
+  while (fleet.unsub.length) fleet.unsub.pop()();
+  Object.assign(fleet, { id, bikes: [], reports: [] });
+  if (!id) return;
+  const list = (s) => s.docs.map((d) => ({ id: d.id, ...d.data() }));
+  fleet.unsub.push(onSnapshot(collection(db, 'companies', id, 'bikes'), (s) => {
+    fleet.bikes = list(s).sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+    render();
+  }, (e) => showError(`Could not load the fleet: ${e.code || e.message}`)));
+  fleet.unsub.push(onSnapshot(collection(db, 'companies', id, 'reports'), (s) => {
+    fleet.reports = list(s).sort((a, b) => b.month.localeCompare(a.month));
+    render();
+  }, (e) => showError(`Could not load the reports: ${e.code || e.message}`)));
+}
+function openCompany(id) {
+  companyId = id;
+  current = tabs.findIndex(([, fn]) => fn === companiesView);
+  render();
+}
+
+function companiesView(v) {
+  const companies = [...data.companies].sort((a, b) => a.name.localeCompare(b.name));
+  if (!companies.length) { v.append(h('p', 'sub', 'No business customers yet. Create one from a consultation under Requests.')); return; }
+  if (!companies.some((c) => c.id === companyId)) companyId = companies[0].id;
+  if (fleet.id !== companyId) watchCompany(companyId);
+  const c = companies.find((x) => x.id === companyId);
+  const plan = R.PLANS.find((p) => p.id === c.plan);
+
+  const bar = h('div', 'toolbar');
+  const cs = select(companies.map((x) => [x.id, `${x.name}${x.status === 'active' ? '' : ` (${x.status})`}`]), companyId);
+  cs.id = 'company-select';
+  cs.onchange = () => { companyId = cs.value; companyNote = ''; render(); };
+  bar.append(field('Company', cs));
+  v.append(bar);
+
+  // The company: plan, contact, status and the next visit.
+  const p = h('div', 'paper company');
+  p.dataset.company = c.name;
+  const email = h('a', '', c.email);
+  email.href = `mailto:${c.email}`;
+  if (companyNote) p.append(h('p', 'ok', companyNote));
+  A(p, h('h3', '', c.name), h('p', 'meta', `${c.type || 'Business'} \u00b7 customer since ${c.since ? fmtDate(c.since) : '\u2013'}`), defList([
+    ['Plan', `${plan?.name || c.plan} \u00b7 ${dkk(c.pricePerBike)} per bike per month${plan?.monthlyReport ? ' \u00b7 monthly report' : ' \u00b7 initial report only'}`],
+    ['Bikes', `${fleet.bikes.length} \u00b7 ${dkk(c.pricePerBike * fleet.bikes.length)} per month`],
+    ['Contact', c.contact], ['Email', email], ['Phone', c.phone || '\u2013'],
+  ]));
+  const row = h('div', 'toolbar');
+  const st = select([['active', 'Active'], ['paused', 'Paused'], ['ended', 'Ended']], c.status);
+  st.onchange = () => updateDoc(doc(db, 'companies', c.id), { status: st.value }).catch((e) => showError(`Could not save: ${e.code || e.message}`));
+  const next = h('input');
+  next.type = 'date';
+  next.id = `next-${c.id}`;
+  next.value = c.nextVisit || '';
+  next.onchange = () => updateDoc(doc(db, 'companies', c.id), { nextVisit: next.value }).catch((e) => showError(`Could not save: ${e.code || e.message}`));
+  A(row, field('Status', st), field('Next visit (the customer sees it)', next));
+  p.append(row);
+  const panels = h('div', 'list');
+  A(panels, p, fleetPanel(c), reportPanel(c, plan));
+  v.append(panels);
+}
+
+// ---- The fleet: bikes with up to 4 photos each ----
+const FLEET_FIELDS = [['number', 'Number', '#001', 20], ['type', 'Type', 'City bike', 80], ['location', 'Location', 'Reception', 80],
+  ['year', 'Year', '2022', 10], ['size', 'Size', '54 cm', 40], ['gears', 'Gears', '7-speed hub', 60], ['brakes', 'Brakes', 'Rim brakes', 60]];
+let fleetForm = null; // { id, editing, picker, error, busy }
+async function openFleetForm(c, bike) {
+  const initial = [];
+  for (const ph of bike?.photos || []) initial.push({ ...ph, data: await photoUrl(ph.thumbPath).catch(() => ''), stored: true });
+  fleetForm = {
+    companyId: c.id, id: bike ? bike.id : doc(collection(db, 'companies', c.id, 'bikes')).id, editing: bike || null,
+    picker: UI.photoPicker({ max: R.CONFIG.maxBikePhotos, initial, id: 'fleet-photos', full: 1600, quality: 0.8, thumb: 320 }),
+  };
+  render();
+  document.getElementById('fleet-form')?.scrollIntoView({ block: 'nearest' });
+}
+function fleetPanel(c) {
+  const p = h('div', 'paper fleet');
+  A(p, h('h3', '', `Fleet (${fleet.bikes.length})`));
+  if (!fleet.bikes.length) p.append(h('p', 'det', 'No bikes yet: add the fleet at the first visit.'));
+  const tw = h('div', 'tw');
+  const tbl = h('table', 'rep');
+  const hd = tbl.createTHead().insertRow();
+  for (const x of ['Bike', 'Type', 'Location', 'Photos', '']) { const th = h('th', '', x); th.scope = 'col'; hd.append(th); }
+  const tb = tbl.createTBody();
+  for (const b of fleet.bikes) {
+    const r = tb.insertRow();
+    r.dataset.bike = b.number;
+    r.insertCell().textContent = b.number;
+    r.insertCell().textContent = [b.type, b.year].filter(Boolean).join(' \u00b7 ');
+    r.insertCell().textContent = b.location;
+    r.insertCell().textContent = String(b.photos?.length || 0);
+    const del = button('Delete', 'lnk', () => {
+      if (!del.dataset.armed) {
+        del.dataset.armed = '1';
+        del.textContent = 'Click again to delete';
+        setTimeout(() => { delete del.dataset.armed; del.textContent = 'Delete'; }, 5000);
+        return;
+      }
+      deleteFleetBike(c, b);
+    });
+    const actions = r.insertCell();
+    A(actions, button('Edit', 'lnk', () => openFleetForm(c, b)), ' ', del);
+  }
+  if (fleet.bikes.length) { tw.append(tbl); p.append(tw); }
+  if (fleetForm?.companyId === c.id) p.append(fleetFormEl(c));
+  else p.append(button('Add a bike', 'alt sm', () => openFleetForm(c, null)));
+  return p;
+}
+function fleetFormEl(c) {
+  const f = fleetForm;
+  const form = h('form', 'box');
+  form.id = 'fleet-form';
+  form.noValidate = true;
+  form.append(h('h4', '', f.editing ? `Edit ${f.editing.number}` : 'Add a bike'));
+  const grid = h('div', 'row');
+  for (const [k, label, ph, max] of FLEET_FIELDS) {
+    const i = h('input');
+    i.type = 'text';
+    i.id = `fb-${k}`;
+    i.maxLength = max;
+    i.placeholder = ph;
+    i.dataset.keep = `fb-${k}-${f.id}`;
+    i.value = f.editing?.[k] || '';
+    grid.append(field(label, i));
+  }
+  A(form, grid, h('p', 'lb', 'Photos (up to 4; the first is the cover the customer sees)'), f.picker.el);
+  if (f.error) form.append(h('p', 'err', f.error));
+  const save = h('button', 'pill', f.editing ? 'Save bike' : 'Add bike');
+  save.type = 'submit';
+  save.disabled = Boolean(f.busy);
+  A(form, save, button('Cancel', 'alt', () => { fleetForm = null; render(); }));
+  form.onsubmit = (e) => { e.preventDefault(); saveFleetBike(c, form); };
+  return form;
+}
+async function saveFleetBike(c, form) {
+  const f = fleetForm;
+  const fields = {};
+  for (const [k] of FLEET_FIELDS) fields[k] = form.querySelector(`#fb-${k}`).value.trim();
+  if (!fields.number) { f.error = 'Give the bike a number, for example #007.'; render(); return; }
+  fields.type ||= 'Bike';
+  fields.location ||= 'Other';
+  f.busy = true;
+  f.error = null;
+  render();
+  try {
+    const folder = `companies/${c.id}/bikes/${f.id}`;
+    const photos = [];
+    for (const ph of f.picker.get()) {
+      if (ph.stored) { const { data: _d, stored: _s, ...kept } = ph; photos.push(kept); continue; }
+      const put = async (path, dataUrl) => uploadBytes(storageRef(storage, path), await (await fetch(dataUrl)).blob(), { contentType: 'image/jpeg' });
+      const path = `${folder}/${ph.id}.jpg`;
+      const thumbPath = `${folder}/${ph.id}_thumb.jpg`;
+      await Promise.all([put(path, ph.data), put(thumbPath, ph.thumb)]);
+      photos.push({ id: ph.id, path, thumbPath, w: ph.w, h: ph.h, uploadedAt: new Date().toISOString() });
+    }
+    // Photos removed in the form: delete their files.
+    const keep = new Set(photos.map((ph) => ph.id));
+    const gone = (f.editing?.photos || []).filter((ph) => !keep.has(ph.id));
+    await setDoc(doc(db, 'companies', c.id, 'bikes', f.id), { ...fields, photos, updatedAt: serverTimestamp() });
+    await Promise.all(gone.flatMap((ph) => [ph.path, ph.thumbPath]).map((path) => deleteObject(storageRef(storage, path)).catch(() => {})));
+    for (const el of document.querySelectorAll('#fleet-form [data-dirty]')) delete el.dataset.dirty;
+    fleetForm = null;
+  } catch (e) {
+    f.busy = false;
+    f.error = `Could not save the bike: ${e.code || e.message}`;
+  }
+  render();
+}
+async function deleteFleetBike(c, b) {
+  try {
+    await deleteDoc(doc(db, 'companies', c.id, 'bikes', b.id));
+    await Promise.all((b.photos || []).flatMap((ph) => [ph.path, ph.thumbPath]).map((path) => deleteObject(storageRef(storage, path)).catch(() => {})));
+  } catch (e) {
+    showError(`Could not delete ${b.number}: ${e.code || e.message}`);
+  }
+}
+
+// ---- The monthly fleet report: one row per bike, a status in one tap ----
+let reportMonth = R.today().slice(0, 7);
+const reportSaved = new Map(); // `${companyId}-${month}` -> message after saving
+function reportPanel(c, plan) {
+  const p = h('div', 'paper fleet-report');
+  const existing = fleet.reports.find((r) => r.id === reportMonth);
+  const previous = fleet.reports.find((r) => r.id < reportMonth);
+  let start = 'New report.';
+  if (existing) start = 'Editing the saved report.';
+  else if (previous) start = `New report, starting from ${R.monthLabel(previous.id)}.`;
+  A(p, h('h3', '', `Fleet report: ${R.monthLabel(reportMonth)}`), h('p', 'meta', start));
+  if (!plan?.monthlyReport) p.append(h('p', 'note', `${c.name} is on the ${plan?.name || c.plan} plan: only the initial fleet report is included.`));
+  const row = h('div', 'toolbar');
+  const month = h('input');
+  month.type = 'month';
+  month.id = 'report-month';
+  month.value = reportMonth;
+  month.onchange = () => { if (R.isMonth(month.value)) { reportMonth = month.value; render(); } };
+  const visit = h('input');
+  visit.type = 'date';
+  visit.id = 'report-visit';
+  visit.dataset.keep = `visit-${c.id}-${reportMonth}`;
+  visit.value = existing?.visitDate || R.today();
+  A(row, field('Month', month), field('Visit date', visit));
+  p.append(row);
+  if (!fleet.bikes.length) { p.append(h('p', 'det', 'Add the bikes of the fleet first.')); return p; }
+
+  const tw = h('div', 'tw');
+  const tbl = h('table', 'rep');
+  const hd = tbl.createTHead().insertRow();
+  for (const x of ['Bike', 'Status', 'Action', 'Mechanic\u2019s note']) { const th = h('th', '', x); th.scope = 'col'; hd.append(th); }
+  const tb = tbl.createTBody();
+  for (const b of fleet.bikes) {
+    const from = existing?.entries[b.id] || (previous?.entries[b.id] && { ...previous.entries[b.id], note: '' }) || { status: 'ready', action: '\u2013', note: '' };
+    const r = tb.insertRow();
+    r.dataset.bike = b.id;
+    r.insertCell().textContent = `${b.number} \u00b7 ${b.location}`;
+    const key = (k) => `rep-${c.id}-${reportMonth}-${b.id}-${k}`;
+    const st = select(Object.entries(R.STATUS), from.status);
+    st.className = 'rep-status';
+    st.dataset.keep = key('status');
+    st.setAttribute('aria-label', `Status for ${b.number}`);
+    const text = (cls, max, value, label) => {
+      const i = h('input');
+      i.type = 'text';
+      i.className = cls;
+      i.maxLength = max;
+      i.value = value;
+      i.dataset.keep = key(cls);
+      i.setAttribute('aria-label', `${label} for ${b.number}`);
+      return i;
+    };
+    r.insertCell().append(st);
+    r.insertCell().append(text('rep-action', 200, from.action, 'Action'));
+    r.insertCell().append(text('rep-note', 500, from.note, 'Note'));
+  }
+  tw.append(tbl);
+  p.append(tw);
+  const saved = reportSaved.get(`${c.id}-${reportMonth}`);
+  if (saved) p.append(h('p', saved.startsWith('Could not') ? 'err' : 'ok', saved));
+  p.append(button(`Save report and email ${c.contact}`, 'pill', () => saveReport(c, p)));
+  return p;
+}
+async function saveReport(c, panel) {
+  const month = reportMonth;
+  const entries = {};
+  for (const r of panel.querySelectorAll('tbody tr')) {
+    entries[r.dataset.bike] = {
+      status: r.querySelector('.rep-status').value, action: r.querySelector('.rep-action').value.trim(), note: r.querySelector('.rep-note').value.trim(),
+    };
+  }
+  const k = `${c.id}-${month}`;
+  try {
+    const res = await callFn('saveFleetReport', { companyId: c.id, month, visitDate: panel.querySelector('#report-visit').value, entries });
+    if (res.error) throw new Error(res.error === 'date' ? 'choose the visit date' : res.error);
+    const n = res.counts;
+    reportSaved.set(k, `Saved. ${c.name} sees the ${R.monthLabel(month)} report in their account (${n.ready} ready, ${n.attention} attention, ${n.repair} repair); the email is in the Outbox.`);
+    for (const el of panel.querySelectorAll('[data-dirty]')) delete el.dataset.dirty;
+  } catch (e) {
+    reportSaved.set(k, `Could not save the report: ${e.message}`);
+  }
+  render();
 }

@@ -527,3 +527,108 @@ export const createConsultation = onCall(async (request) => {
   await batch.commit();
   return { lead: { id: ref.id } };
 });
+
+// ---- Business accounts (phase 4) ----
+// Invite-only (plan, decision 4): after a consultation the owner creates the company. Its contact
+// gets an account with the custom claim `companyId`, which the rules use to show them their own
+// company, fleet and reports, and an invite email with a link to choose a password.
+const SITE_URL = defineString('SITE_URL', { default: 'https://book.icepuente.com' });
+const DEMO_PASSWORD = 'neighbor-demo';
+
+export const createCompany = onCall(async (request) => {
+  requireOwner(request);
+  const d = request.data || {};
+  const plan = R.PLANS.find((p) => p.id === d.plan);
+  if (!plan) return { error: 'plan' };
+  const leadRef = d.leadId ? db.doc(`consultations/${str(d.leadId, 64)}`) : null;
+  const lead = leadRef ? (await leadRef.get()).data() : null;
+  if (leadRef && !lead) return { error: 'missing' };
+  if (lead?.companyId) return { error: 'exists' };
+  const input = {
+    name: str(d.name, 150) || lead?.company || '',
+    type: str(d.type, 60) || lead?.companyType || '',
+    contact: str(d.contact, 100) || lead?.name || '',
+    email: (str(d.email, 200) || lead?.email || '').toLowerCase(),
+    phone: str(d.phone, 40) || lead?.phone || '',
+    address: str(d.address, 200),
+  };
+  if (!input.name || !input.contact) return { error: 'name' };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email)) return { error: 'email' };
+
+  // The contact's login: a new account, or an existing one that is not already someone else's.
+  const auth = getAuth();
+  const demo = process.env.FUNCTIONS_EMULATOR === 'true';
+  let user = await auth.getUserByEmail(input.email).catch((e) => { if (e.code === 'auth/user-not-found') return null; throw e; });
+  if (user) {
+    const profile = (await db.doc(`users/${user.uid}`).get()).data();
+    if (profile?.role === 'private' || user.customClaims?.admin || user.customClaims?.companyId) return { error: 'taken' };
+  } else {
+    // The demo cannot send the invite, so there the contact gets the demo password.
+    user = await auth.createUser({ email: input.email, displayName: input.contact, ...(demo ? { password: DEMO_PASSWORD, emailVerified: true } : {}) });
+  }
+  const ref = db.collection('companies').doc();
+  await auth.setCustomUserClaims(user.uid, { ...(user.customClaims || {}), companyId: ref.id });
+  let link = `${SITE_URL.value()}/account.html`;
+  if (!demo) {
+    try {
+      link = await auth.generatePasswordResetLink(input.email, { url: `${SITE_URL.value()}/account.html` });
+    } catch (e) {
+      logger.warn('createCompany: no password link', e.message);
+    }
+  }
+
+  const batch = db.batch();
+  batch.set(ref, {
+    ...input, plan: plan.id, pricePerBike: plan.pricePerBike, memberUids: [user.uid], nextVisit: '', status: 'active',
+    since: R.today(), leadId: leadRef?.id || null, createdAt: FieldValue.serverTimestamp(),
+  });
+  batch.set(db.doc(`users/${user.uid}`), {
+    role: 'business', companyId: ref.id, name: input.contact, email: input.email, phone: input.phone, createdAt: FieldValue.serverTimestamp(),
+  });
+  if (leadRef) batch.update(leadRef, { status: 'won', companyId: ref.id });
+  queueMail(batch, input.email, 'Your business account at The Neighbor', [
+    `Hi ${input.contact},`, '',
+    `Welcome aboard: ${input.name} is set up on the ${plan.name} plan (${plan.pricePerBike} DKK per bike per month).`,
+    'In your account you will find your fleet and the service report after each visit.', '',
+    demo ? `Demo: log in at ${link} with ${input.email} and the password ${DEMO_PASSWORD}.` : `Choose your password here: ${link}`,
+    '', 'The Neighbor',
+  ].join('\n'));
+  await batch.commit();
+  return { ok: true, companyId: ref.id };
+});
+
+// ---- saveFleetReport (owner): the monthly fleet report, one entry per bike ----
+// Saves companies/{id}/reports/{yyyy-mm} with the counts by status, and emails the contact. Saving
+// the same month again updates it.
+export const saveFleetReport = onCall(async (request) => {
+  requireOwner(request);
+  const d = request.data || {};
+  const companyRef = db.doc(`companies/${str(d.companyId, 64)}`);
+  const month = str(d.month, 7);
+  if (!R.isMonth(month)) return { error: 'month' };
+  if (!R.isDate(d.visitDate)) return { error: 'date' };
+  const [companySnap, bikes] = await Promise.all([companyRef.get(), companyRef.collection('bikes').get()]);
+  if (!companySnap.exists) return { error: 'missing' };
+  const entries = {};
+  for (const bike of bikes.docs) {
+    const e = d.entries?.[bike.id];
+    if (!e) continue;
+    entries[bike.id] = { status: e.status in R.STATUS ? e.status : 'ready', action: str(e.action, 200) || '–', note: str(e.note, 500) };
+  }
+  if (!Object.keys(entries).length) return { error: 'entries' };
+  const counts = R.fleetCounts(entries);
+  const c = companySnap.data();
+  const reportRef = companyRef.collection('reports').doc(month);
+  const updated = (await reportRef.get()).exists;
+  const batch = db.batch();
+  batch.set(reportRef, { month, visitDate: d.visitDate, entries, counts, updatedAt: FieldValue.serverTimestamp() });
+  const label = R.monthLabel(month);
+  queueMail(batch, c.email, `Fleet report ${updated ? 'updated' : 'ready'}: ${label}`, [
+    `Hi ${c.contact},`, '',
+    `The ${label} report for ${c.name} is ${updated ? 'updated' : 'ready'} in your account (visit on ${d.visitDate}).`,
+    `${counts.ready} ready, ${counts.attention} need attention, ${counts.repair} need repair.`,
+    '', 'The Neighbor',
+  ].join('\n'));
+  await batch.commit();
+  return { ok: true, counts };
+});

@@ -22,7 +22,7 @@ service firebase.storage {
 
     // Booking photos: the owner may look at them.
     match /bookings/{bookingId}/{file} {
-      allow read: if request.auth != null && request.auth.token.admin == true;
+      allow read: if request.auth != null && request.auth.token.get('admin', false) == true;
     }
 
     // A customer's saved-bike photos (users/{uid}/bikes/{bikeId}/{photoId}.jpg and _thumb): the
@@ -30,7 +30,7 @@ service firebase.storage {
     // anonymous guest sessions. createBooking copies booking photos here too.
     match /users/{uid}/bikes/{bikeId}/{file} {
       allow read: if request.auth != null
-        && ((request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous') || request.auth.token.admin == true);
+        && ((request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous') || request.auth.token.get('admin', false) == true);
       allow create: if request.auth != null
         && request.auth.uid == uid
         && request.auth.token.firebase.sign_in_provider != 'anonymous'
@@ -46,20 +46,32 @@ service firebase.storage {
     // whose visit it was sees them; for a guest booking they are under visits/, for the owner only.
     match /users/{uid}/visits/{recordId}/{file} {
       allow read: if request.auth != null
-        && ((request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous') || request.auth.token.admin == true);
-      allow create: if request.auth != null && request.auth.token.admin == true
+        && ((request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous') || request.auth.token.get('admin', false) == true);
+      allow create: if request.auth != null && request.auth.token.get('admin', false) == true
         && resource == null
         && file.matches('[a-z0-9]{20}(_thumb)?[.]jpg')
         && request.resource.contentType == 'image/jpeg'
         && request.resource.size <= 2 * 1024 * 1024;
     }
     match /visits/{recordId}/{file} {
-      allow read: if request.auth != null && request.auth.token.admin == true;
-      allow create: if request.auth != null && request.auth.token.admin == true
+      allow read: if request.auth != null && request.auth.token.get('admin', false) == true;
+      allow create: if request.auth != null && request.auth.token.get('admin', false) == true
         && resource == null
         && file.matches('[a-z0-9]{20}(_thumb)?[.]jpg')
         && request.resource.contentType == 'image/jpeg'
         && request.resource.size <= 2 * 1024 * 1024;
+    }
+
+    // Fleet bike photos, taken by the owner at a fleet check: the company's members see them.
+    match /companies/{companyId}/bikes/{bikeId}/{file} {
+      allow read: if request.auth != null
+        && (request.auth.token.get('admin', false) == true || request.auth.token.get('companyId', '') == companyId);
+      allow create: if request.auth != null && request.auth.token.get('admin', false) == true
+        && resource == null
+        && file.matches('[a-z0-9]{20}(_thumb)?[.]jpg')
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.size <= 2 * 1024 * 1024;
+      allow delete: if request.auth != null && request.auth.token.get('admin', false) == true;
     }
 
     // Everything else stays closed to browsers.

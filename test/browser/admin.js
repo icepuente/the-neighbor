@@ -167,6 +167,49 @@ run(9336, async () => {
   await evaluate("document.querySelector('[data-shelf=active]').click()");
   check((await evaluate("document.getElementById('view').textContent")).includes('Hostel Nørrebro'), 'Restore brings it back to the active list');
 
+  // A business account from the request: two clicks, then the company opens under Companies.
+  const hostel = "[...document.querySelectorAll('#view .paper')].find((p)=>p.dataset.company==='Hostel Nørrebro')";
+  const createBtn = `[...${hostel}.querySelectorAll('button')].find((b)=>b.textContent.startsWith('Create business')||b.textContent.startsWith('Click again'))`;
+  await evaluate(`${createBtn}.click()`);
+  check((await evaluate(`${createBtn}.textContent`)).startsWith('Click again to create it and email sofie@example.com'), 'creating a business account asks for a second click');
+  await evaluate(`${createBtn}.click()`);
+  await waitFor("document.querySelector('#tabs [aria-current]')?.textContent.startsWith('Companies') && document.getElementById('view').textContent.includes('Hostel Nørrebro is set up')", 'the new company', 20000);
+  check(true, 'the second click creates Hostel Nørrebro and opens it under Companies');
+  check((await evaluate("document.querySelector('.company').textContent")).includes('Sofie Berg'), 'with the contact from the request');
+
+  // Its first bike, with a photo.
+  await evaluate("[...document.querySelectorAll('#view .fleet button')].find((b)=>b.textContent==='Add a bike').click()");
+  await waitFor("!!document.getElementById('fb-number')", 'the bike form');
+  await evaluate("document.querySelector('#fleet-form button[type=submit]').click()");
+  await waitFor("document.querySelector('#fleet-form > .err')?.textContent.includes('number')", 'the missing number');
+  check(true, 'a fleet bike needs a number');
+  for (const [id, val] of [['fb-number', '#001'], ['fb-type', 'City bike'], ['fb-location', 'Bike shed']]) {
+    await evaluate(`(()=>{const e=document.getElementById('${id}');e.value=${JSON.stringify(val)};e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+  }
+  await setFile('#fleet-photos');
+  await waitFor("document.querySelectorAll('#fleet-form figure img').length === 1", 'the fleet photo');
+  await evaluate("document.querySelector('#fleet-form button[type=submit]').click()");
+  await waitFor("!document.getElementById('fleet-form') && !!document.querySelector('.fleet tr[data-bike=\"#001\"]')", 'the saved bike', 20000);
+  check(await evaluate("document.querySelector('.fleet tr[data-bike=\"#001\"]').cells[3].textContent") === '1', 'the bike is added to the fleet, with its photo uploaded');
+
+  // The month's report: one row per bike; save and email the contact.
+  await waitFor("document.querySelectorAll('.fleet-report tbody tr').length === 1", 'the report row');
+  await evaluate("(()=>{const s=document.querySelector('.fleet-report .rep-status');s.value='attention';s.dispatchEvent(new Event('input',{bubbles:true}))})()");
+  await evaluate("(()=>{const e=document.querySelector('.fleet-report .rep-action');e.value='Chain replaced soon';e.dispatchEvent(new Event('input',{bubbles:true}))})()");
+  await evaluate("[...document.querySelectorAll('.fleet-report button')].find((b)=>b.textContent.startsWith('Save report')).click()");
+  await waitFor("document.querySelector('.fleet-report .ok')?.textContent.startsWith('Saved.')", 'the saved report', 20000);
+  check((await evaluate("document.querySelector('.fleet-report .ok').textContent")).includes('0 ready, 1 attention, 0 repair'), 'the fleet report is saved, with the counts');
+  await shot('admin-companies.png', 1400);
+
+  // Hotel ABC (demo data): six bikes and the reports so far.
+  await evaluate("(()=>{const s=document.getElementById('company-select');s.value='hotel-abc';s.dispatchEvent(new Event('change'))})()");
+  await waitFor("document.querySelectorAll('.fleet tbody tr').length === 6", 'Hotel ABC\'s fleet', 15000);
+  check((await evaluate("document.querySelector('.fleet-report .meta').textContent")).startsWith('New report, starting from'), 'Hotel ABC: six bikes, and a new month starts from the last report');
+  const outbox = async () => { await tab('Outbox'); await sleep(300); return evaluate("[...document.querySelectorAll('#view summary')].map((s)=>s.textContent)"); };
+  const mails = await outbox();
+  check(mails.includes('Your business account at The Neighbor → sofie@example.com') && mails.some((s) => s.startsWith('Fleet report ready:') && s.endsWith('sofie@example.com')),
+    'the Outbox has the invite and the report email to Sofie');
+
   // Closed days: close one with the calendar; the public booking calendar then greys it out.
   await tab('Closed days');
   const day = R.nextOpenDay(R.addDays(R.today(), 12));

@@ -246,6 +246,18 @@ Each phase ends with something usable, so it can stop at any point.
 4. **Business accounts.** Invite-only company accounts, fleets (with **fleet bike photos** taken by
    the owner, decision 15), monthly reports, the scheduled report job, and a printable or PDF
    report.
+   *Done 2026-10-17 (except the scheduled job):* on a request, "Create business account" (two
+   clicks; owner-only Function `createCompany`) creates `companies/{id}` from the request and plan,
+   the contact's login with the custom claim `companyId` and `users/{uid}` role `business`, marks the
+   request won, and queues an invite with a set-password link (on the emulators the contact gets the
+   demo password instead, since no email is sent). The dashboard's Companies tab: status and next
+   visit, the fleet (bikes with up to 4 photos in `companies/{id}/bikes/{bikeId}/`), and the month's
+   report, one row per bike, starting from the previous month (`saveFleetReport` counts the statuses
+   and emails the contact). The contact's account shows Månedsrapport (month picker, counts, table,
+   bike details with photos, "Udskriv / gem som PDF" with print styles), Flådeoversigt and Aftale og
+   besøg. Rules: members read only their company (`token.companyId`). Demo: Hotel ABC,
+   hotel@demo.dk / neighbor-demo, six bikes and two reports. The **scheduled report job** is left
+   out: the report email goes when the owner saves; a monthly reminder can follow if wanted.
 5. **Go live on the .dk domain.** The Neighbor is hosted separately from the current server, on its
    own .dk domain: Cloudflare DNS with a TXT ownership record and an A record to the host (Firebase
    Hosting, per decision 6). book.icepuente.com gets no redirect. Then retire the Express app and
