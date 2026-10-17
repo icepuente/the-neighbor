@@ -40,6 +40,9 @@ export const CONFIG = {
   maxBikePhotos: 4,
   // Version of the terms (web/terms.html) a booking is accepted under; change it when they change.
   termsVersion: '2026-10',
+  // Customers can cancel a booking themselves until this many hours before it (the terms' free
+  // cancellation; the owner has not confirmed the number yet). Later, they call or write.
+  cancelHours: 24,
 };
 
 // The owner's service list (2026-10-13). durationMin is the top of the owner's range, so the
@@ -252,6 +255,20 @@ export function checkConsultation(input) {
   if (!isEmail(input.email)) return 'email';
   return null;
 }
+
+// Minutes from `now` until `date` at `time`, both in Copenhagen time.
+export function minutesUntil(date, time, now = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(now).map((p) => [p.type, p.value]));
+  const nowDate = `${parts.year}-${parts.month}-${parts.day}`;
+  const days = Math.round((atNoon(date) - atNoon(nowDate)) / 86400000);
+  return days * 1440 + toMin(time) - (Number(parts.hour) * 60 + Number(parts.minute));
+}
+
+// Whether a customer may still cancel this booking online.
+export const customerCanCancel = (b, now = new Date()) =>
+  ['pending', 'confirmed'].includes(b.status) && minutesUntil(b.date, b.arrival, now) >= CONFIG.cancelHours * 60;
 
 // When a new subscription's 3-month minimum ends.
 export const commitmentEnds = (startDate) => addMonths(startDate, CONFIG.subscriptionMinMonths);

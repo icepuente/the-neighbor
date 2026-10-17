@@ -59,6 +59,17 @@ run(9335, async () => {
   await waitFor(`document.querySelector('.booking[data-ref="${ref}"] .pic img')?.naturalWidth > 0`, 'the booking photo', 20000);
   check(true, 'and its photo, read from Storage with the owner\'s sign-in');
 
+  // The customer side: the demo customer logs in and sees her own bookings.
+  await evaluate("document.getElementById('out').click()");
+  await open(`${origin}/account.html`);
+  await waitFor("!document.getElementById('login').hidden || !document.getElementById('app').hidden", 'the account page');
+  await evaluate("document.querySelector('#demo-login button').click(); document.querySelector('#lf button[type=submit]').click()");
+  await waitFor("document.getElementById('hi').textContent === 'Hej, Anna'", "Anna's account", 30000);
+  await evaluate("document.querySelectorAll('#tabs button')[1].click()");
+  await waitFor("document.querySelectorAll('.my-booking').length >= 2", "Anna's bookings", 20000);
+  check(true, 'the demo customer logs in and sees her own bookings');
+  await evaluate("document.getElementById('out').click()");
+
   const elsewhere = requests.filter((u) => /^https?:/.test(u) && !u.startsWith(origin));
   check(elsewhere.length === 0, `all ${requests.length} requests went to ${origin}${elsewhere.length ? `; elsewhere: ${[...new Set(elsewhere)].join(', ')}` : ''}`);
 });

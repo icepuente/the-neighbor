@@ -22,6 +22,8 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const OWNER = { email: 'owner@demo.dk', password: 'neighbor-demo' };
+// Demo customer login (shown on the demo's account page): anna@demo.dk / neighbor-demo
+const ANNA = { email: 'anna@demo.dk', password: 'neighbor-demo', displayName: 'Anna Jensen' };
 
 // Dates in Copenhagen time; the shop is closed on Sundays.
 const todayCph = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Copenhagen' }).format(new Date());
@@ -37,6 +39,9 @@ async function seed() {
   let owner;
   try { owner = await auth.getUserByEmail(OWNER.email); } catch { owner = await auth.createUser({ ...OWNER, emailVerified: true }); }
   await auth.setCustomUserClaims(owner.uid, { admin: true });
+  // A customer with an account.
+  let anna;
+  try { anna = await auth.getUserByEmail(ANNA.email); } catch { anna = await auth.createUser({ ...ANNA, emailVerified: true }); }
 
   // Only once per empty database.
   if ((await db.collection('bookings').limit(1).get()).size) return 'already seeded';
@@ -46,8 +51,12 @@ async function seed() {
   const base = { customerUid: null, bikeId: null, photos: [], urgent: false, note: '', apartment: '', accepted, createdAt: FieldValue.serverTimestamp() };
   const bookings = [
     { ...base, ref: 'TN-1041', status: 'confirmed', services: [svc('bike-check', 'The Neighbor Bike Check', 199)], date: day(3), arrival: '10:00', workMin: 25, blockMin: 40,
-      bikeType: 'By / pendler', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.', distanceKm: 5, name: 'Anna Jensen', email: 'anna@example.com', phone: '+45 20 12 34 56',
-      note: 'Forbremsen føles blød.', pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, total: 212 } },
+      bikeType: 'By / pendler', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.', distanceKm: 5, name: 'Anna Jensen', email: ANNA.email, phone: '+45 20 12 34 56',
+      note: 'Forbremsen føles blød.', pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, total: 212 }, customerUid: anna.uid },
+    // Anna's earlier visit, already done.
+    { ...base, ref: 'TN-1039', status: 'completed', services: [svc('puncture', 'Puncture Fix', 199)], date: day(-12), arrival: '11:00', workMin: 20, blockMin: 35,
+      bikeType: 'By / pendler', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.', distanceKm: 5, name: 'Anna Jensen', email: ANNA.email, phone: '+45 20 12 34 56',
+      pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, total: 212 }, customerUid: anna.uid },
     { ...base, ref: 'TN-1042', status: 'pending', services: [svc('puncture', 'Puncture Fix', 199), svc('chain', 'Chain Service', 149)], date: day(4), arrival: '13:00', workMin: 35, blockMin: 50,
       bikeType: 'Racer', address: 'Jagtvej 120, 2200 København N', distanceKm: 5, name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77',
       pricing: { oneOff: 348, discount: 0, discountReason: null, monthly: 0, travel: 13, total: 361 } },
@@ -56,6 +65,10 @@ async function seed() {
       pricing: { oneOff: 328, discount: 16, discountReason: 'combo', monthly: 0, travel: 13, total: 325 } },
   ];
   const batch = db.batch();
+  batch.set(db.doc(`users/${anna.uid}`), {
+    role: 'private', email: ANNA.email, name: 'Anna Jensen', phone: '+45 20 12 34 56', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.',
+    createdAt: new Date(`${day(-200)}T12:00:00Z`),
+  });
   for (const b of bookings) batch.set(db.collection('bookings').doc(), b);
   batch.set(db.doc('counters/bookings'), { last: 1043 });
   batch.set(db.collection('consultations').doc(), {
@@ -64,7 +77,7 @@ async function seed() {
   });
   batch.set(db.doc(`closedDates/${day(9)}`), { reason: 'Ferie' });
   await batch.commit();
-  return `seeded 3 bookings, 1 request, closed ${day(9)}`;
+  return `seeded 4 bookings, 1 request, closed ${day(9)}, customer ${ANNA.email}`;
 }
 
 if (!/^(127\.0\.0\.1|localhost|emulators):/.test(process.env.FIRESTORE_EMULATOR_HOST)) {

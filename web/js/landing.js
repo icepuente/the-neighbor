@@ -180,6 +180,25 @@ if (remembered) {
   $('remember').checked = true;
 }
 
+// A signed-in customer: their details fill the form, the booking joins their account, and "Husk mig"
+// is not needed. The header link says "Min konto".
+firebaseReady.then(({ NBF }) => NBF.sdk.auth.onAuthStateChanged(NBF.auth, async (user) => {
+  if (!user || user.isAnonymous) return;
+  $('acct-link').textContent = t('nav.account');
+  let p = null;
+  try { p = (await NBF.sdk.firestore.getDoc(NBF.sdk.firestore.doc(NBF.db, 'users', user.uid))).data(); } catch { /* the owner, or no profile yet */ }
+  if (!p) return;
+  const fillIn = (id, v) => { if (v && !$(id).value) $(id).value = v; };
+  fillIn('name', p.name);
+  fillIn('tel', p.phone);
+  fillIn('email', p.email);
+  fillIn('addr', p.address);
+  fillIn('addr2', p.apartment);
+  $('signed-in').hidden = false;
+  $('signed-in').textContent = t('bk.signedIn', { name: p.name.split(' ')[0] });
+  $('opts').hidden = true;
+}));
+
 // Danish address suggestions while typing (js/address.js); free text still works.
 attachAddressSuggest($('addr'), {
   label: t('bk.suggestions'),

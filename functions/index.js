@@ -5,6 +5,7 @@
 // ({ to, message: { subject, text } }); nothing sends them yet (plan, phase 1).
 import { randomBytes } from 'node:crypto';
 import { initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { FieldPath, FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { setGlobalOptions } from 'firebase-functions/v2';
@@ -281,6 +282,70 @@ export const createBooking = onCall(async (request) => {
 export const cleanUploads = onSchedule({ schedule: 'every 6 hours', timeZone: R.TIME_ZONE }, async () => {
   const n = await P.deleteStaleUploads(P.bucket());
   logger.info(`cleanUploads: deleted ${n} stale upload(s)`);
+});
+
+// ---- Customer accounts (phase 3) ----
+// A signed-in customer: an email account, not an anonymous guest session.
+function requireCustomer(request) {
+  const a = request.auth;
+  if (!a || a.token.firebase?.sign_in_provider === 'anonymous' || !a.token.email) {
+    throw new HttpsError('unauthenticated', 'Sign in first.');
+  }
+  return a;
+}
+const profileInput = (raw = {}) => ({
+  name: str(raw.name, 100), phone: str(raw.phone, 40), address: str(raw.address, 200), apartment: str(raw.apartment, 40),
+});
+
+// syncAccount: called after sign-up and on every visit to the account page. Creates the profile
+// (users/{uid}) on the first call, and once the email address is verified, links bookings made
+// earlier as a guest with that address. Only a verified address may claim them: otherwise anyone
+// could sign up with someone else's email and see their bookings.
+export const syncAccount = onCall(async (request) => {
+  const a = requireCustomer(request);
+  const ref = db.doc(`users/${a.uid}`);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    const p = profileInput(request.data?.profile);
+    if (!p.name) return { error: 'name' };
+    await ref.set({ role: 'private', email: a.token.email.toLowerCase(), ...p, createdAt: FieldValue.serverTimestamp() });
+  }
+  let linked = 0;
+  if (a.token.email_verified === true) {
+    const guest = await db.collection('bookings').where('email', '==', a.token.email.toLowerCase()).where('customerUid', '==', null).get();
+    const batch = db.batch();
+    for (const d of guest.docs) batch.update(d.ref, { customerUid: a.uid });
+    if (guest.size) await batch.commit();
+    linked = guest.size;
+  }
+  return { ok: true, created: !snap.exists, verified: a.token.email_verified === true, linked };
+});
+
+// demoVerifyEmail: the demo and local tests cannot receive the verification email, so there the
+// account page offers to mark the address verified. Works on the emulators only, never in production.
+export const demoVerifyEmail = onCall(async (request) => {
+  if (process.env.FUNCTIONS_EMULATOR !== 'true') throw new HttpsError('failed-precondition', 'Only in the demo.');
+  const a = requireCustomer(request);
+  await getAuth().updateUser(a.uid, { emailVerified: true });
+  return { ok: true };
+});
+
+// cancelMyBooking: a customer cancels their own booking, up to 24 hours before it (the terms' free
+// cancellation). The customer's email follows from bookingStatusChanged; the owner is told here.
+export const cancelMyBooking = onCall(async (request) => {
+  const a = requireCustomer(request);
+  const ref = db.doc(`bookings/${str(request.data?.bookingId, 64)}`);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.get('customerUid') !== a.uid) return { error: 'missing' };
+    const b = snap.data();
+    if (!['pending', 'confirmed'].includes(b.status)) return { error: 'status' };
+    if (!R.customerCanCancel(b)) return { error: 'late' };
+    tx.update(ref, { status: 'cancelled', statusAt: FieldValue.serverTimestamp(), cancelledBy: 'customer' });
+    queueMail(tx, OWNER_EMAIL.value(), `Booking ${b.ref} cancelled by the customer`,
+      `${b.name} (${b.phone}) cancelled ${b.date} at ${b.arrival}.\n${R.fullAddress(b.address, b.apartment)}`);
+    return { ok: true };
+  });
 });
 
 // ---- rescheduleBooking (owner): move a booking to another day and time ----

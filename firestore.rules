@@ -10,9 +10,29 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.admin == true;
     }
 
+    function isCustomer(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function shortText(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    // Customer profiles: created by the Function syncAccount. The customer reads theirs and edits
+    // their contact details; the owner reads all.
+    match /users/{uid} {
+      allow read: if isCustomer(uid) || isOwner();
+      allow update: if isCustomer(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'phone', 'address', 'apartment'])
+        && shortText(request.resource.data.name, 100) && request.resource.data.name.size() > 0
+        && shortText(request.resource.data.phone, 40) && shortText(request.resource.data.address, 200)
+        && shortText(request.resource.data.apartment, 40);
+    }
+
     // Bookings: the owner reads them and changes only their status and the owner's own note.
+    // A signed-in customer reads their own (those made while signed in, or linked by syncAccount).
     match /bookings/{id} {
-      allow read: if isOwner();
+      allow read: if isOwner() || (resource.data.customerUid != null && isCustomer(resource.data.customerUid));
       allow update: if isOwner()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ownerNote', 'statusAt'])
         && request.resource.data.status in ['pending', 'confirmed', 'completed', 'cancelled'];

@@ -42,8 +42,9 @@ run(9334, async () => {
     && await evaluate("document.querySelectorAll('#svc-cards a').length") === 6
     && await evaluate("document.querySelectorAll('#care-cards .plan').length") === 2, 'plan, service and Care cards come from the shared rules (3, 6, 2)');
   check((await evaluate("document.querySelector('#svc-cards a .price').textContent")) === '199 kr.', 'prices in Danish: 199 kr.');
-  check(await evaluate("!document.getElementById('acct-link') && !document.getElementById('mkacct') && !document.querySelector('.demo')"),
-    'no log-in link, no "create an account", no demo banner');
+  check(await evaluate("document.getElementById('acct-link')?.getAttribute('href') === 'account.html' && document.getElementById('acct-link').textContent === 'Log ind'"),
+    'the header has "Log ind", to the account page');
+  check(await evaluate("!document.getElementById('mkacct') && !document.querySelector('.demo')"), 'no "create an account" on the form yet, no demo banner');
   check(await evaluate("!document.getElementById('bk-photo-block').hidden && !!document.getElementById('bk-photo-input')"), 'the photo field is shown');
 
   // The date picker and the times, used by clicking as a visitor would.

@@ -144,3 +144,14 @@ test('the address with floor and door, written the Danish way', () => {
   assert.equal(R.fullAddress('Jagtvej 10, 2200 København N', ''), 'Jagtvej 10, 2200 København N', 'no apartment');
   assert.equal(R.fullAddress('Jagtvej 10', ' 3. th, '), 'Jagtvej 10, 3. th', 'no comma in the address');
 });
+
+test('customers can cancel online until 24 hours before the visit, in Copenhagen time', () => {
+  const now = new Date('2026-10-17T08:00:00Z'); // 10:00 in Copenhagen (summer time)
+  assert.equal(R.minutesUntil('2026-10-17', '11:00', now), 60);
+  assert.equal(R.minutesUntil('2026-10-18', '10:00', now), 1440);
+  const b = (date, arrival, status = 'confirmed') => ({ date, arrival, status });
+  assert.equal(R.customerCanCancel(b('2026-10-18', '10:00'), now), true, 'exactly 24 hours ahead');
+  assert.equal(R.customerCanCancel(b('2026-10-18', '09:30'), now), false, 'less than 24 hours ahead');
+  assert.equal(R.customerCanCancel(b('2026-10-20', '09:00', 'completed'), now), false, 'not when completed');
+  assert.equal(R.minutesUntil('2026-10-26', '10:00', new Date('2026-10-24T08:00:00Z')), 2 * 1440, 'across the clock change');
+});

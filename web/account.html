@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="acc.title">The Neighbor</title>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header><div class="wrap">
+  <a class="logo" href="index.html">The<br>Neighbor</a>
+  <nav>
+    <a href="index.html#private" data-i18n="nav.services"></a>
+    <span class="lang" role="group" aria-label="Sprog / Language"><button type="button" id="lang-da">DA</button><button type="button" id="lang-en">EN</button></span>
+    <a class="pill" href="index.html#book" data-i18n="nav.book"></a>
+    <button class="pill ghost" id="out" type="button" hidden data-i18n="nav.signout"></button>
+  </nav>
+</div></header>
+
+<main class="wrap page">
+  <!-- Signed out: log in, or create an account. -->
+  <section id="login" hidden>
+    <h2 id="lt" data-i18n="acc.welcome"></h2>
+    <p class="sub" data-i18n="acc.lead"></p>
+    <div class="seg" role="group">
+      <button type="button" id="m1" aria-pressed="true" data-i18n="acc.login"></button>
+      <button type="button" id="m2" aria-pressed="false" data-i18n="acc.create"></button>
+    </div>
+    <div class="narrow" style="margin:0 0 32px">
+      <form class="box" id="lf" novalidate>
+        <label for="le" data-i18n="f.email"></label><input type="email" id="le" autocomplete="email">
+        <label for="lp" data-i18n="bk.password"></label><input type="password" id="lp" autocomplete="current-password">
+        <p class="err" id="e-l" role="alert"></p>
+        <button class="pill" type="submit" data-i18n="acc.login"></button>
+        <p class="det"><button type="button" class="lnk" id="forgot" data-i18n="acc.forgotLink"></button></p>
+        <p class="ok" id="forgot-ok" hidden></p>
+        <p class="det" id="demo-login" hidden></p>
+      </form>
+      <form class="box" id="sf" novalidate hidden>
+        <label for="sn" data-i18n="f.name"></label><input type="text" id="sn" autocomplete="name">
+        <div class="row">
+          <div><label for="se" data-i18n="f.email"></label><input type="email" id="se" autocomplete="email"></div>
+          <div><label for="sp" data-i18n="f.phone"></label><input type="tel" id="sp" autocomplete="tel"></div>
+        </div>
+        <label for="sw"><span data-i18n="bk.password"></span> <small data-i18n="bk.passwordSub"></small></label><input type="password" id="sw" autocomplete="new-password">
+        <p class="err" id="e-s" role="alert"></p>
+        <button class="pill" type="submit" data-i18n="acc.create"></button>
+        <p class="det" data-i18n="acc.createNote"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Signed in. -->
+  <section id="app" hidden>
+    <h2 id="hi"></h2>
+    <p class="sub" id="hs"></p>
+    <div class="box verify" id="verify" hidden>
+      <p data-i18n="acc.verifyText"></p>
+      <button type="button" class="alt sm" id="verify-again" data-i18n="acc.verifyAgain"></button>
+      <button type="button" class="alt sm" id="verify-done" data-i18n="acc.verifyDone"></button>
+      <button type="button" class="alt sm" id="verify-demo" hidden data-i18n="acc.verifyDemo"></button>
+      <p class="det" id="verify-msg"></p>
+    </div>
+    <div class="tabs" id="tabs" role="navigation"></div>
+    <div id="view"></div>
+  </section>
+
+  <!-- The owner signed in here: point to the dashboard. -->
+  <section id="owner" hidden>
+    <h2 data-i18n="acc.owner"></h2>
+    <p class="sub" data-i18n="acc.ownerSub"></p>
+    <a class="pill" href="admin.html" data-i18n="acc.openDashboard"></a>
+  </section>
+  <div id="loading" class="sub">…</div>
+</main>
+
+<footer class="small"><div class="wrap">The Neighbor · <a href="index.html" data-i18n="nav.home"></a> · <a href="privacy.html" data-i18n="footer.privacy"></a></div></footer>
+
+<script src="js/i18n.js"></script>
+<script src="js/ui.js"></script>
+<script type="module" src="js/account.js"></script>
+</body>
+</html>

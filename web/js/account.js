@@ -1,0 +1,324 @@
+// Customer account (account.html): log in, create an account, and see one's own bookings and
+// details. Phase 3a; bikes, history and recommendations follow.
+//
+// Accounts are Firebase Authentication email accounts. The profile (users/{uid}) is created by the
+// Function syncAccount, which also links bookings made earlier as a guest once the email address is
+// verified. firestore.rules let a customer read only their own profile and bookings.
+import { NBF } from './firebase.js';
+import { attachAddressSuggest } from './address.js';
+import * as R from './shared/booking-rules.js';
+
+const { $, h, A, button, tag, t } = UI;
+const { auth, db, sdk } = NBF;
+const {
+  onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendEmailVerification,
+  sendPasswordResetEmail, EmailAuthProvider, linkWithCredential, updateProfile,
+} = sdk.auth;
+const { collection, doc, onSnapshot, query, where, updateDoc } = sdk.firestore;
+
+const dkk = I18N.dkk;
+const fmtDate = I18N.date;
+const svcName = I18N.svc;
+const locale = I18N.lang === 'da' ? 'da-DK' : 'en-GB';
+const callFn = async (name, data) => (await sdk.functions.httpsCallable(NBF.functions, name)(data)).data;
+
+// ---- Log in / create an account ----
+function setMode(signup) {
+  $('m1').setAttribute('aria-pressed', String(!signup));
+  $('m2').setAttribute('aria-pressed', String(signup));
+  $('lt').textContent = t(signup ? 'acc.createTitle' : 'acc.welcome');
+  $('lf').hidden = signup;
+  $('sf').hidden = !signup;
+}
+$('m1').onclick = () => setMode(false);
+$('m2').onclick = () => setMode(true);
+const params = new URLSearchParams(location.search);
+if (params.get('signup')) {
+  setMode(true);
+  $('se').value = params.get('signup');
+}
+
+// Firebase error codes in the visitor's language.
+const AUTH_ERRORS = {
+  'auth/invalid-credential': 'wrong', 'auth/wrong-password': 'wrong', 'auth/user-not-found': 'wrong', 'auth/invalid-email': 'nameEmail',
+  'auth/email-already-in-use': 'exists', 'auth/credential-already-in-use': 'exists', 'auth/weak-password': 'password',
+  'auth/too-many-requests': 'tooMany', 'auth/missing-password': 'wrong',
+};
+const authError = (e) => t(`acc.err.${AUTH_ERRORS[e.code] || 'server'}`);
+
+$('lf').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('e-l').textContent = '';
+  try {
+    await signInWithEmailAndPassword(auth, $('le').value.trim(), $('lp').value);
+  } catch (err) {
+    $('e-l').textContent = authError(err);
+  }
+});
+
+// While an account is being created, the sign-in event waits for the profile to exist.
+let signingUp = false;
+$('sf').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const profile = { name: $('sn').value.trim(), phone: $('sp').value.trim() };
+  const email = $('se').value.trim();
+  const password = $('sw').value;
+  $('e-s').textContent = '';
+  if (!profile.name || !R.isEmail(email)) { $('e-s').textContent = t('acc.err.nameEmail'); return; }
+  if (password.length < 8) { $('e-s').textContent = t('acc.err.password'); return; }
+  signingUp = true;
+  try {
+    // A guest who attached photos already has an anonymous session: turn it into the account, so
+    // the same user keeps what it uploaded.
+    const cred = auth.currentUser?.isAnonymous
+      ? await linkWithCredential(auth.currentUser, EmailAuthProvider.credential(email, password))
+      : await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: profile.name });
+    await callFn('syncAccount', { profile });
+    sendEmailVerification(cred.user).catch(() => {});
+    signingUp = false;
+    await enter(cred.user);
+  } catch (err) {
+    signingUp = false;
+    $('e-s').textContent = authError(err);
+  }
+});
+
+$('forgot').onclick = async () => {
+  const email = $('le').value.trim();
+  $('e-l').textContent = '';
+  if (!R.isEmail(email)) { $('e-l').textContent = t('acc.forgotEmail'); return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch { /* the same answer either way, so it does not reveal who has an account */ }
+  $('forgot-ok').hidden = false;
+  $('forgot-ok').textContent = t('acc.forgotSent', { email });
+};
+$('out').onclick = () => signOut(auth);
+
+// The demo shows its customer login (fake data only, wiped daily).
+if (NBF.environment !== 'production') {
+  const hint = $('demo-login');
+  hint.hidden = false;
+  A(hint, `${t('acc.demoLogin')} `, button(t('acc.fill'), 'lnk', () => { $('le').value = 'anna@demo.dk'; $('lp').value = 'neighbor-demo'; }));
+}
+
+// ---- Signed in ----
+const unsubscribe = [];
+const stop = () => { while (unsubscribe.length) unsubscribe.pop()(); };
+let me = null;
+let profile = null;
+let bookings = [];
+let current = 0;
+
+onAuthStateChanged(auth, async (user) => {
+  if (signingUp) return;
+  stop();
+  $('loading').hidden = true;
+  if (!user || user.isAnonymous) { show('login'); return; }
+  if ((await user.getIdTokenResult()).claims.admin === true) { show('owner'); return; }
+  await enter(user);
+});
+
+function show(section) {
+  for (const id of ['login', 'app', 'owner']) $(id).hidden = id !== section;
+  $('out').hidden = section === 'login';
+}
+
+async function enter(user) {
+  me = user;
+  show('app');
+  // Creates the profile if a sign-up was interrupted, and links guest bookings once verified.
+  try {
+    const r = await callFn('syncAccount', { profile: { name: user.displayName || user.email.split('@')[0] } });
+    if (r.linked) note(t('acc.linked', { n: r.linked }));
+  } catch { /* shown as missing data below */ }
+  showVerify();
+  unsubscribe.push(onSnapshot(doc(db, 'users', user.uid), (s) => { profile = s.data() || null; render(); }));
+  unsubscribe.push(onSnapshot(query(collection(db, 'bookings'), where('customerUid', '==', user.uid)), (s) => {
+    bookings = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+    render();
+  }));
+}
+
+const note = (msg) => { $('verify-msg').textContent = msg; };
+
+// Email verification: guest bookings join the account only once the address is confirmed.
+function showVerify() {
+  $('verify').hidden = me.emailVerified;
+  $('verify-demo').hidden = NBF.environment === 'production';
+}
+async function afterVerified() {
+  await me.reload();
+  await me.getIdToken(true);
+  if (!auth.currentUser.emailVerified) { note(t('acc.notVerifiedYet')); return; }
+  const r = await callFn('syncAccount', {});
+  $('verify').hidden = true;
+  $('hs').dataset.fixed = '1';
+  $('hs').textContent = t('acc.verified', { n: r.linked || 0 });
+}
+$('verify-again').onclick = async () => {
+  try { await sendEmailVerification(me); note(t('acc.verifySent', { email: me.email })); } catch { note(t('acc.err.tooMany')); }
+};
+$('verify-done').onclick = () => afterVerified().catch(() => note(t('acc.err.server')));
+$('verify-demo').onclick = async () => {
+  try { await callFn('demoVerifyEmail', {}); await afterVerified(); } catch { note(t('acc.err.server')); }
+};
+
+// ---- Tabs ----
+const upcoming = () => bookings.filter((b) => b.date >= R.today() && ['pending', 'confirmed'].includes(b.status))
+  .sort((a, b) => (a.date + a.arrival).localeCompare(b.date + b.arrival));
+const tabs = [
+  [() => t('tab.overview'), overview],
+  [() => t('tab.bookings'), bookingsView, () => upcoming().length],
+  [() => t('tab.profile'), profileView],
+];
+
+function render() {
+  if (!me) return;
+  const first = (profile?.name || me.displayName || '').split(' ')[0];
+  $('hi').textContent = t('acc.hello', { name: first });
+  if (profile?.createdAt?.toDate && !$('hs').dataset.fixed) {
+    $('hs').textContent = t('acc.since', { month: profile.createdAt.toDate().toLocaleDateString(locale, { month: 'long', year: 'numeric' }) });
+  }
+  const bar = $('tabs');
+  bar.textContent = '';
+  tabs.forEach(([label, , count], i) => {
+    const b = button(label(), '', () => { current = i; render(); });
+    const n = count?.();
+    if (n) b.append(h('span', 'count', String(n)));
+    if (i === current) b.setAttribute('aria-current', 'page');
+    bar.append(b);
+  });
+  // Keep typed text in the profile form through live updates.
+  const v = $('view');
+  const keep = [...v.querySelectorAll('[data-keep]')].filter((el) => el.dataset.dirty).map((el) => [el.dataset.keep, el.value]);
+  v.textContent = '';
+  tabs[current][1](v);
+  for (const [k, val] of keep) { const el = v.querySelector(`[data-keep="${k}"]`); if (el) { el.value = val; el.dataset.dirty = '1'; } }
+}
+document.addEventListener('input', (e) => { if (e.target.dataset?.keep) e.target.dataset.dirty = '1'; });
+
+function overview(v) {
+  const g = h('div', 'grid');
+  const next = upcoming()[0];
+  const c = h('div', 'paper');
+  c.append(h('h3', '', t('ov.next')));
+  if (next) {
+    A(c, h('p', '', t('dateAt', { date: fmtDate(next.date), time: next.arrival })),
+      h('p', '', next.services.map(svcName).join(', ')), tag(next.status, t(`bs.${next.status}`)));
+  } else {
+    const link = h('a', 'pill', t('nav.book'));
+    link.href = 'index.html#book';
+    A(c, h('p', '', t('ov.none')), link);
+  }
+  g.append(c);
+  v.append(g);
+}
+
+function bookingsView(v) {
+  const up = upcoming();
+  const past = bookings.filter((b) => !up.includes(b)).sort((a, b) => (b.date + b.arrival).localeCompare(a.date + a.arrival));
+  v.append(h('h3', '', t('bks.upcoming')));
+  if (!up.length) v.append(h('p', 'sub', t('bks.none')));
+  for (const b of up) v.append(bookingCard(b));
+  if (past.length) {
+    v.append(h('h3', '', t('bks.earlier')));
+    for (const b of past) v.append(bookingCard(b));
+  }
+  const link = h('a', 'pill', t('bks.new'));
+  link.href = 'index.html#book';
+  link.style.marginTop = '16px';
+  v.append(link);
+}
+
+function bookingCard(b) {
+  const c = h('div', 'paper my-booking');
+  c.dataset.ref = b.ref;
+  c.style.marginBottom = '12px';
+  A(c, tag(b.status, t(`bs.${b.status}`)), h('h3', '', t('dateAt', { date: fmtDate(b.date), time: b.arrival })),
+    h('p', 'meta', `${b.ref} · ${b.bikeType || ''} · ${R.fullAddress(b.address, b.apartment)}`));
+  const ul = h('ul');
+  for (const s of b.services) ul.append(h('li', '', `${svcName(s)}: ${dkk(s.price)}${s.monthly ? ` ${t('perMonth')}` : ''}`));
+  c.append(ul);
+  if (b.pricing.travel != null) c.append(h('p', 'det', t('bks.price', { travel: dkk(b.pricing.travel), total: dkk(b.pricing.total) })));
+  if (['pending', 'confirmed'].includes(b.status)) {
+    if (R.customerCanCancel(b)) {
+      // Two clicks, so it cannot happen by accident.
+      const btn = button(t('bks.cancel'), 'alt sm', async () => {
+        if (!btn.dataset.armed) {
+          btn.dataset.armed = '1';
+          btn.textContent = t('bks.cancelArmed');
+          setTimeout(() => { delete btn.dataset.armed; btn.textContent = t('bks.cancel'); }, 5000);
+          return;
+        }
+        btn.disabled = true;
+        const r = await callFn('cancelMyBooking', { bookingId: b.id }).catch(() => ({ error: 'server' }));
+        if (r.error) { btn.disabled = false; c.append(h('p', 'err', t(r.error === 'late' ? 'bks.late' : 'acc.err.server'))); }
+      });
+      c.append(btn);
+    } else {
+      c.append(h('p', 'det', t('bks.late', { hours: R.CONFIG.cancelHours })));
+    }
+  }
+  return c;
+}
+
+// The result of the last save, shown again after a re-draw: Firestore reports the local change
+// (and the form is re-drawn) before the save itself has finished.
+let profileNote = null;
+function profileView(v) {
+  const p = profile || {};
+  const form = h('form', 'box narrow profile');
+  form.noValidate = true;
+  const input = (id, label, value, opts = {}) => {
+    const wrap = h('div');
+    const l = h('label', '', label);
+    l.htmlFor = id;
+    const i = h('input');
+    i.id = id;
+    i.type = opts.type || 'text';
+    i.value = value || '';
+    if (opts.max) i.maxLength = opts.max;
+    if (opts.auto) i.autocomplete = opts.auto;
+    i.dataset.keep = id;
+    A(wrap, l, i);
+    return wrap;
+  };
+  const ok = h('p', 'ok');
+  ok.hidden = profileNote?.kind !== 'ok';
+  ok.textContent = profileNote?.kind === 'ok' ? profileNote.text : '';
+  const err = h('p', 'err', profileNote?.kind === 'err' ? profileNote.text : '');
+  form.addEventListener('input', () => { profileNote = null; ok.hidden = true; });
+  A(form, h('h3', '', t('prof.title')),
+    input('pf-name', t('f.name'), p.name, { max: 100, auto: 'name' }),
+    input('pf-phone', t('f.phone'), p.phone, { type: 'tel', max: 40, auto: 'tel' }),
+    input('pf-addr', t('bk.address'), p.address, { max: 200 }),
+    input('pf-apt', t('bk.apartment'), p.apartment, { max: 40, auto: 'address-line2' }),
+    h('p', 'det', t('prof.email', { email: me.email })), err, ok);
+  const save = h('button', 'pill', t('prof.save'));
+  save.type = 'submit';
+  form.append(save);
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const val = (id) => form.querySelector(`#${id}`).value.trim();
+    const next = { name: val('pf-name'), phone: val('pf-phone'), address: val('pf-addr'), apartment: val('pf-apt') };
+    profileNote = null;
+    if (!next.name) { profileNote = { kind: 'err', text: t('acc.err.nameEmail') }; render(); return; }
+    try {
+      await updateDoc(doc(db, 'users', me.uid), next);
+      // Saved: the fields no longer hold unsaved text (look them up again: the form may be new).
+      for (const el of document.querySelectorAll('form.profile [data-dirty]')) delete el.dataset.dirty;
+      profileNote = { kind: 'ok', text: t('prof.saved') };
+    } catch {
+      profileNote = { kind: 'err', text: t('acc.err.server') };
+    }
+    render();
+  };
+  v.append(form);
+  attachAddressSuggest(form.querySelector('#pf-addr'), {
+    label: t('bk.suggestions'),
+    search: async (q) => (await callFn('addressSearch', { q })).suggestions || [],
+    onPick: () => form.querySelector('#pf-apt').focus(),
+  });
+}
