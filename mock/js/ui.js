@@ -113,7 +113,7 @@
     input.accept = 'image/*';
     input.multiple = true;
     if (id) input.id = id;
-    const addText = h('span', '', t('pics.add'));
+    const addText = h('span', '', tx('pics.add', 'Add photo'));
     A(add, input, h('span', 'plus', '+'), addText);
     const count = h('p', 'det');
     const err = h('p', 'err');
@@ -125,15 +125,15 @@
         const fig = h('figure', 'pic');
         const img = h('img');
         img.src = p.data;
-        img.alt = t('pics.alt', { n: i + 1 });
+        img.alt = tx('pics.alt', `Photo ${i + 1}`, { n: i + 1 });
         const x = button('×', 'pic-x', () => { photos.splice(i, 1); err.textContent = ''; render(); });
-        x.setAttribute('aria-label', t('pics.remove', { n: i + 1 }));
+        x.setAttribute('aria-label', tx('pics.remove', `Remove photo ${i + 1}`, { n: i + 1 }));
         A(fig, img, x);
         grid.appendChild(fig);
       });
       add.hidden = photos.length >= max;
       grid.appendChild(add);
-      count.textContent = t('pics.count', { n: photos.length, max });
+      count.textContent = tx('pics.count', `${photos.length} of ${max} photos`, { n: photos.length, max });
     }
 
     input.onchange = async () => {
@@ -141,13 +141,13 @@
       const files = [...input.files];
       input.value = '';
       for (const f of files) {
-        if (photos.length >= max) { err.textContent = t('pics.max', { max }); break; }
-        if (!f.type.startsWith('image/')) { err.textContent = t('pics.notImage'); continue; }
-        if (f.size > 20 * 1024 * 1024) { err.textContent = t('pics.tooBig'); continue; }
+        if (photos.length >= max) { err.textContent = tx('pics.max', `You can add at most ${max} photos.`, { max }); break; }
+        if (!f.type.startsWith('image/')) { err.textContent = tx('pics.notImage', 'Only image files can be added.'); continue; }
+        if (f.size > 20 * 1024 * 1024) { err.textContent = tx('pics.tooBig', 'That photo is too large (20 MB at most).'); continue; }
         try {
           photos.push({ id: `p-${Math.random().toString(36).slice(2, 9)}`, ...(await resizeImage(f)), at: new Date().toISOString() });
         } catch {
-          err.textContent = t('pics.unreadable');
+          err.textContent = tx('pics.unreadable', 'That photo could not be read. Try another one.');
         }
         render();
       }

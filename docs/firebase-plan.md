@@ -151,7 +151,8 @@ users/{uid}/bikes/{bikeId}  name, type, year, size, frame, gears, brakes, tyres,
 companies/{companyId}       name, type, plan, pricePerBike, contact, address, memberUids[],
                             nextVisit, status: lead | active | ended
 companies/{id}/bikes/{bikeId}
-                            number "#001", type, location, year, size, gears, brakes
+                            number "#001", type, location, year, size, gears, brakes,
+                            photos[{ id, path, thumbPath, w, h, uploadedAt }] (max 4, by the owner)
 companies/{id}/reports/{yyyy-mm}
                             month, visitDate, counts { ready, attention, repair },
                             entries { bikeId: { status, action, note } }
@@ -213,8 +214,9 @@ Each phase ends with something usable, so it can stop at any point.
 3. **Private accounts.** Sign-up and log-in, linking past guest bookings by verified email; history,
    bikes (with **bike photos**, added and edited, decision 15) and recommendations; the owner's "log
    a visit" form with photo upload.
-4. **Business accounts.** Invite-only company accounts, fleets, monthly reports, the scheduled report
-   job, and a printable or PDF report.
+4. **Business accounts.** Invite-only company accounts, fleets (with **fleet bike photos** taken by
+   the owner, decision 15), monthly reports, the scheduled report job, and a printable or PDF
+   report.
 5. **Go live on the .dk domain.** The Neighbor is hosted separately from the current server, on its
    own .dk domain: Cloudflare DNS with a TXT ownership record and an A record to the host (Firebase
    Hosting, per decision 6). book.icepuente.com gets no redirect. Then retire the Express app and
@@ -229,9 +231,8 @@ Each phase ends with something usable, so it can stop at any point.
 
    **Deployed through Jarvis.** Alec's Proxmox server is managed by **Jarvis**, an agent reached
    as an MCP server: a session asks Jarvis to create or update the container, and Jarvis carries
-   it out on Proxmox. Jarvis is not reachable from the Windows machine yet (no MCP server and no
-   `jarvis` SSH host configured there, as of 2026-10-13), so connecting to it is a setup step
-   before phase 7.
+   it out on Proxmox. The Windows machine has been connected to Jarvis since 2026-10-13 (SSH via
+   Tailscale, Claude Code MCP server).
 
    **Prove it early.** The emulators speak plain HTTP, while book.icepuente.com is HTTPS through
    Cloudflare, and browsers block HTTPS pages from calling HTTP addresses. The likely setup is one
@@ -346,8 +347,24 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
 15. **Bike photos (2026-10-17).** Customers can attach **up to 3 photos when booking** (optional:
     the bike, or the problem), and keep **up to 4 photos on each saved bike**, added when the bike
     is created or later by editing it; the first is the cover photo. The owner sees a booking's
-    photos on the booking, and a bike's photos in "Log a visit" to recognise it on site. Backend
-    design, to build in phase 1 (booking photos) and phase 3 (bike photos):
+    photos on the booking, and a bike's photos in "Log a visit" to recognise it on site. Decided
+    2026-10-17 as well:
+    - **Booking photos also go to the saved bike.** When a signed-in customer books one of their
+      saved bikes, the booking records which bike it is and its photos are copied to that bike, up
+      to the bike's 4. Photos that do not fit stay on the booking only, and the confirmation says
+      how many were added. Guests and generic bike types have no saved bike, so nothing is copied.
+      The copies are separate files, so deleting the booking or the bike photo leaves the other.
+    - **Booking photos are kept indefinitely.** No automatic deletion: they go only when the owner
+      removes them, the customer deletes their account, or the customer asks (GDPR right to
+      erasure). The privacy text must say photos are kept as part of the bike's service history
+      until then.
+    - **Fleet bike photos.** The owner adds up to 4 photos to each of a business's fleet bikes during
+      a fleet check (Fleet reports, a Photos button per bike). The business sees them on its fleet
+      list and in a report's bike details. Path `companies/{companyId}/bikes/{bikeId}/{photoId}.jpg`;
+      only the owner writes, members of that company read.
+
+    Backend design, to build in phase 1 (booking photos), phase 3 (saved bikes) and phase 4 (fleet
+    bikes):
     - **Shrunk in the browser before upload.** The page redraws each photo on a canvas at most
       1600 px on its long side (the mock uses 800 px, because it keeps photos in the browser) and
       saves it as JPEG at about 80% quality, roughly 300 KB, plus a 320 px thumbnail for lists.
@@ -368,18 +385,16 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
       `createBooking` refuses more than 3.
     - **Clean-up.** A scheduled Function deletes uploads not attached to a booking within 24 hours.
       Removing a photo, deleting a bike or deleting an account deletes the files too (GDPR).
+      Otherwise photos are kept indefinitely (see above).
     - **Demo.** The Storage emulator covers this on the home server; it is the part already
       flagged as least certain in the phase 1 proof of concept.
 
 ### Still open
 
-- **A. Booking photos and saved bikes.** When a signed-in customer books with one of their saved
-  bikes, should the booking photos also be added to that bike? The mock keeps them on the booking
-  only.
-- **B. How long to keep booking photos** after the visit: for example 12 months, or as long as the
-  booking is kept.
-- **C. Business fleets.** Photos for fleet bikes too (added by the owner during fleet checks), or
-  private customers only for now?
+Nothing at the moment.
+
+- *Done 2026-10-17:* booking photos go to the saved bike, photos are kept indefinitely, fleet bike
+  photos (all in decision 15).
 - *Done 2026-10-13:* the travel gap (15 minutes), the Diagnostics time and tube, the monthly plans,
   the combo discount, Care Plus scheduling (decision 14), a repair added to the Care check-up (no
   combo), and connecting the Windows PC to Jarvis.
@@ -398,8 +413,8 @@ travel gap, "Remember me" and "Create an account" on the booking form, and the f
 travel shown before confirming. It also has the owner's six services with their prices and times,
 the two Care subscriptions with their terms, the 5% combo and Care Plus discounts, the 2-day lead
 time with Care Plus's next-day urgent visit (the demo customer Anna has Care Plus), bike photos on
-bookings and saved bikes (decision 15; photos are kept in the browser, so its storage can fill up
-after many photos, and "Reset demo data" clears it), and refuses a
-booking whose services add up to more than 45 minutes. One stand-in remains: travel is estimated
+bookings, saved bikes and fleet bikes, with booking photos copied to the saved bike (decision 15;
+photos are kept in the browser, so its storage can fill up after many photos, and "Reset demo data"
+clears it), and refuses a booking whose services add up to more than 45 minutes. One stand-in remains: travel is estimated
 from the postcode instead of Google Maps (the price page says so). The owner dashboard is English
 only.

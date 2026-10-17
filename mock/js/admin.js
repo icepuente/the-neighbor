@@ -318,9 +318,34 @@
     const tw = h('div', 'tw');
     const t = h('table', 'rep');
     const hd = t.createTHead().insertRow();
-    ['Bike', 'Status', 'Action', "Mechanic's note"].forEach((x) => { const th = h('th', '', x); th.scope = 'col'; hd.appendChild(th); });
+    ['Bike', 'Status', 'Action', "Mechanic's note", 'Photos'].forEach((x) => { const th = h('th', '', x); th.scope = 'col'; hd.appendChild(th); });
     const tb = t.createTBody();
     const rows = [];
+    // Photos for one bike, edited under the table so the report's unsaved inputs are kept.
+    const photoPanel = h('div');
+    const photoLabel = (n) => (n ? `Photos (${n})` : 'Add photos');
+    const openPhotos = (b, btn) => {
+      photoPanel.textContent = '';
+      const current = store.get(path, b.id).photos || [];
+      const picker = UI.photoPicker({ max: NB.CONFIG.maxBikePhotos, initial: current, id: 'fleet-photos' });
+      const saved = h('p', 'ok');
+      saved.hidden = true;
+      const label = h('label', 'lb', `Photos of ${b.number} · ${b.location}`);
+      label.htmlFor = 'fleet-photos';
+      A(photoPanel, label, picker.el, button('Save photos', 'alt sm', () => {
+        try {
+          const updated = fn.setFleetBikePhotos(c.id, b.id, picker.get());
+          btn.textContent = photoLabel(updated.photos.length);
+          saved.hidden = false;
+          saved.textContent = `Saved. ${c.name} sees these photos in their fleet list and reports.`;
+        } catch (e) {
+          if (e.message !== 'storageFull') throw e;
+          saved.hidden = false;
+          saved.textContent = "The browser's demo storage is full. Remove a photo, or reset the demo data.";
+        }
+      }), saved);
+      photoPanel.scrollIntoView({ block: 'nearest' });
+    };
     store.list(path).forEach((b) => {
       const start = (existing && existing.entries[b.id]) || (previous && previous.entries[b.id] && { ...previous.entries[b.id], note: '' }) || { status: 'ready', action: '–', note: '' };
       const r = tb.insertRow();
@@ -334,10 +359,14 @@
       r.insertCell().appendChild(st);
       r.insertCell().appendChild(ac);
       r.insertCell().appendChild(no);
+      const pb = button(photoLabel((b.photos || []).length), 'lnk', () => openPhotos(b, pb));
+      pb.setAttribute('aria-label', `Photos for ${b.number}`);
+      r.insertCell().appendChild(pb);
       rows.push([b.id, st, ac, no]);
     });
     tw.appendChild(t);
     p.appendChild(tw);
+    p.appendChild(photoPanel);
 
     // Add a bike to the fleet
     const nb = h('div', 'row');

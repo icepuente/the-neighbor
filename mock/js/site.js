@@ -100,8 +100,16 @@
   // Bike choice: a signed-in customer's own bikes first, then generic types.
   const bikeSel = $('bike');
   if (user && user.role === 'private') {
-    NB.store.list(`users/${user.id}/bikes`).forEach((b) => bikeSel.appendChild(new Option(b.name, b.name)));
+    for (const b of NB.store.list(`users/${user.id}/bikes`)) {
+      const o = new Option(b.name, b.name);
+      o.dataset.bikeId = b.id;
+      bikeSel.appendChild(o);
+    }
   }
+  const chosenBikeId = () => bikeSel.selectedOptions[0]?.dataset.bikeId || null;
+  // Tell a signed-in customer that photos of one of their saved bikes are kept on that bike too.
+  const updatePhotoHint = () => { $('pics-to-bike').hidden = !chosenBikeId(); };
+  bikeSel.addEventListener('change', updatePhotoHint);
   ['city', 'road', 'mtb', 'e', 'cargo'].forEach((k) => bikeSel.appendChild(new Option(t('bike.' + k), t('bike.' + k))));
 
   const dateIn = $('date');
@@ -168,6 +176,7 @@
   // Photos of the bike or the problem, shrunk in the browser before they are saved.
   const bookingPhotos = UI.photoPicker({ max: CONFIG.maxBookingPhotos, id: 'bk-photo-input' });
   $('bk-photos').appendChild(bookingPhotos.el);
+  updatePhotoHint();
 
   let draft = null;
   const ERR = ['services', 'date', 'arrival', 'note', 'photos', 'form'];
@@ -185,6 +194,7 @@
       date: dateIn.value,
       arrival: slot ? slot.value : '',
       bike: bikeSel.value,
+      bikeId: chosenBikeId(),
       address: $('addr').value.trim(),
       name: $('name').value.trim(),
       phone: $('tel').value.trim(),
@@ -281,7 +291,8 @@
     const madeAccount = guest && $('mkacct').checked
       && !NB.auth.signUp({ name: b.name, email: b.email, phone: b.phone, address: b.address, password: $('pw').value }).error;
 
-    $('done-msg').textContent = t('done.msg', { ref: b.ref, email: b.email }) + (madeAccount ? ' ' + t('done.account') : '');
+    $('done-msg').textContent = t('done.msg', { ref: b.ref, email: b.email }) + (madeAccount ? ' ' + t('done.account') : '')
+      + (b.photosAddedToBike ? ` ${t('pics.addedToBike', { n: b.photosAddedToBike, name: b.bike })}` : '');
     $('sum').textContent = [
       ...b.services.map((s) => `${svcName(s)}: ${priceLabel(s)}`),
       b.pricing.discount ? `${t(`co.discount.${b.pricing.discountReason}`)}: −${dkk(b.pricing.discount)}` : null,

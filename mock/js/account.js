@@ -393,6 +393,7 @@
           [t('bike.gears'), b.gears], [t('bike.brakes'), b.brakes], [t('col.status'), statusLabel(e.status)],
           [t('col.action'), e.action], [t('rep.note'), e.note],
         ]));
+        if (b.photos && b.photos.length) box.appendChild(UI.gallery(b.photos, (n) => t('pics.ofFleetBike', { bike: b.number, n })));
         det.appendChild(box);
       });
       btn.setAttribute('aria-label', t('rep.details', { n: b.number }));
@@ -418,9 +419,22 @@
       const g = h('div', 'grid');
       fleetBikes.filter((b) => b.location === loc).forEach((b) => {
         const e = latest && latest.entries[b.id];
-        const card = h('div', 'paper');
+        const card = h('div', 'paper bike-card');
+        // Photos the owner took at a fleet check: the first as a cover, the rest as thumbnails.
+        const photos = b.photos || [];
+        if (photos.length) {
+          const cover = h('button', 'cover');
+          cover.type = 'button';
+          const img = h('img');
+          img.src = photos[0].data;
+          img.alt = t('pics.ofFleetBike', { bike: b.number, n: 1 });
+          cover.onclick = () => UI.openPhoto(photos[0].data, img.alt);
+          cover.appendChild(img);
+          card.appendChild(cover);
+        }
         A(card, h('h3', '', `${b.number} · ${b.type}`), e ? h('p', 'st ' + e.status, statusLabel(e.status)) : null,
           defList([[t('bike.year'), b.year], [t('rep.size'), b.size], [t('bike.gears'), b.gears], [t('bike.brakes'), b.brakes]]));
+        if (photos.length > 1) card.appendChild(UI.gallery(photos.slice(1), (n) => t('pics.ofFleetBike', { bike: b.number, n: n + 1 })));
         g.appendChild(card);
       });
       v.appendChild(g);

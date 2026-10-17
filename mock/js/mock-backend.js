@@ -6,7 +6,7 @@
   'use strict';
 
   // v2: the owner's service list of 2026-10-13. A new key replaces stale sample data in old browsers.
-  const KEY = 'neighbor-mock-v5';
+  const KEY = 'neighbor-mock-v6';
   const SESSION = 'neighbor-mock-session';
 
   const CONFIG = {
@@ -125,10 +125,12 @@
     const oct = {};
     fleet.forEach((f, i) => {
       const id = `cb${i + 1}`;
-      companyBikes[id] = { number: f[0], type: f[1], location: f[2], year: f[3], size: f[4], gears: f[5], brakes: f[6] };
+      companyBikes[id] = { number: f[0], type: f[1], location: f[2], year: f[3], size: f[4], gears: f[5], brakes: f[6], photos: [] };
       sep[id] = { status: f[7][0], action: f[7][1], note: f[7][2] };
       oct[id] = { status: f[8][0], action: f[8][1], note: f[8][2] };
     });
+    // The owner photographed bike #003 at the last fleet check.
+    companyBikes.cb3.photos = [samplePhoto('p-cb3', '#e6ecef', '#1f5254')];
 
     return {
       users: {
@@ -415,6 +417,7 @@
         phone: input.phone,
         note: input.note || '',
         photos: cleanPhotos(input.photos, CONFIG.maxBookingPhotos),
+        bikeId: null,
         pricing: { oneOff: q.oneOff, discount: q.discount, discountReason: q.discountReason, monthly: q.monthly, travel: q.travel, distanceKm: q.distanceKm, special: q.special, total: q.total },
         consent,
         createdAt: new Date().toISOString(),
@@ -429,6 +432,19 @@
           customerUid: booking.customerUid, email: booking.email, service: s.id, price: s.price, status: 'pending',
           startDate: booking.date, commitmentEnds: addMonths(booking.date, CONFIG.subscriptionMinMonths),
         });
+      }
+      // A signed-in customer who books one of their saved bikes: link the booking to it, and add the
+      // booking's photos to the bike, up to its limit. Photos that do not fit stay on the booking.
+      const ownBike = booking.customerUid && input.bikeId ? store.get(`users/${booking.customerUid}/bikes`, input.bikeId) : null;
+      if (ownBike) {
+        store.update('bookings', booking.id, { bikeId: ownBike.id });
+        booking.bikeId = ownBike.id;
+        if (booking.photos.length) {
+          const room = CONFIG.maxBikePhotos - (ownBike.photos || []).length;
+          const copies = booking.photos.slice(0, Math.max(0, room)).map((p) => ({ ...p, id: uid('p'), fromBooking: booking.id }));
+          if (copies.length) store.update(`users/${booking.customerUid}/bikes`, ownBike.id, { photos: [...(ownBike.photos || []), ...copies] });
+          booking.photosAddedToBike = copies.length;
+        }
       }
       const lines = q.services.map((s) => `- ${s.name}`).join('\n');
       sendMail(booking.email, `Booking received ${booking.ref}`,
@@ -465,6 +481,11 @@
     },
 
     // ---- Owner (admin) actions ----
+    // Photos of a business's fleet bike, taken by the owner during a fleet check.
+    setFleetBikePhotos(companyId, bikeId, photos) {
+      return store.update(`companies/${companyId}/bikes`, bikeId, { photos: cleanPhotos(photos, CONFIG.maxBikePhotos) });
+    },
+
     setBookingStatus(id, status) {
       const b = store.update('bookings', id, { status });
       const words = { confirmed: 'is confirmed', completed: 'is complete', cancelled: 'has been cancelled' };
