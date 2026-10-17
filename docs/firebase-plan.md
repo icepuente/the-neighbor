@@ -428,8 +428,12 @@ deny everything from browsers until phase 1 opens what each page needs.
   from `mock/`; `public/` stays the live Spoke & Go site until it is switched off.
 - **Tools:** the Firebase CLI is a dev dependency (`npx firebase ...`); the Google Cloud CLI
   (`gcloud`) covers what the Firebase CLI cannot, such as enabling APIs and creating the bucket.
-- **Emulators:** `npx firebase emulators:start --only auth,firestore,storage,hosting`. Site on
-  127.0.0.1:5000, emulator UI on 127.0.0.1:4000, Firestore on **8085** (8080 is taken on Alec's PC).
+- **Shared code:** `shared/booking-rules.js` holds the booking rules used by both the site and the
+  Functions. `npm run sync-shared` copies it into `web/js/shared/` and `functions/shared/`
+  (git-ignored copies: edit `shared/` only); `npm run dev` and Hosting's predeploy run it first.
+  `npm test` runs `test/*.test.js`. (The old Express server is now `npm run dev:express`.)
+- **Emulators:** `npm run dev` (copies the shared code, then starts the Auth, Firestore, Storage
+  and Hosting emulators). Site on 127.0.0.1:5000, emulator UI on 127.0.0.1:4000, Firestore on **8085** (8080 is taken on Alec's PC).
   Stop them with Ctrl+C; killing only the parent process leaves the Java emulators running.
 - **Publish rules and sign-in settings:** `npx firebase deploy --only firestore:rules,storage,auth`.
   Hosting is not deployed yet.
@@ -439,8 +443,9 @@ deny everything from browsers until phase 1 opens what each page needs.
 1. *Done 2026-10-17:* copy the mock into `web/` and connect Firebase (`js/firebase-config.js`,
    `js/firebase.js`: SDK 13.0.0 from the gstatic CDN, emulators on localhost with a
    test-environment bar). The page still runs on the mock backend.
-2. One shared rules file (services, prices, discounts, opening hours, the 45-minute limit, lead
-   time) used by both the page and the Functions, tested with the existing logic tests.
+2. *Done 2026-10-17:* `shared/booking-rules.js` (services, prices, discounts, opening hours, the
+   45-minute limit, lead time and urgent visit, form checks), pure functions with dates in
+   Copenhagen time, tested in `test/booking-rules.test.js`.
 3. Cloud Functions on the emulator: start times, price, `createBooking`, `createConsultation`;
    emails to a test outbox.
 4. Connect the booking page to the Functions, replacing the mock backend.

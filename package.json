@@ -7,8 +7,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
-    "test": "node --test test/"
+    "dev:express": "node --watch server.js",
+    "sync-shared": "node scripts/sync-shared.js",
+    "dev": "npm run sync-shared && firebase emulators:start --only auth,firestore,storage,hosting",
+    "test": "node --test \"test/*.test.js\""
   },
   "engines": {
     "node": ">=20"

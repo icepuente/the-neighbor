@@ -43,8 +43,10 @@ Running at **[book.icepuente.com](https://book.icepuente.com)** as "Spoke & Go".
 
 ```bash
 npm install
-npm run dev
+npm run dev:express
 ```
+
+(`npm run dev` now starts The Neighbor on the Firebase emulators; see `docs/firebase-plan.md`.)
 
 Open http://localhost:3000 for the site and http://localhost:3000/admin for the dashboard. The admin password is `admin` in development.
 

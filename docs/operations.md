@@ -26,7 +26,7 @@ ssh deploy@192.168.0.223 'cd /opt/bike-booking && docker compose restart app'
 
 ```bash
 npm install
-npm run dev
+npm run dev:express
 ```
 
 Without `SMTP_HOST`, emails are printed to the console. The admin password defaults to `admin` in development (see `.env.example`).

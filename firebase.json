@@ -16,6 +16,7 @@
   },
   "hosting": {
     "public": "web",
+    "predeploy": ["npm run sync-shared"],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
   },
   "emulators": {
