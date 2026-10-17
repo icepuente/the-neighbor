@@ -1,0 +1,35 @@
+# The Firebase emulators for the public demo: Auth, Firestore, Functions and Storage, project
+# demo-the-neighbor (emulator-only, so nothing can reach the real Firebase project).
+# Build context: the bundle made by scripts/deploy-demo.sh (repo layout, shared code already synced).
+# Debian 13 (trixie): firebase-tools 15 needs Java 21 or newer, which Debian 12 does not have.
+FROM node:24-trixie-slim
+
+# Java runs the Firestore emulator and the Storage rules runtime.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openjdk-21-jre-headless ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+# The same Firebase CLI version as the repo (package.json devDependencies).
+ARG FIREBASE_TOOLS_VERSION=15.34.0
+RUN npm install -g firebase-tools@${FIREBASE_TOOLS_VERSION} --no-fund --no-audit
+
+WORKDIR /app
+COPY functions/package.json functions/package-lock.json functions/
+RUN cd functions && npm ci --omit=dev --no-fund --no-audit
+COPY functions/index.js functions/photos.js functions/
+COPY functions/shared/ functions/shared/
+COPY firestore.rules firestore.indexes.json storage.rules ./
+COPY deploy/demo/firebase.json firebase.json
+COPY deploy/demo/healthcheck.js healthcheck.js
+# Parameter values for the Functions (no real email is sent in the demo).
+RUN printf 'OWNER_EMAIL=owner@demo.invalid\n' > functions/.env.local
+
+ENV CI=true \
+    FIREBASE_CLI_DISABLE_UPDATE_CHECK=true \
+    JAVA_TOOL_OPTIONS=-Xmx512m
+# Fetch the emulator programs now, so a restart does not download them.
+RUN firebase setup:emulators:firestore && firebase setup:emulators:storage
+
+# Run for a day, then exit: Docker restarts the container with empty emulators, so the demo is
+# wiped daily and anything visitors left behind goes with it.
+CMD ["timeout", "24h", "firebase", "emulators:start", "--project", "demo-the-neighbor", "--only", "auth,firestore,functions,storage"]

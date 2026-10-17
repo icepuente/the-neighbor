@@ -245,6 +245,30 @@ Each phase ends with something usable, so it can stop at any point.
    support for that (Storage especially) must be confirmed with a small proof of concept during
    phase 1, not discovered at the end.
 
+   **Live since 2026-10-17** (Alec: take over book.icepuente.com completely; Spoke & Go was not
+   needed and is removed, with a full vzdump of CT 114 taken first). How it works:
+   - **Where:** Proxmox LXC 114 (192.168.0.223, 2 cores, 4 GB RAM since the switch), Docker compose
+     project `the-neighbor-demo` in `/opt/the-neighbor-demo`: `emulators` (Node 24 on Debian 13,
+     Java 21, firebase-tools 15.34.0; Auth, Firestore, Functions, Storage), `nginx` (serves `web/`,
+     forwards only the emulator paths the site uses) and `cloudflared` (the existing tunnel
+     `bike-booking`, now pointing at nginx). Files: [`deploy/demo/`](../deploy/demo/).
+   - **Project `demo-the-neighbor`:** demo- projects are emulator-only, so the demo can never reach
+     the real project. `web/js/firebase-config.js` picks the environment from the address: local
+     (port 5000), production (the Firebase Hosting addresses, later the .dk domain) or demo
+     (anywhere else).
+   - **HTTPS, proven:** Auth `connectAuthEmulator(auth, origin)`, Firestore
+     `initializeFirestore(app, { host, ssl })`, Functions `getFunctions(app, origin + '/fn')` (nginx
+     maps `/fn/<name>`), Storage by setting `storage.host` and `_protocol` (undocumented: re-check
+     on SDK upgrades). `npm run test:demo` books with a photo against the live address.
+   - **Safety:** the emulators trust forged tokens, so the demo holds fake data only, sends no
+     email, and is wiped daily (the emulators container exits after 24 hours and restarts empty).
+     nginx refuses the emulators' "Bearer owner" bypass, hides `/emulator/` and the Firestore API,
+     allows POST only on `/fn/`, limits uploads to 3 MB and rate-limits per visitor; `noindex`.
+   - **Deploy:** `npm run deploy:demo` (packs `web/`, the Functions, rules and `deploy/demo/`, sends
+     them over SSH as `deploy`, rebuilds, waits until healthy). Jarvis runs root-level tasks.
+   - Sample data (Anna Jensen, Hotel ABC) is not loaded yet: the public page does not show it. It
+     comes with the dashboard (phase 2).
+
 ## 7. Costs and accounts
 
 - **Who owns what (decided 2026-10-17).** The Neighbor is Alec's friend's business. The Firebase
@@ -497,7 +521,8 @@ deny everything from browsers until phase 1 opens what each page needs.
    information and form in the confirmation email.
 
 Waiting for Alec's go-ahead (cost or live services): deploying Functions, a Google Maps key (the
-postcode estimate stays until then), an email service, the HTTPS proof of concept.
+postcode estimate stays until then), an email service. *The HTTPS proof of concept is done: the
+demo runs at book.icepuente.com (phase 7, 2026-10-17).*
 
 ## The mock site
 

@@ -1,0 +1,14 @@
+---
+# Cloudflare Tunnel for the demo: the existing tunnel `bike-booking`
+# (created for Spoke & Go), now pointing book.icepuente.com at the demo's
+# nginx. Copied to cloudflared/config.yml on the server; the credentials
+# file stays on the server only.
+tunnel: 7535fdd6-afd8-4e55-9048-0ffd003888e7
+# yamllint disable-line rule:line-length
+credentials-file: /etc/cloudflared/.cloudflared/7535fdd6-afd8-4e55-9048-0ffd003888e7.json
+no-autoupdate: true
+
+ingress:
+  - hostname: book.icepuente.com
+    service: http://nginx:80
+  - service: http_status:404
