@@ -1,14 +1,232 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="da">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex">
-  <title>The Neighbor</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Neighbor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- Placeholder. Phase 1 builds the real site here, starting from the design in mock/. -->
-  <h1>The Neighbor</h1>
-  <p>Cykelmekaniker på farten i København. Siden er under opbygning.</p>
+<div class="demo" role="note"><span data-i18n="demo.site"></span> <a href="#" id="reset-demo" data-i18n="demo.reset"></a></div>
+
+<div id="consent" class="dialog" role="dialog" aria-modal="true" aria-labelledby="ct" hidden>
+  <div class="box">
+    <h2 id="ct" data-i18n="consent.title"></h2>
+    <p data-i18n="consent.text"></p>
+    <label class="cb"><input type="checkbox" id="c1"><span data-i18n="consent.data"></span></label>
+    <label class="cb"><input type="checkbox" id="c2"><span data-i18n="consent.terms"></span></label>
+    <button class="pill" id="cok" type="button" disabled data-i18n="consent.ok"></button>
+  </div>
+</div>
+
+<div id="rules" class="dialog" role="dialog" aria-modal="true" aria-labelledby="rt" hidden>
+  <div class="box">
+    <h2 id="rt" data-i18n="rules.title"></h2>
+    <ul id="rl"></ul>
+    <button class="pill" id="rclose" type="button" data-i18n="rules.ok"></button>
+  </div>
+</div>
+
+<header><div class="wrap">
+  <a class="logo" href="#top">The<br>Neighbor</a>
+  <nav>
+    <a href="#business" data-i18n="nav.business"></a><a href="#private" data-i18n="nav.private"></a><a href="#faq" data-i18n="nav.faq"></a>
+    <a href="account.html" id="acct-link" data-i18n="nav.login"></a>
+    <span class="lang" role="group" aria-label="Sprog / Language"><button type="button" id="lang-da">DA</button><button type="button" id="lang-en">EN</button></span>
+    <a class="pill" href="#book" data-i18n="nav.book"></a>
+  </nav>
+</div></header>
+
+<main id="top">
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <h1 data-i18n="hero.title"></h1>
+        <p class="lead" data-i18n="hero.lead"></p>
+      </div>
+      <div class="choose">
+        <a href="#business"><div><b data-i18n="hero.fleet"></b><span data-i18n="hero.fleetSub"></span></div><span class="go" aria-hidden="true">→</span></a>
+        <a href="#private"><div><b data-i18n="hero.own"></b><span data-i18n="hero.ownSub"></span></div><span class="go" aria-hidden="true">→</span></a>
+      </div>
+    </section>
+  </div>
+
+  <section class="band" aria-label="The Neighbor"><div class="wrap">
+    <ul class="points">
+      <li><b data-i18n="pt.come"></b><span data-i18n="pt.comeSub"></span></li>
+      <li><b data-i18n="pt.prices"></b><span data-i18n="pt.pricesSub"></span></li>
+      <li><b data-i18n="pt.reports"></b><span data-i18n="pt.reportsSub"></span></li>
+      <li><b data-i18n="pt.one"></b><span data-i18n="pt.oneSub"></span></li>
+    </ul>
+  </div></section>
+
+  <!-- Businesses -->
+  <section class="sec" id="business"><div class="wrap">
+    <h2 class="t" data-i18n="biz.title"></h2>
+    <p class="sub" data-i18n="biz.sub"></p>
+    <div class="plans" id="plan-cards"></div>
+    <div class="after">
+      <span data-i18n="biz.extra"></span>
+      <details>
+        <summary data-i18n="biz.notIncluded"></summary>
+        <ul class="chips"><li data-i18n="ex.tubes"></li><li data-i18n="ex.tires"></li><li data-i18n="ex.chains"></li><li data-i18n="ex.cassettes"></li><li data-i18n="ex.pads"></li><li data-i18n="ex.wheels"></li><li data-i18n="ex.hydraulic"></li><li data-i18n="ex.suspension"></li><li data-i18n="ex.drivetrain"></li><li data-i18n="ex.emergency"></li></ul>
+      </details>
+    </div>
+    <p class="who"><span data-i18n="biz.who"></span><a href="#consult" data-ctype="Municipality / public organization" data-i18n="biz.whoLink"></a>.</p>
+  </div></section>
+
+  <section class="band" id="consult"><div class="wrap split">
+    <div>
+      <h2 class="t" data-i18n="how.title"></h2>
+      <ol class="flow"><li data-i18n="how.b1"></li><li data-i18n="how.b2"></li><li data-i18n="how.b3"></li><li data-i18n="how.b4"></li></ol>
+      <div class="paper mini tw" style="margin-top:24px">
+        <h3 data-i18n="sample.title"></h3>
+        <table class="rep"><thead><tr><th data-i18n="col.bike"></th><th data-i18n="col.status"></th><th data-i18n="col.action"></th></tr></thead><tbody>
+          <tr><td>#001</td><td class="st" data-i18n="st.ready"></td><td>–</td></tr>
+          <tr><td>#002</td><td class="st attention" data-i18n="st.attention"></td><td data-i18n="sample.brake"></td></tr>
+          <tr><td>#003</td><td class="st repair" data-i18n="st.repair"></td><td data-i18n="sample.tube"></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div>
+      <form class="box" id="cf" novalidate>
+        <h2 data-i18n="cf.title"></h2>
+        <p data-i18n="cf.sub"></p>
+        <div class="row"><div><label for="cname" data-i18n="f.name"></label><input type="text" id="cname" autocomplete="name"></div><div><label for="ccomp" data-i18n="f.company"></label><input type="text" id="ccomp" autocomplete="organization"></div></div>
+        <div class="row"><div><label for="cemail" data-i18n="f.email"></label><input type="email" id="cemail" autocomplete="email"></div><div><label for="ctel" data-i18n="f.phone"></label><input type="tel" id="ctel" autocomplete="tel"></div></div>
+        <div class="row"><div><label for="ctype" data-i18n="f.type"></label><select id="ctype"></select></div><div><label for="cnum" data-i18n="f.bikes"></label><select id="cnum"></select></div></div>
+        <div class="row"><div><label for="cdate" data-i18n="f.prefDate"></label><input type="date" id="cdate"></div><div><label for="ctime" data-i18n="f.time"></label><select id="ctime"></select></div></div>
+        <label for="cmsg"><span data-i18n="f.message"></span> <small data-i18n="f.optional"></small></label><textarea id="cmsg" rows="2"></textarea>
+        <p class="err" id="e-c" role="alert"></p>
+        <button class="pill" type="submit" data-i18n="cf.send"></button>
+      </form>
+      <div class="box" id="cdone" hidden>
+        <h2 data-i18n="cf.done"></h2>
+        <p class="ok" id="cok-msg"></p>
+        <div class="sum" id="csum"></div>
+        <button class="alt" id="cagain" type="button" data-i18n="cf.again"></button>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- Private customers -->
+  <section class="sec" id="private"><div class="wrap">
+    <h2 class="t" data-i18n="priv.title"></h2>
+    <p class="sub" data-i18n="priv.sub"></p>
+    <div class="prices" id="svc-cards"></div>
+    <div class="after" style="margin:0 0 20px">
+      <details>
+        <summary data-i18n="check.title"></summary>
+        <ul class="chips"><li data-i18n="check.1"></li><li data-i18n="check.2"></li><li data-i18n="check.3"></li><li data-i18n="check.4"></li><li data-i18n="check.5"></li><li data-i18n="check.6"></li><li data-i18n="check.7"></li><li data-i18n="check.8"></li><li data-i18n="check.9"></li><li data-i18n="check.10"></li></ul>
+      </details>
+    </div>
+    <h3 data-i18n="care.title" style="margin-bottom:4px"></h3>
+    <p class="who" data-i18n="care.sub" style="margin:0 0 14px"></p>
+    <div class="plans" id="care-cards" style="grid-template-columns:repeat(auto-fit,minmax(270px,1fr))"></div>
+    <p class="who" data-i18n="care.terms" style="margin:12px 0 20px"></p>
+    <ol class="flow"><li data-i18n="how.p1"></li><li data-i18n="how.p2"></li><li data-i18n="how.p3"></li></ol>
+
+    <div id="book" class="narrow" style="margin-top:28px">
+      <form class="box" id="f" novalidate>
+        <h2 data-i18n="bk.title"></h2>
+        <p class="det" id="signed-in" hidden></p>
+
+        <h3 class="step first"><span data-i18n="bk.what"></span> <small data-i18n="bk.whatSub"></small></h3>
+        <span class="lb" id="sl" hidden data-i18n="bk.selectServices"></span>
+        <button type="button" class="acc" id="sacc" aria-expanded="false" aria-controls="svcs" aria-labelledby="sl saccv"><span id="saccv" data-i18n="bk.selectServices"></span></button>
+        <div id="svcs" hidden></div>
+        <p class="err" id="e-services"></p>
+        <label for="bike" data-i18n="bk.bike"></label><select id="bike"></select>
+
+        <h3 class="step"><span data-i18n="bk.when"></span> <small data-i18n="bk.hours"></small></h3>
+        <div class="row">
+          <div><label for="date" data-i18n="bk.date"></label><input type="date" id="date"></div>
+          <div><span class="lb" id="tl" data-i18n="bk.arrival"></span><button type="button" class="acc" id="acc" aria-expanded="false" aria-controls="slots" aria-labelledby="tl accv"><span id="accv" data-i18n="bk.selectTime"></span></button></div>
+        </div>
+        <div class="slots" id="slots" hidden></div>
+        <p class="err" id="e-date"></p>
+        <p class="err" id="e-arrival"></p>
+
+        <h3 class="step" data-i18n="bk.where"></h3>
+        <label for="addr" data-i18n="bk.address"></label>
+        <input type="text" id="addr" autocomplete="street-address" data-i18n-ph="bk.addressPh">
+        <div class="row">
+          <div><label for="name" data-i18n="f.name"></label><input type="text" id="name" autocomplete="name"></div>
+          <div><label for="tel" data-i18n="f.phone"></label><input type="tel" id="tel" autocomplete="tel"></div>
+        </div>
+        <label for="email" data-i18n="f.email"></label>
+        <input type="email" id="email" autocomplete="email">
+        <label for="note"><span data-i18n="bk.note"></span> <small data-i18n="bk.noteSub"></small></label>
+        <textarea id="note" rows="2" data-i18n-ph="bk.notePh"></textarea>
+        <p class="err" id="e-note"></p>
+        <span class="lb"><label for="bk-photo-input" data-i18n="pics.bookingLabel"></label> <small data-i18n="f.optional"></small></span>
+        <p class="det" data-i18n="pics.bookingHint"></p>
+        <p class="det" id="pics-to-bike" data-i18n="pics.toBike" hidden></p>
+        <div id="bk-photos"></div>
+        <p class="err" id="e-photos"></p>
+
+        <div class="opts" id="opts">
+          <label class="opt"><input type="checkbox" id="remember">
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg><b data-i18n="bk.remember"></b><small data-i18n="bk.rememberSub"></small></span></label>
+          <label class="opt"><input type="checkbox" id="mkacct">
+            <span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M1.5 21c0-4 3.4-7 7.5-7s7.5 3 7.5 7z"/><path d="M19 7v6M16 10h6" fill="none" stroke-width="2" stroke-linecap="round"/></svg><b data-i18n="bk.create"></b><small data-i18n="bk.createSub"></small></span></label>
+        </div>
+        <div id="pw-row" hidden>
+          <label for="pw"><span data-i18n="bk.password"></span> <small data-i18n="bk.passwordSub"></small></label>
+          <input type="password" id="pw" autocomplete="new-password">
+        </div>
+        <p class="err" id="e-form" role="alert"></p>
+        <button class="pill" type="submit" data-i18n="bk.seePrice"></button>
+      </form>
+
+      <div class="box" id="co" hidden>
+        <h2 data-i18n="co.title"></h2>
+        <p class="det" id="codet"></p>
+        <table class="tbl" id="tbl"></table>
+        <div id="notes"></div>
+        <p class="err" id="e-confirm" role="alert"></p>
+        <button class="pill" id="confirm" type="button" data-i18n="co.confirm"></button>
+        <button class="alt" id="back" type="button" data-i18n="co.change"></button>
+      </div>
+
+      <div class="box" id="done" hidden>
+        <h2 data-i18n="done.title"></h2>
+        <p class="ok" id="done-msg"></p>
+        <div class="sum" id="sum"></div>
+        <p id="done-acct"></p>
+        <button class="alt" id="again" type="button" data-i18n="done.again"></button>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- About and FAQ -->
+  <section class="band" id="faq"><div class="wrap split">
+    <div>
+      <h2 class="t" data-i18n="about.title"></h2>
+      <p class="quote" data-i18n="about.quote"></p>
+      <p class="sub" data-i18n="about.sub"></p>
+    </div>
+    <div class="faq">
+      <details class="card"><summary data-i18n="faq.parts"></summary><p data-i18n="faq.partsA"></p></details>
+      <details class="card"><summary data-i18n="faq.come"></summary><p data-i18n="faq.comeA"></p></details>
+      <details class="card"><summary data-i18n="faq.hours"></summary><p data-i18n="faq.hoursA"></p></details>
+      <details class="card"><summary data-i18n="faq.min"></summary><p data-i18n="faq.minA"></p></details>
+      <details class="card"><summary data-i18n="faq.prev"></summary><p data-i18n="faq.prevA"></p></details>
+      <details class="card"><summary data-i18n="faq.hist"></summary><p data-i18n="faq.histA"></p></details>
+    </div>
+  </div></section>
+</main>
+
+<footer class="compact"><div class="wrap">
+  <span>The Neighbor · Rørsangervej 45, København · <a href="mailto:hello@example.com">hello@example.com</a></span>
+  <span><a href="account.html" data-i18n="nav.account"></a><a href="#top" data-i18n="footer.terms"></a><a href="#top" data-i18n="footer.privacy"></a></span>
+</div></footer>
+
+<script src="js/mock-backend.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/site.js"></script>
+<script type="module" src="js/firebase.js"></script>
 </body>
 </html>
