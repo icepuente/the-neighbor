@@ -173,6 +173,23 @@ input[type=text], input[type=tel], input[type=email], input[type=password], inpu
 .slot span { display: block; text-align: center; padding: 9px 2px; border: 1.5px solid var(--field); border-radius: 99px; background: #fff; font-size: 16px; }
 .slot input:checked + span { background: var(--base); color: #fff; border-color: var(--base); }
 .slot input:disabled + span { opacity: .4; text-decoration: line-through; }
+.slots > p { grid-column: 1 / -1; margin: 4px 0; }
+
+/* Date calendar (js/datepicker.js) */
+.cal { margin-top: 10px; background: #fff; border: 1.5px solid var(--field); border-radius: 18px; padding: 14px; max-width: 420px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-title { margin: 0; font: 600 18px 'Source Serif 4', serif; text-transform: capitalize; }
+.cal-nav { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--field); background: #fff; color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
+.cal-nav:disabled { opacity: .3; cursor: default; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-wd { text-align: center; font-size: 13px; text-transform: capitalize; opacity: .65; padding: 4px 0; }
+.cal-day { aspect-ratio: 1; min-height: 38px; border: 0; border-radius: 50%; background: transparent; color: var(--ink); font: 400 16px 'Source Serif 4', serif; cursor: pointer; }
+.cal-day:not(:disabled):hover { background: var(--paper); }
+.cal-day.today { box-shadow: inset 0 0 0 1.5px var(--field); }
+.cal-day[aria-pressed=true] { background: var(--base); color: #fff; }
+.cal-day:disabled { opacity: .3; cursor: default; }
+.cal-day.closed { text-decoration: line-through; }
+.cal-day:focus-visible, .cal-nav:focus-visible { outline: 3px solid #1a6fe0; outline-offset: 1px; }
 .cb { display: flex; gap: 12px; align-items: flex-start; font-weight: 400; margin: 14px 0; cursor: pointer; }
 .cb input { width: 22px; height: 22px; margin: 3px 0 0; flex: none; accent-color: #102f33; }
 .tbl { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 17px; }

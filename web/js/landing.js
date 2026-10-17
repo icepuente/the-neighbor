@@ -4,6 +4,7 @@
 // times, the earliest date, the price and the bookings themselves come from the Cloud Functions,
 // so only the server's answer counts. Firebase loads in the background (js/firebase.js).
 import * as R from './shared/booking-rules.js';
+import { datePicker } from './datepicker.js';
 
 const { $, h, A, t } = UI;
 const { CONFIG, SERVICES, PLANS } = R;
@@ -88,15 +89,36 @@ const toggle = (btn, panel) => {
 };
 toggle($('sacc'), $('svcs'));
 toggle($('acc'), $('slots'));
+// The date calendar and the time list share the space under the row: one open at a time.
+$('acc').addEventListener('click', () => picker.close());
 
 // Bike type. (A signed-in customer's saved bikes come with accounts, phase 3.)
 const bikeSel = $('bike');
 for (const k of ['city', 'road', 'mtb', 'e', 'cargo']) bikeSel.appendChild(new Option(t(`bike.${k}`), t(`bike.${k}`)));
 
-// The earliest date: 2 days ahead, until the server says otherwise.
+// The earliest date: 2 days ahead, until the server says otherwise. closedDates are the days the
+// owner blocked (the server sends the coming months); Sundays are closed by the rules.
 const dateIn = $('date');
-let options = { today: R.today(), earliest: R.addDays(R.today(), CONFIG.minLeadDays) };
+let options = { today: R.today(), earliest: R.addDays(R.today(), CONFIG.minLeadDays), closedDates: [] };
 dateIn.min = options.earliest;
+
+// The date calendar (js/datepicker.js), in the page language.
+$('daccv').dataset.placeholder = t('bk.selectDate');
+const picker = datePicker({
+  button: $('dacc'),
+  panel: $('cal'),
+  input: dateIn,
+  valueEl: $('daccv'),
+  opts: {
+    locale: I18N.lang === 'da' ? 'da-DK' : 'en-GB',
+    labels: { prev: t('cal.prev'), next: t('cal.next'), unavailable: t('cal.unavailable') },
+    today: () => options.today,
+    earliest: () => options.earliest,
+    unavailable: (date) => R.closedReason(date, options.closedDates || []),
+    maxMonths: 6,
+    onOpen: () => { $('slots').hidden = true; $('acc').setAttribute('aria-expanded', 'false'); },
+  },
+});
 
 // Why a date cannot be booked, from the server's answer, or null.
 function dateError(date, o) {
@@ -116,7 +138,9 @@ async function renderSlots() {
   $('accv').textContent = t('bk.selectTime');
   $('e-date').textContent = '';
   const q = R.quote(chosen());
-  if (!dateIn.value || q.tooLong) return;
+  // Say why there is nothing to choose yet, instead of an empty list.
+  if (!dateIn.value) { box.appendChild(h('p', 'det', t('bk.dateFirst'))); return; }
+  if (q.tooLong) { box.appendChild(h('p', 'det', t('err.tooLong'))); return; }
   box.appendChild(h('p', 'det', t('bk.loadingTimes')));
   let o;
   try {
@@ -126,8 +150,9 @@ async function renderSlots() {
     return;
   }
   if (mine !== slotRequest) return;
-  options = o;
+  options = { ...options, ...o };
   dateIn.min = o.earliest;
+  picker.refresh();
   box.textContent = '';
   const err = dateError(dateIn.value, o);
   $('e-date').textContent = err ? t(`err.${err}`) : '';
@@ -145,9 +170,13 @@ async function renderSlots() {
   }
 }
 // Ask the server for today's date and the earliest bookable day as soon as Firebase is up.
-callFn('bookingOptions', {}).then((o) => { options = { ...options, ...o }; dateIn.min = o.earliest; }).catch(() => {});
+callFn('bookingOptions', {}).then((o) => { options = { ...options, ...o }; dateIn.min = o.earliest; picker.refresh(); }).catch(() => {});
+renderSlots();
 
+// A date was picked: show the day's free times straight away.
 dateIn.addEventListener('change', () => {
+  picker.sync();
+  picker.close();
   renderSlots();
   $('acc').setAttribute('aria-expanded', 'true');
   $('slots').hidden = false;

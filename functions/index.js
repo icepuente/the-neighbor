@@ -5,7 +5,7 @@
 // ({ to, message: { subject, text } }); nothing sends them yet (plan, phase 1).
 import { randomBytes } from 'node:crypto';
 import { initializeApp } from 'firebase-admin/app';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldPath, FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onCall } from 'firebase-functions/v2/https';
@@ -69,6 +69,13 @@ async function closedDates(dates) {
   return snaps.filter((s) => s.exists).map((s) => s.id);
 }
 
+// The days the owner blocked from `from` to `to` (the document ids are the dates).
+async function closedBetween(from, to) {
+  const snap = await db.collection('closedDates')
+    .where(FieldPath.documentId(), '>=', from).where(FieldPath.documentId(), '<=', to).get();
+  return snap.docs.map((d) => d.id);
+}
+
 async function customerContext(uid) {
   if (!uid) return { carePlus: false, urgentDates: [] };
   const [subs, bookings] = await Promise.all([
@@ -92,11 +99,19 @@ const queueMail = (batchOrTx, to, subject, text) =>
 export const bookingOptions = onCall(async (request) => {
   const uid = customerUid(request);
   const todayDate = R.today();
-  const tomorrow = R.addDays(todayDate, R.CONFIG.urgentLeadDays);
   const date = R.isDate(request.data?.date) ? request.data.date : null;
   const q = R.quote(ids(request.data?.serviceIds));
-  const [ctx, closed] = await Promise.all([customerContext(uid), closedDates(date ? [tomorrow, date] : [tomorrow])]);
-  const out = { today: todayDate, earliest: R.earliestDate({ todayDate, ...ctx, closedDates: closed }), carePlus: ctx.carePlus };
+  // The calendar shows about 7 months; a date asked for beyond that is checked on its own.
+  const [ctx, upcoming, asked] = await Promise.all([
+    customerContext(uid),
+    closedBetween(todayDate, R.addDays(todayDate, 220)),
+    date ? closedDates([date]) : [],
+  ]);
+  const closed = [...new Set([...upcoming, ...asked])];
+  const out = {
+    today: todayDate, earliest: R.earliestDate({ todayDate, ...ctx, closedDates: closed }), carePlus: ctx.carePlus,
+    closedDates: upcoming,
+  };
   if (date) {
     const closedReason = R.closedReason(date, closed);
     out.date = date;

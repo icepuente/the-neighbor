@@ -1,7 +1,7 @@
 // The real site (web/) on the Firebase emulators: the booking flow through the Cloud Functions,
 // checked in the browser and in the emulator database. Run with `npm run test:browser`, which uses
 // running emulators (`npm run dev`) or starts its own. It empties the Firestore EMULATOR first.
-import { check, evaluate, open, requests, run, setFile, shot, sleep, waitFor } from './cdp.js';
+import { check, evaluate, open, requests, run, setFile, shot, shotEl, sleep, waitFor } from './cdp.js';
 import * as R from '../../shared/booking-rules.js';
 import { exists, listFiles } from '../helpers/emulator-admin.js';
 
@@ -45,6 +45,32 @@ run(9334, async () => {
   check(await evaluate("!document.getElementById('acct-link') && !document.getElementById('mkacct') && !document.querySelector('.demo')"),
     'no log-in link, no "create an account", no demo banner');
   check(await evaluate("!document.getElementById('bk-photo-block').hidden && !!document.getElementById('bk-photo-input')"), 'the photo field is shown');
+
+  // The date calendar and the time list, used by clicking as a visitor would.
+  await evaluate("document.getElementById('acc').click()");
+  check(await evaluate("document.getElementById('slots').textContent === I18N.t('bk.dateFirst')"),
+    'opening the time list before choosing a date says to choose a date first');
+  await waitFor('!!document.getElementById("date").min', 'the earliest date');
+  await evaluate("document.getElementById('dacc').click()");
+  check(await evaluate("!document.getElementById('cal').hidden && document.getElementById('slots').hidden"), 'the date button opens the calendar (and closes the time list)');
+  check(await evaluate("document.querySelectorAll('#cal .cal-wd')[0].textContent") === 'man', `the calendar starts on Monday, in Danish ("${await evaluate("document.querySelectorAll('#cal .cal-wd')[0].textContent")}")`);
+  const dayBtn = (d) => `document.querySelector('#cal [data-date="${d}"]')`;
+  if (await evaluate(`!!${dayBtn(R.addDays(TODAY, 1))}`)) check(await evaluate(`${dayBtn(R.addDays(TODAY, 1))}.disabled`), 'tomorrow cannot be picked (2 days ahead)');
+  // A Sunday after the earliest date (an earlier one is disabled as too early instead).
+  let laterSunday = R.addDays(TODAY, 3);
+  while (R.weekday(laterSunday) !== 0) laterSunday = R.addDays(laterSunday, 1);
+  if (await evaluate(`!!${dayBtn(laterSunday)}`)) check(await evaluate(`${dayBtn(laterSunday)}.disabled && ${dayBtn(laterSunday)}.classList.contains('closed')`), 'Sundays cannot be picked');
+  if (!await evaluate(`!!${dayBtn(D1)}`)) await evaluate("document.querySelector('#cal .cal-nav.next').click()");
+  await shotEl('calendar.png', '#f');
+  await evaluate("document.querySelector('input[name=svc][value=\"chain\"]').click()");
+  await evaluate(`${dayBtn(D1)}.click()`);
+  check(await evaluate("document.getElementById('cal').hidden && !document.getElementById('slots').hidden") && await evaluate("document.getElementById('date').value") === D1,
+    'picking a day closes the calendar and opens the time list');
+  check(await evaluate("document.getElementById('daccv').textContent !== I18N.t('bk.selectDate')"), `the date button shows the day: "${await evaluate("document.getElementById('daccv').textContent")}"`);
+  await waitFor(slotsReady, 'start times after picking a day');
+  await evaluate(`${slot('09:00')}.click()`);
+  check(await evaluate("document.getElementById('accv').textContent") === '09:00' && await evaluate("document.getElementById('slots').hidden"), 'clicking a time chooses it');
+  await tick('chain');
 
   // Free times come from the server.
   await tick('chain');

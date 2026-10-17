@@ -129,9 +129,12 @@
 
         <h3 class="step"><span data-i18n="bk.when"></span> <small data-i18n="bk.hours"></small></h3>
         <div class="row">
-          <div><label for="date" data-i18n="bk.date"></label><input type="date" id="date"></div>
+          <div><span class="lb" id="dl" data-i18n="bk.date"></span><button type="button" class="acc" id="dacc" aria-expanded="false" aria-controls="cal" aria-labelledby="dl daccv"><span id="daccv" data-i18n="bk.selectDate"></span></button>
+            <!-- The chosen date (YYYY-MM-DD), set by the calendar (js/datepicker.js). -->
+            <input type="hidden" id="date"></div>
           <div><span class="lb" id="tl" data-i18n="bk.arrival"></span><button type="button" class="acc" id="acc" aria-expanded="false" aria-controls="slots" aria-labelledby="tl accv"><span id="accv" data-i18n="bk.selectTime"></span></button></div>
         </div>
+        <div class="cal" id="cal" hidden></div>
         <div class="slots" id="slots" hidden></div>
         <p class="err" id="e-date"></p>
         <p class="err" id="e-arrival"></p>
