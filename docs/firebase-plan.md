@@ -468,7 +468,17 @@ deny everything from browsers until phase 1 opens what each page needs.
    the account page, the dashboard, "Create an account", the log-in link and the saved-bike choice
    return with phases 2 and 3 (they stay clickable in `mock/`), and the photo field is hidden until
    step 5.
-5. Booking photos: anonymous sign-in, Storage upload, rules (small JPEGs only), tests.
+5. *Done 2026-10-17:* booking photos. The page shrinks each photo to 1600 px (JPEG 80%) plus a
+   320 px thumbnail and, on confirm, signs a guest in anonymously and uploads to
+   `uploads/{uid}/{photoId}.jpg` (+ `_thumb`). `storage.rules` allow only new files in your own
+   folder, JPEG, at most 2 MB, a 20-character id; nothing is readable. `createBooking` checks the
+   files, copies them to `bookings/{bookingId}/` before writing the booking, removes the copies if
+   the booking is refused, and deletes the uploads when it succeeds. `cleanUploads` (every 6
+   hours) deletes uploads older than 24 hours. Tested in `test/emulator/photos.test.js` and the
+   browser test. Browser tests now live in `test/browser/` (`npm run test:browser`).
+   **Not published to the real project yet:** the upload rules go live together with the Functions
+   (and the clean-up), so the real bucket stays fully locked until then. Consider Firebase App Check
+   before launch, to make anonymous uploads harder to abuse.
 6. Consent popup, content check, full browser test run against the emulators.
 
 Waiting for Alec's go-ahead (cost or live services): deploying Functions, a Google Maps key (the

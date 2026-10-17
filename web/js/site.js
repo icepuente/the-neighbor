@@ -188,9 +188,33 @@ if (remembered) {
   $('remember').checked = true;
 }
 
+// Photos of the bike or the problem: shrunk in the browser (which also drops GPS data), with a
+// small thumbnail, and uploaded only when the customer confirms.
+const bookingPhotos = UI.photoPicker({ max: CONFIG.maxBookingPhotos, id: 'bk-photo-input', full: 1600, quality: 0.8, thumb: 320 });
+$('bk-photos').appendChild(bookingPhotos.el);
+
+// Uploads the photos to this visitor's own folder; createBooking then moves them to the booking.
+// Storage only accepts uploads from a signed-in user, so a guest is signed in anonymously first
+// (invisible to them). The rules allow creating a file but not replacing it, so photos already sent
+// (before a refused booking) are not sent again.
+const uploaded = new Set();
+async function uploadPhotos(photos) {
+  const { NBF } = await firebaseReady;
+  const { auth: fbAuth, storage: fbStorage } = NBF.sdk;
+  const user = NBF.auth.currentUser || (await fbAuth.signInAnonymously(NBF.auth)).user;
+  const put = async (path, dataUrl) => {
+    const blob = await (await fetch(dataUrl)).blob();
+    await fbStorage.uploadBytes(fbStorage.ref(NBF.storage, path), blob, { contentType: 'image/jpeg' });
+  };
+  const sendOne = (p) => Promise.all([put(`uploads/${user.uid}/${p.id}.jpg`, p.data), put(`uploads/${user.uid}/${p.id}_thumb.jpg`, p.thumb)])
+    .then(() => uploaded.add(p.id));
+  await Promise.all(photos.filter((p) => !uploaded.has(p.id)).map(sendOne));
+  return photos.map(({ id, w, h }) => ({ id, w, h }));
+}
+
 let draft = null;
 let quote = null;
-const ERR = ['services', 'date', 'arrival', 'note', 'form'];
+const ERR = ['services', 'date', 'arrival', 'note', 'photos', 'form'];
 const showErrors = (errors) => { for (const k of ERR) $(`e-${k}`).textContent = errors[k] ? t(`err.${errors[k]}`) : ''; };
 function show(id) {
   for (const x of ['f', 'co', 'done']) $(x).hidden = x !== id;
@@ -210,6 +234,7 @@ $('f').addEventListener('submit', async (e) => {
     phone: $('tel').value.trim(),
     email: $('email').value.trim(),
     note: $('note').value.trim(),
+    photos: bookingPhotos.get(),
   };
   // The same checks the server runs, for a quick answer. Whether the time is still free, and the
   // exact price, come from the server.
@@ -256,6 +281,10 @@ function renderCheckout() {
   notes.textContent = '';
   const note = (x) => notes.appendChild(h('div', 'note', x));
   note(t('co.visit', { min: q.workMin }));
+  if (draft.photos.length) {
+    notes.appendChild(h('p', 'det', t('pics.attached', { n: draft.photos.length })));
+    notes.appendChild(UI.gallery(draft.photos));
+  }
   if (R.isUrgentDate(draft.date, options.today)) note(t('co.urgent'));
   if (!q.discount && q.oneOffCount === 1 && q.services.some((s) => s.id === 'bike-check')) note(t('co.noteCombo'));
   if (q.monthly) note(t('care.terms'));
@@ -274,7 +303,14 @@ $('confirm').onclick = async () => {
   btn.disabled = true;
   let res;
   try {
-    res = await callFn('createBooking', { input: draft, consent });
+    let photos;
+    try {
+      photos = await uploadPhotos(draft.photos);
+    } catch {
+      $('e-confirm').textContent = t('err.photos');
+      return;
+    }
+    res = await callFn('createBooking', { input: { ...draft, photos }, consent });
   } catch {
     $('e-confirm').textContent = t('err.server');
     return;
@@ -305,6 +341,7 @@ $('confirm').onclick = async () => {
     `${t('sum.bike')}: ${draft.bike}`,
     `${t('sum.address')}: ${draft.address}`,
     `${t('sum.notes')}: ${draft.note || '–'}`,
+    b.photos ? t('pics.attached', { n: b.photos }) : null,
   ].filter((x) => x != null).join('\n');
   show('done');
 };

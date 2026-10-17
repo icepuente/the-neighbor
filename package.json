@@ -26,5 +26,8 @@
   },
   "devDependencies": {
     "firebase-tools": "^15.34.0"
+  },
+  "knip": {
+    "ignoreDependencies": ["firebase-admin"]
   }
 }

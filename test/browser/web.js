@@ -1,15 +1,20 @@
 // The real site (web/) on the Firebase emulators: the booking flow through the Cloud Functions,
 // checked in the browser and in the emulator database. Run with `npm run test:browser`, which uses
 // running emulators (`npm run dev`) or starts its own. It empties the Firestore EMULATOR first.
-import { check, evaluate, open, run, shot, sleep, waitFor } from './cdp.js';
+import { check, evaluate, open, run, setFile, shot, sleep, waitFor } from './cdp.js';
 import * as R from '../../shared/booking-rules.js';
+import { exists, listFiles } from '../helpers/emulator-admin.js';
 
 const SITE = 'http://127.0.0.1:5000/';
 const PROJECT = 'my-first-firebase-projec-b242f';
 const FS = `http://127.0.0.1:8085/v1/projects/${PROJECT}/databases/(default)/documents`;
 const OWNER = { Authorization: 'Bearer owner' };
+// Documents of a collection in the Firestore emulator, as { id, ...fields } (arrays stay raw).
 const list = async (col) => ((await (await fetch(`${FS}/${col}?pageSize=300`, { headers: OWNER })).json()).documents || [])
-  .map((d) => Object.fromEntries(Object.entries(d.fields || {}).map(([k, v]) => [k, v.stringValue ?? v.integerValue ?? v.booleanValue ?? v.mapValue ?? null])));
+  .map((d) => ({
+    id: d.name.split('/').pop(),
+    ...Object.fromEntries(Object.entries(d.fields || {}).map(([k, v]) => [k, v.stringValue ?? v.integerValue ?? v.booleanValue ?? v.mapValue ?? v.arrayValue?.values ?? null])),
+  }));
 const setDate = (d) => evaluate(`(()=>{const e=document.getElementById('date');e.value='${d}';e.dispatchEvent(new Event('change'))})()`);
 const tick = (id) => evaluate(`document.querySelector('input[name=svc][value="${id}"]').click()`);
 const fill = (id, v) => evaluate(`document.getElementById('${id}').value=${JSON.stringify(v)}`);
@@ -40,7 +45,7 @@ run(9334, async () => {
   check((await evaluate("document.querySelector('#svc-cards a .price').textContent")) === '199 kr.', 'prices in Danish: 199 kr.');
   check(await evaluate("!document.getElementById('acct-link') && !document.getElementById('mkacct') && !document.querySelector('.demo')"),
     'no log-in link, no "create an account", no demo banner');
-  check(await evaluate("document.getElementById('bk-photo-block').hidden"), 'the photo field is hidden until uploads arrive (step 5)');
+  check(await evaluate("!document.getElementById('bk-photo-block').hidden && !!document.getElementById('bk-photo-input')"), 'the photo field is shown');
 
   // Free times come from the server.
   await tick('chain');
@@ -65,8 +70,13 @@ run(9334, async () => {
   await fill('tel', '40556677');
   await fill('email', 'mikkel@example.com');
   await evaluate("document.getElementById('remember').click()");
+  await setFile('#bk-photo-input');
+  await waitFor("document.querySelectorAll('#bk-photos figure img').length === 1", 'the photo thumbnail');
+  const shrunk = await evaluate("(()=>{const i=document.querySelector('#bk-photos figure img');return {jpeg:i.src.startsWith('data:image/jpeg'),w:i.naturalWidth}})()");
+  check(shrunk.jpeg && shrunk.w <= 1600, `a photo is added, as a JPEG of at most 1600 px (${shrunk.w} px)`);
   await evaluate("document.querySelector('#f button[type=submit]').click()");
   await waitFor("!document.getElementById('co').hidden", 'the price page');
+  check(await evaluate("document.querySelectorAll('#notes .pic img').length") === 1, 'the price page shows the photo');
   const total = await evaluate("document.querySelector('#tbl .tot').textContent");
   check(total.includes('162 kr.'), `the price page shows the server's total, travel included: "${total}"`);
   check((await evaluate("document.getElementById('notes').textContent")).includes(await evaluate("I18N.t('co.estimateTravel')")), 'and says the distance is estimated for now');
@@ -76,6 +86,11 @@ run(9334, async () => {
   check(done.includes('TN-1041'), `the confirmation shows the booking number: "${done.slice(0, 60)}…"`);
   const bookings = await list('bookings');
   check(bookings.length === 1 && bookings[0].arrival === '10:00' && bookings[0].date === D1 && bookings[0].status === 'pending', 'the booking is in the database');
+  check((await evaluate("document.getElementById('sum').textContent")).includes(await evaluate("I18N.t('pics.attached', { n: 1 })")), 'the confirmation mentions the photo');
+  const photo = bookings[0].photos?.[0]?.mapValue?.fields;
+  check(bookings[0].photos?.length === 1 && photo.path.stringValue === `bookings/${bookings[0].id}/${photo.id.stringValue}.jpg`, 'the booking records its photo');
+  check(await exists(photo.path.stringValue) && await exists(photo.thumbPath.stringValue), 'the photo and its thumbnail are in the booking\'s folder in Storage');
+  check((await listFiles('uploads/')).every((f) => !f.includes(photo.id.stringValue)), 'and the upload itself is gone');
   check((await list('mail')).length === 2, 'two emails are queued (customer and owner)');
 
   // Next visit: remembered details, and 10:00 is now taken.

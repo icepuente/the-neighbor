@@ -7,7 +7,8 @@ const run = (cmd) => spawnSync(cmd, { stdio: 'inherit', shell: true }).status;
 
 let status = run('npm run sync-shared');
 if (status === 0) {
-  status = run('npx firebase emulators:exec --only auth,firestore,functions,storage "node --test test/emulator/*.test.js"');
+  // One file at a time: they share the emulators' data (booking numbers, counts).
+  status = run('npx firebase emulators:exec --only auth,firestore,functions,storage "node --test --test-concurrency=1 test/emulator/*.test.js"');
 }
 run('node scripts/stop-emulators.js');
 process.exit(status ?? 1);

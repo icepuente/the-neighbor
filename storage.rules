@@ -1,9 +1,25 @@
 rules_version = '2';
 
-// Locked: no uploads or downloads from a browser yet. Phase 1 adds the photo rules from decision 15
-// in docs/firebase-plan.md (own uploads/{uid}/ only, JPEG, at most 2 MB; read by owner and customer).
+// Cloud Storage rules (plan, decision 15). Browsers may only drop booking photos into their own
+// upload folder; createBooking (a Cloud Function, which these rules do not restrict) checks them and
+// moves them into the booking's folder, and a scheduled clean-up deletes uploads never booked.
+// Reading photos comes with the owner's dashboard (phase 2) and accounts (phase 3).
 service firebase.storage {
   match /b/{bucket}/o {
+    // uploads/{uid}/{photoId}.jpg and {photoId}_thumb.jpg: the signed-in visitor (often an
+    // anonymous guest session) creates files in their own folder only. Small JPEGs, and a photo id
+    // of 20 lower-case letters or digits, as the site makes them.
+    match /uploads/{uid}/{file} {
+      // `resource == null`: only new files; an existing upload is never replaced.
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && resource == null
+        && file.matches('[a-z0-9]{20}(_thumb)?[.]jpg')
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.size <= 2 * 1024 * 1024;
+    }
+
+    // Everything else stays closed to browsers.
     match /{allPaths=**} {
       allow read, write: if false;
     }

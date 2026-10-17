@@ -1,20 +1,19 @@
 // Stops Firebase emulator processes that outlived their parent. On Windows, stopping
 // `firebase emulators:start` or `emulators:exec` can leave the Java emulators (Firestore, the
-// Storage rules runtime) holding their ports, so the next run fails. Only processes whose command
-// line runs Firebase's emulator programs are stopped; nothing else is touched.
+// Storage rules runtime) holding their ports, so the next run fails. Only node and java processes
+// that run Firebase's emulator programs are stopped; nothing else is touched (a shell whose command
+// line merely mentions them, for example, is left alone).
 import { execFileSync } from 'node:child_process';
 
-const PATTERNS = ['firebase\\emulators\\', 'firebase/emulators/', 'firebase-tools', 'emulators:'];
+const isEmulatorJar = (name, cmd) => name === 'java.exe' && cmd.includes('.cache') && /firebase[\\/]emulators[\\/]/.test(cmd);
+const isEmulatorCli = (name, cmd) => name === 'node.exe' && cmd.includes('firebase-tools') && /emulators:(start|exec)/.test(cmd);
 
 function windowsPids() {
-  const ps = 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine } | ForEach-Object { "$($_.ProcessId)`t$($_.CommandLine)" }';
+  const ps = 'Get-CimInstance Win32_Process -Filter "Name=\'node.exe\' OR Name=\'java.exe\'" | Where-Object { $_.CommandLine } | ForEach-Object { "$($_.ProcessId)`t$($_.Name)`t$($_.CommandLine)" }';
   const out = execFileSync('powershell', ['-NoProfile', '-Command', ps], { encoding: 'utf8' });
-  return out.split(/\r?\n/).map((line) => line.split('\t')).filter(([pid, cmd]) => {
-    if (!cmd || Number(pid) === process.pid) return false;
-    const isEmulatorJar = cmd.includes('.cache') && (cmd.includes(PATTERNS[0]) || cmd.includes(PATTERNS[1]));
-    const isFirebaseEmulatorCli = cmd.includes(PATTERNS[2]) && cmd.includes(PATTERNS[3]);
-    return isEmulatorJar || isFirebaseEmulatorCli;
-  }).map(([pid]) => pid);
+  return out.split(/\r?\n/).map((line) => line.split('\t'))
+    .filter(([pid, name, cmd]) => cmd && Number(pid) !== process.pid && (isEmulatorJar(name, cmd) || isEmulatorCli(name, cmd)))
+    .map(([pid]) => pid);
 }
 
 if (process.platform === 'win32') {

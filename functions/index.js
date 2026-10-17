@@ -6,10 +6,13 @@
 import { randomBytes } from 'node:crypto';
 import { initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { logger } from 'firebase-functions';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onCall } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineString } from 'firebase-functions/params';
 import * as R from './shared/booking-rules.js';
+import * as P from './photos.js';
 
 // Same region as the data. A low instance cap limits the bill if someone hammers the endpoints.
 setGlobalOptions({ region: 'europe-west1', maxInstances: 5 });
@@ -35,8 +38,13 @@ function bookingInput(raw = {}) {
     email: str(raw.email, 200).toLowerCase(),
     phone: str(raw.phone, 40),
     note: str(raw.note, 2000),
-    // Photos arrive in phase 1 step 5 (uploaded to Storage); none are accepted before then.
-    photos: [],
+    // Photos the visitor uploaded to uploads/{uid}/: { id, w, h }. One more than allowed is kept,
+    // so checkBooking can say "too many" instead of silently dropping one.
+    photos: (Array.isArray(raw.photos) ? raw.photos : []).slice(0, R.CONFIG.maxBookingPhotos + 1).map((p) => ({
+      id: str(p?.id, 40),
+      w: Math.min(Math.max(Math.round(Number(p?.w)) || 0, 0), 4000),
+      h: Math.min(Math.max(Math.round(Number(p?.h)) || 0, 0), 4000),
+    })),
   };
 }
 
@@ -128,8 +136,36 @@ export const createBooking = onCall(async (request) => {
   delete errors.arrival; // needs the day's bookings: checked in the transaction
   if (Object.keys(errors).length) return { errors };
 
+  // Photos: they must be in the caller's own upload folder (an anonymous guest session counts), as
+  // small JPEGs. They are copied into the booking's folder before the booking is written, so a
+  // booking never points at files that are not there.
+  const uploader = request.auth?.uid || null;
+  const b = input.photos.length ? P.bucket() : null;
+  if (input.photos.length) {
+    const wellFormed = uploader && input.photos.every((p) => P.PHOTO_ID.test(p.id));
+    if (!wellFormed || !(await P.uploadsReady(b, uploader, input.photos))) return { errors: { photos: 'photos' } };
+  }
+  const ref = db.collection('bookings').doc();
+  const photos = b ? await P.copyToBooking(b, uploader, input.photos, ref.id) : [];
+  const removeCopies = () => (b ? P.deleteFiles(b, photos.flatMap((p) => [p.path, p.thumbPath])) : null);
+
   const guestToken = randomBytes(24).toString('hex');
-  const result = await db.runTransaction(async (tx) => {
+  let result;
+  try {
+    result = await runBookingTransaction();
+  } catch (e) {
+    await removeCopies();
+    throw e;
+  }
+  if (result.errors) {
+    await removeCopies();
+  } else if (b) {
+    // The booking has its copies; the originals go now (the scheduled clean-up would catch them too).
+    await P.deleteUploads(b, uploader, input.photos).catch((e) => logger.warn('could not delete uploads', e));
+  }
+  return result;
+
+  function runBookingTransaction() { return db.runTransaction(async (tx) => {
     // All reads before any write, as Firestore transactions require.
     const day = await dayBookings(input.date, tx);
     const slotErrors = R.checkBooking(input, q, { ...base, dayBookings: day });
@@ -143,7 +179,6 @@ export const createBooking = onCall(async (request) => {
 
     const number = (counter.exists ? counter.get('last') : 1040) + 1;
     tx.set(counterRef, { last: number });
-    const ref = db.collection('bookings').doc();
     const booking = {
       ref: `TN-${number}`,
       status: 'pending',
@@ -163,7 +198,7 @@ export const createBooking = onCall(async (request) => {
       email: input.email,
       phone: input.phone,
       note: input.note,
-      photos: [],
+      photos,
       pricing: { oneOff: q.oneOff, discount: q.discount, discountReason: q.discountReason, monthly: q.monthly, travel: q.travel, total: q.total },
       consent: { data: true, terms: true, version: str(consent.version, 20), at: FieldValue.serverTimestamp() },
       createdAt: FieldValue.serverTimestamp(),
@@ -183,9 +218,14 @@ export const createBooking = onCall(async (request) => {
       `Hi ${input.name},\n\nThanks for booking with The Neighbor. We have received:\n${lines}\n\n${input.date} at ${input.arrival}\n${input.address}\n\nTotal: ${q.total} DKK\n\nWe will confirm your booking shortly.`);
     queueMail(tx, OWNER_EMAIL.value(), `${booking.urgent ? 'URGENT ' : ''}New booking ${booking.ref}`,
       `${input.name} (${input.phone}, ${input.email}) booked ${q.services.map((s) => s.name).join(', ')} on ${input.date} at ${input.arrival}.\n${input.address}\n\nNote: ${input.note || '–'}`);
-    return { booking: { id: ref.id, ref: booking.ref, date: booking.date, arrival: booking.arrival, urgent: booking.urgent, email: booking.email, pricing: booking.pricing, guestToken } };
-  });
-  return result;
+    return { booking: { id: ref.id, ref: booking.ref, date: booking.date, arrival: booking.arrival, urgent: booking.urgent, email: booking.email, pricing: booking.pricing, photos: photos.length, guestToken } };
+  }); }
+});
+
+// ---- cleanUploads: delete photos uploaded more than 24 hours ago that never became a booking ----
+export const cleanUploads = onSchedule({ schedule: 'every 6 hours', timeZone: R.TIME_ZONE }, async () => {
+  const n = await P.deleteStaleUploads(P.bucket());
+  logger.info(`cleanUploads: deleted ${n} stale upload(s)`);
 });
 
 // ---- createConsultation: a business asks for a consultation ----

@@ -101,9 +101,12 @@
     return row;
   }
 
+  // A random photo id: 20 lower-case letters and digits (the format storage.rules accepts).
+  const photoId = () => Array.from(crypto.getRandomValues(new Uint8Array(20)), (x) => 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]).join('');
+
   // A photo field: an "add" tile, thumbnails with a remove button, and a counter. `get()` returns
-  // the photos as { id, data, w, h, at }.
-  function photoPicker({ max, initial = [], id }) {
+  // the photos as { id, data, w, h, at }, plus `thumb` (a small JPEG) when `thumb` is a size in px.
+  function photoPicker({ max, initial = [], id, full = 800, quality = 0.7, thumb = 0 }) {
     let photos = [...initial];
     const wrap = h('div', 'pics');
     const grid = h('div', 'pics-grid');
@@ -145,7 +148,9 @@
         if (!f.type.startsWith('image/')) { err.textContent = tx('pics.notImage', 'Only image files can be added.'); continue; }
         if (f.size > 20 * 1024 * 1024) { err.textContent = tx('pics.tooBig', 'That photo is too large (20 MB at most).'); continue; }
         try {
-          photos.push({ id: `p-${Math.random().toString(36).slice(2, 9)}`, ...(await resizeImage(f)), at: new Date().toISOString() });
+          const photo = { id: photoId(), ...(await resizeImage(f, full, quality)), at: new Date().toISOString() };
+          if (thumb) photo.thumb = (await resizeImage(f, thumb, 0.7)).data;
+          photos.push(photo);
         } catch {
           err.textContent = tx('pics.unreadable', 'That photo could not be read. Try another one.');
         }
