@@ -435,9 +435,18 @@ deny everything from browsers until phase 1 opens what each page needs.
   Functions. `npm run sync-shared` copies it into `web/js/shared/` and `functions/shared/`
   (git-ignored copies: edit `shared/` only); `npm run dev` and Hosting's predeploy run it first.
   `npm test` runs `test/*.test.js`. (The old Express server is now `npm run dev:express`.)
-- **Emulators:** `npm run dev` (copies the shared code, then starts the Auth, Firestore, Storage
-  and Hosting emulators). Site on 127.0.0.1:5000, emulator UI on 127.0.0.1:4000, Firestore on **8085** (8080 is taken on Alec's PC).
-  Stop them with Ctrl+C; killing only the parent process leaves the Java emulators running.
+- **Functions:** `functions/` (Node 24, firebase-functions 7, firebase-admin 14), region
+  `europe-west1`, at most 5 instances each. The owner's notification address is the `OWNER_EMAIL`
+  parameter (`functions/.env`, not committed; default owner@example.com).
+- **Tests:** `npm test` (rules), `npm run test:functions` (the Functions on a fresh, empty set of
+  emulators, Storage included so nothing reaches the real bucket; cleans up afterwards).
+  `npm run stop-emulators` stops emulator processes left behind on Windows (it only matches
+  Firebase's emulator programs).
+- **Emulators:** `npm run dev` (copies the shared code, then starts the Auth, Firestore, Functions,
+  Storage and Hosting emulators). Site on 127.0.0.1:5000, Functions on 5001, emulator UI on
+  127.0.0.1:4000, Firestore on **8085** (8080 is taken on Alec's PC). Stop them with Ctrl+C, then
+  `npm run stop-emulators` if a port is still taken: killing only the parent process leaves the
+  Java emulators running.
 - **Publish rules and sign-in settings:** `npx firebase deploy --only firestore:rules,storage,auth`.
   Hosting is not deployed yet.
 
@@ -449,8 +458,11 @@ deny everything from browsers until phase 1 opens what each page needs.
 2. *Done 2026-10-17:* `shared/booking-rules.js` (services, prices, discounts, opening hours, the
    45-minute limit, lead time and urgent visit, form checks), pure functions with dates in
    Copenhagen time, tested in `test/booking-rules.test.js`.
-3. Cloud Functions on the emulator: start times, price, `createBooking`, `createConsultation`;
-   emails to a test outbox.
+3. *Done 2026-10-17:* Cloud Functions `bookingOptions` (today, earliest date, free times without
+   revealing bookings), `quoteBooking`, `createBooking` (re-checks everything, then a transaction
+   that re-reads the day so two customers cannot get the same time; TN- numbers; Care
+   subscriptions) and `createConsultation`; emails queued in `mail`. Tested in
+   `test/emulator/functions.test.js`.
 4. Connect the booking page to the Functions, replacing the mock backend.
 5. Booking photos: anonymous sign-in, Storage upload, rules (small JPEGs only), tests.
 6. Consent popup, content check, full browser test run against the emulators.
