@@ -280,3 +280,17 @@ footer.small { padding: 40px 0; font-size: 15px; opacity: .75; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .acc::after { transition: none; } }
 /* Shown only when the site runs against the Firebase emulators (js/firebase.js). */
 .env-bar { background: #f2c14e; color: #102f33; font: 600 13px/1.4 system-ui, sans-serif; text-align: center; padding: 4px 8px; }
+
+/* Privacy policy and terms (privacy.html, terms.html): one article per language; the page shows the
+   one matching <html lang>, which i18n.js sets. */
+.legal { max-width: 78ch; margin: 32px auto 48px; padding: 36px 40px; }
+.legal h1 { font-size: 40px; margin-bottom: 6px; }
+.legal h2 { font-size: 26px; margin: 30px 0 6px; }
+.legal h3 { font: 600 18px 'Source Serif 4', serif; margin: 18px 0 4px; }
+.legal p, .legal li { font-size: 17px; }
+.legal ul, .legal ol { padding-left: 22px; }
+.legal .meta { font-size: 15px; opacity: .75; margin: 0 0 18px; }
+.legal .form { border: 1.5px dashed var(--line); border-radius: 14px; padding: 4px 18px; }
+html[lang="da"] .legal[lang="en"], html[lang="en"] .legal[lang="da"] { display: none; }
+/* Text the business owner still has to fill in or confirm before launch. */
+mark.todo { background: #f2c14e; color: #102f33; padding: 0 4px; border-radius: 4px; }

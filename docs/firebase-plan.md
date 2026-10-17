@@ -479,7 +479,13 @@ deny everything from browsers until phase 1 opens what each page needs.
    **Not published to the real project yet:** the upload rules go live together with the Functions
    (and the clean-up), so the real bucket stays fully locked until then. Consider Firebase App Check
    before launch, to make anonymous uploads harder to abuse.
-6. Consent popup, content check, full browser test run against the emulators.
+6. *Drafted 2026-10-17:* `web/privacy.html` and `web/terms.html` (Danish and English, placeholders
+   highlighted), linked from the footer and the consent dialog; the footer's address, email and CVR
+   are placeholders too. What the owner must provide or decide, and the Danish rules checked, are in
+   [`docs/legal-checklist.md`](legal-checklist.md). Not a lawyer's text: to be checked before launch
+   and the Danish proofread. Open: a booking checkbox for the right of withdrawal
+   (forbrugeraftaleloven § 18(2)(2)); reworking the consent popup (booking data rests on the
+   contract, not consent); the withdrawal information and form in the confirmation email.
 
 Waiting for Alec's go-ahead (cost or live services): deploying Functions, a Google Maps key (the
 postcode estimate stays until then), an email service, the HTTPS proof of concept.

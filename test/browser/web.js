@@ -132,4 +132,26 @@ run(9334, async () => {
   check((await list('consultations')).length === 1, 'the consultation request is in the database');
   await shot('web-done.png', 1000);
 
+  // Privacy policy and terms (drafts): reached from the footer and the consent dialog, one language at a time.
+  check(await evaluate("[...document.querySelectorAll('footer a')].map(a=>a.getAttribute('href')).join(' ')") === 'terms.html privacy.html'
+    && await evaluate("[...document.querySelectorAll('#consent a')].map(a=>a.getAttribute('href')).join(' ')") === 'privacy.html terms.html',
+    'the footer and the consent dialog link to the terms and the privacy policy');
+  const visible = (id) => `getComputedStyle(document.getElementById('${id}')).display !== 'none'`;
+  await evaluate("document.querySelector('footer a[href=\"privacy.html\"]').click()");
+  await waitFor("location.pathname.endsWith('/privacy.html') && document.readyState === 'complete'", 'the privacy page');
+  await sleep(300);
+  check(await evaluate(visible('privacy-da')) && !await evaluate(visible('privacy-en')), 'the privacy policy opens in Danish only');
+  check(await evaluate('document.title') === 'Privatlivspolitik · The Neighbor', `its title is Danish: "${await evaluate('document.title')}"`);
+  check(await evaluate("document.querySelectorAll('#privacy-da mark.todo').length") > 0, 'placeholders are highlighted');
+  await shot('privacy-da.png', 1000);
+  await evaluate("document.getElementById('lang-en').click()");
+  await sleep(800);
+  check(await evaluate(visible('privacy-en')) && !await evaluate(visible('privacy-da')), 'the language switch shows the English version');
+  await open(`${SITE}terms.html`);
+  check(await evaluate(visible('terms-en')) && !await evaluate(visible('terms-da')), 'the terms open in English, as chosen');
+  check((await evaluate("document.getElementById('terms-en').textContent")).includes('Model withdrawal form'), 'the terms include the model withdrawal form');
+  await evaluate("document.getElementById('lang-da').click()");
+  await sleep(800);
+  check(await evaluate(visible('terms-da')) && (await evaluate("document.getElementById('terms-da').textContent")).includes('Standardfortrydelsesformular'), 'and in Danish, the standard form');
+
 });
