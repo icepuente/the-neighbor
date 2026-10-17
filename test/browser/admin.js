@@ -2,7 +2,7 @@
 // changes and their emails, requests, closed days and the outbox. Run by `npm run test:browser`
 // after web.js. Empties the Firestore EMULATOR and loads the demo data (scripts/seed-demo.js).
 import { spawnSync } from 'node:child_process';
-import { check, evaluate, open, run, shot, sleep, waitFor } from './cdp.js';
+import { check, evaluate, open, run, setFile, shot, sleep, waitFor } from './cdp.js';
 import * as R from '../../shared/booking-rules.js';
 
 const SITE = 'http://127.0.0.1:5000/';
@@ -106,6 +106,25 @@ run(9336, async () => {
   check(csv.startsWith('\ufeff') && lines[0].startsWith('"Ref";"Date";"Time";"Status"'), 'Download CSV gives a semicolon file with a BOM, for Danish Excel');
   check(lines.some((l) => l.includes('"TN-1042"') && l.includes('"Gate code 1234"') && l.includes('"11:00"')), 'with the bookings shown, including the private note and the new time');
 
+  // Log the visit on TN-1042: work, a part, a photo and a recommendation.
+  await evaluate(`${toolOf('TN-1042', 'visit')}.open = true`);
+  const vid = await evaluate(`${toolOf('TN-1042', 'visit')}.querySelector('textarea').id.replace('v-work-', '')`);
+  const setVal = (id, v) => evaluate(`(()=>{const e=document.getElementById('${id}-${vid}');e.value=${JSON.stringify(v)};e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+  await evaluate(`[...${toolOf('TN-1042', 'visit')}.querySelectorAll('button')].find((b)=>b.textContent.startsWith('Save and email')).click()`);
+  await waitFor(`${toolOf('TN-1042', 'visit')}.querySelector(':scope > .err')?.textContent.includes('at least one line')`, 'the missing-work message');
+  check(true, 'saving without any work done is refused');
+  await setVal('v-work', 'Punctured inner tube replaced\nChain cleaned and lubricated');
+  await setVal('v-parts', 'Inner tube 700×25c; 59');
+  await setVal('v-notes', 'Tyres are in good shape.');
+  await setVal('v-rtitle', 'Replace the chain');
+  await setVal('v-rreason', 'Stretched to 0.6%');
+  await setFile(`#visit-photos-${vid}`);
+  await waitFor(`${toolOf('TN-1042', 'visit')}.querySelectorAll('figure img').length === 1`, 'the visit photo');
+  await shot('admin-visit.png', 1300);
+  await evaluate(`[...${toolOf('TN-1042', 'visit')}.querySelectorAll('button')].find((b)=>b.textContent.startsWith('Save and email')).click()`);
+  await waitFor(`${card('TN-1042')}.querySelector('.tag').textContent === 'Completed'`, 'the logged visit', 20000);
+  check((await evaluate(`${card('TN-1042')}.textContent`)).includes('Visit logged'), 'logging the visit completes TN-1042 and says the customer has the record');
+
   // Outbox: both emails queued.
   await tab('Outbox');
   await waitFor("[...document.querySelectorAll('#view summary')].some((s)=>s.textContent.includes('TN-1043 has been cancelled'))", 'the emails', 15000);
@@ -114,6 +133,20 @@ run(9336, async () => {
   check(subjects.some((s) => s.startsWith('Your booking TN-1043 has been cancelled')), 'and the cancellation email to Sara');
   check(subjects.some((s) => s.startsWith('Your booking TN-1042 has a new time')) && subjects.some((s) => s.startsWith('About your booking TN-1042')),
     'and the new-time email and the message to Mikkel');
+  check(subjects.includes('Your bike service is done (TN-1042) → mikkel@example.com') && !subjects.some((s) => s.startsWith('Your booking TN-1042 is complete')),
+    'and the service summary for the logged visit (not a second "complete" email)');
+
+  // Customers: Anna's account, her bikes and recommendations; mark one done.
+  await tab('Customers');
+  await waitFor("!!document.querySelector('.customer[data-email=\"anna@demo.dk\"]')", 'the customers');
+  const anna = "document.querySelector('.customer[data-email=\"anna@demo.dk\"]')";
+  check((await evaluate(`${anna}.textContent`)).includes('Open recommendations2'), 'Anna is listed, with her 2 open recommendations');
+  await evaluate(`${anna}.querySelector('details').open = true`);
+  await waitFor(`${anna}.querySelector('details').textContent.includes('Trek FX 3')`, 'her bikes');
+  check((await evaluate(`${anna}.querySelector('details').textContent`)).includes('Pelago Brinkeby'), 'opening her shows her saved bikes and recommendations');
+  await evaluate(`[...${anna}.querySelectorAll('.rec')].find((r)=>r.textContent.includes('fælgbremse')).querySelector('button').click()`);
+  await waitFor(`${anna}.textContent.includes('Open recommendations1')`, 'one recommendation done');
+  check(true, 'Mark done closes a recommendation');
 
   // Requests.
   await tab('Requests');

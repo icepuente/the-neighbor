@@ -363,6 +363,72 @@ export const cancelMyBooking = onCall(async (request) => {
   });
 });
 
+// ---- logVisit (owner): record what was done at a visit ----
+// Saves a service record (work, parts, notes, photos, costs) and, optionally, a recommendation for
+// next time; completes the booking; emails the customer a summary. The customer sees both in their
+// account. Photos are uploaded by the dashboard first, to users/{uid}/visits/{recordId}/ (or
+// visits/{recordId}/ for a guest booking); recordId is the id the dashboard chose for the record.
+const list = (v) => (Array.isArray(v) ? v : []);
+export const logVisit = onCall(async (request) => {
+  requireOwner(request);
+  const d = request.data || {};
+  const recordId = str(d.recordId, 40);
+  if (!/^[A-Za-z0-9]{20}$/.test(recordId)) return { error: 'record' };
+  const ref = db.doc(`bookings/${str(d.bookingId, 64)}`);
+  const snap = await ref.get();
+  if (!snap.exists) return { error: 'missing' };
+  const b = snap.data();
+  if (b.status === 'cancelled' || b.visitLogged) return { error: 'status' };
+  const work = list(d.work).map((w) => str(w, 200)).filter(Boolean).slice(0, 30);
+  if (!work.length) return { error: 'work' };
+  const parts = list(d.parts).slice(0, 20)
+    .map((p) => ({ name: str(p?.name, 120), price: Math.min(Math.max(Math.round(Number(p?.price)) || 0, 0), 100000) }))
+    .filter((p) => p.name);
+  const folder = b.customerUid ? `users/${b.customerUid}/visits/${recordId}` : `visits/${recordId}`;
+  const photos = list(d.photos).slice(0, 6).filter((p) => P.PHOTO_ID.test(String(p?.id))).map((p) => ({
+    id: p.id, path: `${folder}/${p.id}.jpg`, thumbPath: `${folder}/${p.id}_thumb.jpg`,
+    w: Math.round(Number(p.w)) || 0, h: Math.round(Number(p.h)) || 0, uploadedAt: new Date().toISOString(),
+  }));
+  if (photos.length) {
+    const bucket = P.bucket();
+    const present = await Promise.all(photos.flatMap((p) => [p.path, p.thumbPath]).map((path) => bucket.file(path).exists().then(([x]) => x)));
+    if (!present.every(Boolean)) return { error: 'photos' };
+  }
+  const service = (b.pricing?.oneOff || 0) - (b.pricing?.discount || 0);
+  const travel = b.pricing?.travel || 0;
+  const partsTotal = parts.reduce((a, p) => a + p.price, 0);
+  const title = str(d.title, 120) || b.services.map((s) => s.name).join(', ');
+  const record = {
+    customerUid: b.customerUid || null, bookingId: ref.id, bookingRef: b.ref, bikeId: b.bikeId || null, bikeName: b.bikeType || '',
+    date: b.date, title, work, parts, notes: str(d.notes, 2000), photos,
+    cost: { service, parts: partsTotal, travel, total: service + partsTotal + travel }, createdAt: FieldValue.serverTimestamp(),
+  };
+  let rec = null;
+  if (str(d.recommendation?.title, 120)) {
+    const urgency = d.recommendation.urgency === 'soon' ? 'soon' : 'later';
+    rec = {
+      customerUid: b.customerUid || null, bookingId: ref.id, bikeId: b.bikeId || null, bikeName: b.bikeType || '',
+      title: str(d.recommendation.title, 120), urgency, reason: str(d.recommendation.reason, 500),
+      dueBy: str(d.recommendation.dueBy, 80), status: 'open', createdAt: FieldValue.serverTimestamp(),
+    };
+  }
+  const batch = db.batch();
+  batch.create(db.doc(`serviceRecords/${recordId}`), record);
+  if (rec) batch.set(db.collection('recommendations').doc(), rec);
+  batch.update(ref, { status: 'completed', statusAt: FieldValue.serverTimestamp(), visitLogged: true, recordId });
+  const lines = [
+    `Hi ${b.name},`, '', `Your bike has been serviced (${b.date}, ${b.ref}). Work done:`, ...work.map((w) => `- ${w}`),
+    ...(parts.length ? ['', 'Parts:', ...parts.map((p) => `- ${p.name}: ${p.price} DKK`)] : []),
+    ...(record.notes ? ['', `Notes: ${record.notes}`] : []),
+    ...(rec ? ['', `Our recommendation: ${rec.title}${rec.reason ? ` (${rec.reason})` : ''}`] : []),
+    '', `Total: ${record.cost.total} DKK`,
+    ...(b.customerUid ? ['', 'The full record, with photos, is in your account.'] : []), '', 'The Neighbor',
+  ];
+  queueMail(batch, b.email, `Your bike service is done (${b.ref})`, lines.join('\n'));
+  await batch.commit();
+  return { ok: true, recordId };
+});
+
 // ---- rescheduleBooking (owner): move a booking to another day and time ----
 // Without `arrival`, returns the free start times for `date` (the booking itself not counted). With
 // it, moves the booking inside a transaction that re-checks the time, and emails the customer.
@@ -426,6 +492,8 @@ export const bookingStatusChanged = onDocumentUpdated('bookings/{id}', async (ev
   const before = event.data.before.data();
   const b = event.data.after.data();
   if (before.status === b.status || !STATUS_MAIL[b.status]) return;
+  // A visit logged with logVisit sends its own, fuller email.
+  if (b.status === 'completed' && b.visitLogged && !before.visitLogged) return;
   const [what, closing] = STATUS_MAIL[b.status];
   await db.collection('mail').add({
     to: b.email,

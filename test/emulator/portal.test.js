@@ -174,3 +174,18 @@ test('saved bikes: a customer deletes their own bike, not someone else\'s', asyn
   assert.equal(del.status, 200, `the customer deletes it (${del.status} ${await del.text()})`);
   assert.equal((await read(`users/${u.uid}/bikes/old`, u.headers)).status, 404, 'and it is gone');
 });
+
+test('service records and recommendations: the customer reads their own, nobody else does', async () => {
+  const u = await signUp('history@example.com');
+  await call('syncAccount', { profile: { name: 'History' } }, u.headers);
+  const other = await signUp('history-other@example.com');
+  const put = (path, fields) => fetch(`${FS}/${path}`, { method: 'PATCH', headers: { ...ADMIN, ...json }, body: JSON.stringify({ fields }) });
+  await put('serviceRecords/histrec', { customerUid: { stringValue: u.uid }, title: { stringValue: 'Bike Check' } });
+  await put('recommendations/histrecomm', { customerUid: { stringValue: u.uid }, title: { stringValue: 'New tyre' }, status: { stringValue: 'open' } });
+  assert.equal((await read('serviceRecords/histrec', u.headers)).status, 200, 'their own record');
+  assert.equal((await read('serviceRecords/histrec', other.headers)).status, 403, "not someone else's");
+  assert.equal((await read('recommendations/histrecomm', u.headers)).status, 200, 'their own recommendation');
+  assert.equal((await read('recommendations/histrecomm', other.headers)).status, 403, "not someone else's");
+  const patchStatus = (headers) => fetch(`${FS}/recommendations/histrecomm?updateMask.fieldPaths=status`, { method: 'PATCH', headers: { ...headers, ...json }, body: JSON.stringify({ fields: { status: { stringValue: 'done' } } }) });
+  assert.equal((await patchStatus(u.headers)).status, 403, 'the customer cannot mark it done');
+});

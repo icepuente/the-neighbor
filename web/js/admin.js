@@ -11,14 +11,14 @@ const { $, h, A, button, defList, tag } = UI;
 const { auth, db, storage, sdk } = NBF;
 const { onAuthStateChanged, signInWithEmailAndPassword, signOut } = sdk.auth;
 const { collection, doc, getDocs, onSnapshot, updateDoc, setDoc, deleteDoc, serverTimestamp } = sdk.firestore;
-const { ref: storageRef, getBlob } = sdk.storage;
+const { ref: storageRef, getBlob, uploadBytes } = sdk.storage;
 
 const dkk = (n) => `${Math.round(n).toLocaleString('da-DK')} DKK`;
 const fmtDate = (s) => new Date(`${s}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const fmtTime = (ts) => (ts?.toDate ? ts.toDate().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: R.TIME_ZONE }) : '');
 
 // ---- Live data: each collection is watched once; tabs re-draw from these lists ----
-const data = { bookings: [], consultations: [], closedDates: [], mail: [] };
+const data = { bookings: [], consultations: [], closedDates: [], mail: [], users: [], recommendations: [], serviceRecords: [] };
 const unsubscribe = [];
 function watch() {
   for (const name of Object.keys(data)) {
@@ -70,6 +70,7 @@ onAuthStateChanged(auth, async (user) => {
 const tabs = [
   ['Bookings', bookingsView, () => data.bookings.filter((b) => b.status === 'pending').length],
   ['Requests', requestsView, () => data.consultations.filter((c) => c.status === 'new' && !c.archived).length],
+  ['Customers', customersView],
   ['Closed days', closedView],
   ['Outbox', outboxView],
 ];
@@ -269,8 +270,10 @@ function bookingCard(b) {
     });
     c.append(cancel);
   }
-  // Tools: private note, reschedule, message the customer.
+  if (b.visitLogged) c.append(h('p', 'ok', 'Visit logged: the customer has the service record.'));
+  // Tools: log the visit, private note, reschedule, message the customer.
   const tools = h('div', 'tools');
+  if (['pending', 'confirmed'].includes(b.status)) tools.append(visitBox(b));
   tools.append(noteBox(b));
   if (['pending', 'confirmed'].includes(b.status)) tools.append(rescheduleBox(b));
   tools.append(messageBox(b));
@@ -616,6 +619,148 @@ function outboxView(v) {
     d.dataset.key = m.id;
     A(d, h('summary', '', `${m.message?.subject || '(no subject)'} → ${m.to}`), h('p', 'meta', fmtTime(m.createdAt)), h('pre', 'mail', m.message?.text || ''));
     wrap.append(d);
+  }
+  v.append(wrap);
+}
+
+// ---- Log the visit: what was done, parts, notes, photos, and a recommendation for next time ----
+// The Function logVisit saves the service record (the customer sees it under Historik), completes the
+// booking and emails the customer. Photos are uploaded first, into the customer's visit folder.
+const visits = new Map(); // booking id -> { recordId, picker, error, busy }
+function visitState(b) {
+  if (!visits.has(b.id)) {
+    visits.set(b.id, {
+      recordId: doc(collection(db, 'serviceRecords')).id,
+      picker: UI.photoPicker({ max: 6, id: `visit-photos-${b.id}`, full: 1600, quality: 0.8, thumb: 320 }),
+    });
+  }
+  return visits.get(b.id);
+}
+function visitBox(b) {
+  const st = visitState(b);
+  const d = tool(b, 'visit', 'Log the visit');
+  const area = (key, label, rows, value, ph) => {
+    const wrap = h('div');
+    const l = h('label', '', label);
+    const ta = h('textarea');
+    ta.rows = rows;
+    ta.id = `${key}-${b.id}`;
+    ta.dataset.keep = ta.id;
+    ta.value = value || '';
+    if (ph) ta.placeholder = ph;
+    l.htmlFor = ta.id;
+    A(wrap, l, ta);
+    return wrap;
+  };
+  const line = (key, label, value, ph) => {
+    const wrap = h('div');
+    const l = h('label', '', label);
+    const i = h('input');
+    i.type = 'text';
+    i.id = `${key}-${b.id}`;
+    i.dataset.keep = i.id;
+    i.value = value || '';
+    if (ph) i.placeholder = ph;
+    l.htmlFor = i.id;
+    A(wrap, l, i);
+    return wrap;
+  };
+  const urgency = select([['later', 'Plan ahead'], ['soon', 'Do soon']], 'later');
+  urgency.id = `v-urg-${b.id}`;
+  A(d,
+    line('v-title', 'Title', b.services.map((s) => s.name).join(', ')),
+    area('v-work', 'Work done (one per line)', 4, '', 'Brakes adjusted\nChain cleaned and lubricated'),
+    area('v-parts', 'Parts (one per line: name; price in DKK)', 2, '', 'Inner tube 700×35c; 59'),
+    area('v-notes', 'Notes for the customer', 2, ''),
+    h('p', 'lb', 'Photos (optional, up to 6)'), st.picker.el,
+    h('h4', '', 'Recommendation for next time (optional)'),
+    line('v-rtitle', 'What', '', 'e.g. Replace the rear tyre'),
+    field('How soon', urgency),
+    line('v-rreason', 'Why', '', 'e.g. The tread is worn to the indicators'),
+    line('v-rdue', 'By when', '', 'e.g. Within about a month'));
+  if (st.error) d.append(h('p', 'err', st.error));
+  const save = button(`Save and email ${b.name}`, 'pill', () => submitVisit(b, d));
+  save.disabled = Boolean(st.busy);
+  d.append(save);
+  return d;
+}
+async function submitVisit(b, d) {
+  const st = visits.get(b.id);
+  const val = (key) => d.querySelector(`#${key}-${b.id}`).value.trim();
+  const work = val('v-work').split('\n').map((s) => s.trim()).filter(Boolean);
+  if (!work.length) { st.error = 'Write at least one line of work done.'; render(); return; }
+  const parts = val('v-parts').split('\n').map((s) => s.trim()).filter(Boolean).map((s) => {
+    const [name, price] = s.split(';');
+    return { name: name.trim(), price: Number(String(price || '0').replace(/[^\d.,]/g, '').replace(',', '.')) || 0 };
+  });
+  st.busy = true;
+  st.error = null;
+  render();
+  try {
+    const folder = b.customerUid ? `users/${b.customerUid}/visits/${st.recordId}` : `visits/${st.recordId}`;
+    const photos = st.picker.get();
+    const put = async (path, dataUrl) => uploadBytes(storageRef(storage, path), await (await fetch(dataUrl)).blob(), { contentType: 'image/jpeg' });
+    await Promise.all(photos.map((p) => Promise.all([put(`${folder}/${p.id}.jpg`, p.data), put(`${folder}/${p.id}_thumb.jpg`, p.thumb)])));
+    const r = await callFn('logVisit', {
+      bookingId: b.id, recordId: st.recordId, title: val('v-title'), work, parts, notes: val('v-notes'),
+      photos: photos.map(({ id, w, h: ht }) => ({ id, w, h: ht })),
+      recommendation: { title: val('v-rtitle'), urgency: d.querySelector(`#v-urg-${b.id}`).value, reason: val('v-rreason'), dueBy: val('v-rdue') },
+    });
+    if (!r.ok) throw new Error(r.error);
+    visits.delete(b.id);
+    for (const el of document.querySelectorAll(`[data-keep$="-${b.id}"]`)) delete el.dataset.dirty;
+  } catch (e) {
+    st.busy = false;
+    st.error = `Could not save the visit: ${e.message}`;
+  }
+  render();
+}
+
+// ---- Customers: accounts, with their bookings, bikes and open recommendations ----
+const customerBikes = new Map(); // uid -> bikes, loaded when a customer is opened
+async function loadBikes(uid) {
+  const snap = await getDocs(collection(db, 'users', uid, 'bikes'));
+  customerBikes.set(uid, snap.docs.map((x) => ({ id: x.id, ...x.data() })));
+  render();
+}
+function customersView(v) {
+  const customers = [...data.users].filter((u) => u.role === 'private').sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  v.append(h('p', 'sub', `${customers.length} customer account(s). Guests who booked without an account are under Bookings.`));
+  const wrap = h('div', 'list');
+  for (const u of customers) {
+    const theirs = data.bookings.filter((b) => b.customerUid === u.id);
+    const recs = data.recommendations.filter((r) => r.customerUid === u.id && r.status === 'open');
+    const c = h('div', 'paper customer');
+    c.dataset.email = u.email;
+    const email = h('a', '', u.email);
+    email.href = `mailto:${u.email}`;
+    A(c, h('h3', '', u.name), defList([
+      ['Email', email], ['Phone', u.phone || '–'], ['Address', R.fullAddress(u.address, u.apartment) || '–'],
+      ['Bookings', `${theirs.length} (${theirs.filter((b) => b.status === 'completed').length} completed)`],
+      ['Service records', String(data.serviceRecords.filter((r) => r.customerUid === u.id).length)],
+      ['Open recommendations', String(recs.length)],
+      ['Customer since', u.createdAt?.toDate ? fmtTime(u.createdAt) : '–'],
+    ]));
+    const more = h('details');
+    more.dataset.key = `cust-${u.id}`;
+    more.addEventListener('toggle', () => { if (more.open && !customerBikes.has(u.id)) loadBikes(u.id); });
+    more.append(h('summary', 'meta', 'Bikes and recommendations'));
+    const bikes = customerBikes.get(u.id);
+    if (!bikes) more.append(h('p', 'det', 'Loading…'));
+    else if (!bikes.length) more.append(h('p', 'det', 'No saved bikes.'));
+    for (const bike of bikes || []) {
+      A(more, h('p', '', `${bike.name}${bike.type ? ` · ${bike.type}` : ''}${bike.year ? ` (${bike.year})` : ''}`));
+      if (bike.photos?.length) more.append(photoRow({ name: bike.name, photos: bike.photos }));
+    }
+    for (const r of recs) {
+      const row = h('div', 'rec');
+      A(row, tag(r.urgency === 'soon' ? 'soon' : 'pending', r.urgency === 'soon' ? 'Do soon' : 'Plan ahead'), h('b', '', ` ${r.title}`),
+        h('p', 'det', [r.reason, r.dueBy].filter(Boolean).join(' · ')),
+        button('Mark done', 'alt sm', () => updateDoc(doc(db, 'recommendations', r.id), { status: 'done' })));
+      more.append(row);
+    }
+    c.append(more);
+    wrap.append(c);
   }
   v.append(wrap);
 }

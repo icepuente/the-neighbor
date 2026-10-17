@@ -138,3 +138,27 @@ test('the owner can save a private note on a booking', async () => {
   assert.equal((await patch(`bookings/${b.id}`, { ownerNote: 'Gate code 1234' }, owner)).status, 200);
   assert.equal((await patch(`bookings/${b.id}`, { ownerNote: 'x' }, await account('cust4@example.com'))).status, 403, 'not customers');
 });
+
+test('logVisit: owner only; saves the record and a recommendation, completes the booking, one email', async () => {
+  const owner = await account('owner-visit@example.com', { admin: true });
+  const b = await makeBooking('visit@example.com', '08:30');
+  const rid = 'visitrecord000000001';
+  const payload = { bookingId: b.id, recordId: rid, work: ['Brakes adjusted', ''], parts: [{ name: 'Brake pads', price: '89' }], notes: 'All good.',
+    recommendation: { title: 'Replace chain', urgency: 'soon', reason: 'Stretched 0.6%', dueBy: 'Next visit' } };
+  assert.equal((await callAs('logVisit', payload, await account('cust-visit@example.com'))).error?.status, 'PERMISSION_DENIED', 'not for customers');
+  assert.equal((await callAs('logVisit', { ...payload, work: [] }, owner)).result.error, 'work', 'work done is required');
+  assert.equal((await callAs('logVisit', { ...payload, photos: [{ id: 'ppppppppppppppppppp1', w: 1, h: 1 }] }, owner)).result.error, 'photos', 'photos must have been uploaded');
+  const r = (await callAs('logVisit', payload, owner)).result;
+  assert.deepEqual([r.ok, r.recordId], [true, rid]);
+  const rec = await (await getDoc(`serviceRecords/${rid}`, owner)).json();
+  assert.deepEqual([rec.fields.work.arrayValue.values.length, rec.fields.cost.mapValue.fields.total.integerValue], [1, String(149 + 89 + 13)], 'one line of work; services + parts + travel');
+  const booking = await (await getDoc(`bookings/${b.id}`, owner)).json();
+  assert.deepEqual([booking.fields.status.stringValue, booking.fields.visitLogged.booleanValue], ['completed', true], 'the booking is completed');
+  assert.equal((await callAs('logVisit', payload, owner)).result.error, 'status', 'a visit is logged once');
+  await sleep(1500);
+  const subjects = await mailFor('visit@example.com');
+  assert.ok(subjects.includes(`Your bike service is done (${b.ref})`), 'the customer gets the service summary');
+  assert.ok(!subjects.some((s) => s.includes('is complete')), 'and not the plain "complete" email as well');
+  const recs = await (await fetch(`${FS}:runQuery`, { method: 'POST', headers: { ...owner, 'Content-Type': 'application/json' }, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'recommendations' }] } }) })).json();
+  assert.ok(recs.some((x) => x.document?.fields.title.stringValue === 'Replace chain'), 'the recommendation is saved');
+});

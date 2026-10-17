@@ -42,6 +42,26 @@ service firebase.storage {
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
+    // Photos from a logged visit (the owner's dashboard uploads them before logVisit): the customer
+    // whose visit it was sees them; for a guest booking they are under visits/, for the owner only.
+    match /users/{uid}/visits/{recordId}/{file} {
+      allow read: if request.auth != null
+        && ((request.auth.uid == uid && request.auth.token.firebase.sign_in_provider != 'anonymous') || request.auth.token.admin == true);
+      allow create: if request.auth != null && request.auth.token.admin == true
+        && resource == null
+        && file.matches('[a-z0-9]{20}(_thumb)?[.]jpg')
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.size <= 2 * 1024 * 1024;
+    }
+    match /visits/{recordId}/{file} {
+      allow read: if request.auth != null && request.auth.token.admin == true;
+      allow create: if request.auth != null && request.auth.token.admin == true
+        && resource == null
+        && file.matches('[a-z0-9]{20}(_thumb)?[.]jpg')
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.size <= 2 * 1024 * 1024;
+    }
+
     // Everything else stays closed to browsers.
     match /{allPaths=**} {
       allow read, write: if false;

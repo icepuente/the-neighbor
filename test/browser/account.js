@@ -70,7 +70,7 @@ run(9337, async () => {
   check(true, 'the booking is cancelled and moves to "Tidligere og aflyste"');
 
   // Edit details.
-  await tab(3);
+  await tab(5);
   await waitFor("!!document.getElementById('pf-name')", 'the details form');
   check(await evaluate("document.getElementById('pf-name').value") === 'Lene Holm', 'the details form shows the profile');
   await fill('pf-addr', 'Jagtvej 10, 2200 København N');
@@ -83,16 +83,28 @@ run(9337, async () => {
   await evaluate("document.getElementById('out').click()");
   await waitFor("!document.getElementById('login').hidden", 'the log-in form again');
   await evaluate("document.querySelector('#demo-login button').click(); document.querySelector('#lf button[type=submit]').click()");
-  await waitFor("document.getElementById('hi').textContent === 'Hej, Anna' && document.querySelectorAll('.tabs button').length === 4", 'Anna\'s account', 20000);
+  await waitFor("document.getElementById('hi').textContent === 'Hej, Anna' && document.querySelectorAll('.tabs button').length === 6", 'Anna\'s account', 20000);
   check(true, 'the demo customer logs in: "Hej, Anna"');
   await tab(1);
   await waitFor("document.querySelectorAll('.my-booking').length === 2", "Anna's bookings");
   check((await evaluate("document.getElementById('view').textContent")).includes('Fuglebakkevej 12, 3. th., 2000 Frederiksberg'), 'her upcoming and earlier bookings, with floor and door');
 
+  // Historik: the visit the owner logged; Anbefalinger: the one still open (the owner marked the
+  // other done in the dashboard test).
+  await tab(2);
+  await waitFor("!!document.querySelector('details.record')", 'her service history');
+  const hist = await evaluate("document.querySelector('details.record').textContent");
+  check(hist.includes('Punkteret bagslange skiftet') && hist.includes('212 kr.'), 'Historik shows the logged visit: work done and the total');
+  await shotEl('account-history.png', '#view');
+  await tab(4);
+  await waitFor("document.querySelectorAll('.rec').length > 0", 'her recommendations');
+  check(await evaluate("[...document.querySelectorAll('.rec h3')].map((h)=>h.textContent).join(' | ')") === 'Skift bagdækket', 'Anbefalinger shows the open recommendation, not the one marked done');
+  check(await evaluate("document.querySelector('.rec a.pill').getAttribute('href')") === 'index.html#book', 'with a link to book it');
+
   // Mine cykler: her two saved bikes; add a photo to the Trek; add and delete a bike.
   const bikeCard = (name) => `document.querySelector('.bike-card[data-bike="${name}"]')`;
   const bikeBtn = (name, label) => `[...${bikeCard(name)}.querySelectorAll('button')].find((b)=>b.textContent.startsWith('${label}'))`;
-  await tab(2);
+  await tab(3);
   await waitFor("document.querySelectorAll('.bike-card').length === 2", 'her saved bikes');
   check(await evaluate("[...document.querySelectorAll('.bike-card h3')].map((h)=>h.textContent).join(' | ')") === 'Pelago Brinkeby | Trek FX 3', 'Mine cykler lists her two bikes');
   await evaluate(`${bikeBtn('Trek FX 3', 'Rediger')}.click()`);

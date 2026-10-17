@@ -91,6 +91,18 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
+    // Service records and recommendations, written by the Function logVisit: the customer they belong
+    // to reads them, and the owner. The owner marks a recommendation done (or open again).
+    match /serviceRecords/{id} {
+      allow read: if isOwner() || (resource.data.customerUid != null && isCustomer(resource.data.customerUid));
+    }
+    match /recommendations/{id} {
+      allow read: if isOwner() || (resource.data.customerUid != null && isCustomer(resource.data.customerUid));
+      allow update: if isOwner()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['open', 'done'];
+    }
+
     // Care subscriptions and the email outbox: read only.
     match /subscriptions/{id} {
       allow read: if isOwner();

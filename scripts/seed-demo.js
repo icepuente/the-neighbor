@@ -55,7 +55,7 @@ async function seed() {
       note: 'Forbremsen føles blød.', pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, total: 212 }, customerUid: anna.uid },
     // Anna's earlier visit, already done.
     { ...base, ref: 'TN-1039', status: 'completed', services: [svc('puncture', 'Puncture Fix', 199)], date: day(-12), arrival: '11:00', workMin: 20, blockMin: 35,
-      bikeType: 'By / pendler', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.', distanceKm: 5, name: 'Anna Jensen', email: ANNA.email, phone: '+45 20 12 34 56',
+      bikeType: 'Trek FX 3', bikeId: 'trek', visitLogged: true, recordId: 'seedrecordtrek000001', address: 'Fuglebakkevej 12, 2000 Frederiksberg', apartment: '3. th.', distanceKm: 5, name: 'Anna Jensen', email: ANNA.email, phone: '+45 20 12 34 56',
       pricing: { oneOff: 199, discount: 0, discountReason: null, monthly: 0, travel: 13, total: 212 }, customerUid: anna.uid },
     { ...base, ref: 'TN-1042', status: 'pending', services: [svc('puncture', 'Puncture Fix', 199), svc('chain', 'Chain Service', 149)], date: day(4), arrival: '13:00', workMin: 35, blockMin: 50,
       bikeType: 'Racer', address: 'Jagtvej 120, 2200 København N', distanceKm: 5, name: 'Mikkel Holm', email: 'mikkel@example.com', phone: '+45 40 55 66 77',
@@ -78,7 +78,24 @@ async function seed() {
     name: 'Pelago Brinkeby', type: 'Bycykel', year: '2019', size: '54 cm', gears: '7-gear nav', brakes: 'Fælgbremser', tyres: '700×38c',
     colour: 'Creme', usage: 'Weekend og indkøb', photos: [],
   });
-  for (const b of bookings) batch.set(db.collection('bookings').doc(), b);
+  const refs = bookings.map(() => db.collection('bookings').doc());
+  bookings.forEach((b, i) => batch.set(refs[i], b));
+  // The logged visit for TN-1039, and recommendations for next time.
+  const tn1039 = refs[1].id;
+  batch.set(db.doc('serviceRecords/seedrecordtrek000001'), {
+    customerUid: anna.uid, bookingId: tn1039, bookingRef: 'TN-1039', bikeId: 'trek', bikeName: 'Trek FX 3', date: day(-12), title: 'Puncture Fix',
+    work: ['Punkteret bagslange skiftet', 'Dækket tjekket for glasskår', 'Dæktryk sat til 4,5 bar'], parts: [{ name: 'Slange 700×35c', price: 0 }],
+    notes: 'Bagdækket er ved at være slidt. Se anbefalingen.', photos: [],
+    cost: { service: 199, parts: 0, travel: 13, total: 212 }, createdAt: FieldValue.serverTimestamp(),
+  });
+  batch.set(db.collection('recommendations').doc(), {
+    customerUid: anna.uid, bookingId: tn1039, bikeId: 'trek', bikeName: 'Trek FX 3', title: 'Skift bagdækket', urgency: 'soon',
+    reason: 'Mønsteret er slidt ned til slidindikatorerne.', dueBy: 'Inden for ca. en måned', status: 'open', createdAt: FieldValue.serverTimestamp(),
+  });
+  batch.set(db.collection('recommendations').doc(), {
+    customerUid: anna.uid, bookingId: tn1039, bikeId: 'pelago', bikeName: 'Pelago Brinkeby', title: 'Tjek fælgbremseklodserne', urgency: 'later',
+    reason: 'Der er ca. 40 % tilbage af klodserne.', dueBy: 'Inden for 3 måneder', status: 'open', createdAt: FieldValue.serverTimestamp(),
+  });
   batch.set(db.doc('counters/bookings'), { last: 1043 });
   batch.set(db.collection('consultations').doc(), {
     name: 'Sofie Berg', company: 'Hostel Nørrebro', email: 'sofie@example.com', phone: '+45 22 33 44 55', companyType: 'Hostel', bikes: '16–35',

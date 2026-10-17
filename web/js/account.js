@@ -111,6 +111,8 @@ let me = null;
 let profile = null;
 let bookings = [];
 let myBikes = [];
+let records = [];
+let recommendations = [];
 let current = 0;
 
 onAuthStateChanged(auth, async (user) => {
@@ -145,6 +147,15 @@ async function enter(user) {
     myBikes = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
     render();
   }));
+  // Service records and recommendations, written when the owner logs a visit.
+  unsubscribe.push(onSnapshot(query(collection(db, 'serviceRecords'), where('customerUid', '==', user.uid)), (s) => {
+    records = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.date.localeCompare(a.date));
+    render();
+  }));
+  unsubscribe.push(onSnapshot(query(collection(db, 'recommendations'), where('customerUid', '==', user.uid)), (s) => {
+    recommendations = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+    render();
+  }));
 }
 
 const note = (msg) => { $('verify-msg').textContent = msg; };
@@ -177,7 +188,9 @@ const upcoming = () => bookings.filter((b) => b.date >= R.today() && ['pending',
 const tabs = [
   [() => t('tab.overview'), overview],
   [() => t('tab.bookings'), bookingsView, () => upcoming().length],
+  [() => t('tab.history'), historyView],
   [() => t('tab.bikes'), bikesView],
+  [() => t('tab.recs'), recsView, () => openRecs().length],
   [() => t('tab.profile'), profileView],
 ];
 
@@ -220,6 +233,81 @@ function overview(v) {
     A(c, h('p', '', t('ov.none')), link);
   }
   g.append(c);
+  const last = records[0];
+  if (last) {
+    const c1 = h('div', 'paper');
+    A(c1, h('h3', '', t('ov.last')), h('p', '', `${fmtDate(last.date)} · ${last.title}${last.bikeName ? ` · ${last.bikeName}` : ''}`), h('p', '', last.notes || ''));
+    g.append(c1);
+  }
+  const rec = openRecs()[0];
+  if (rec) {
+    const c2 = h('div', 'paper');
+    A(c2, h('h3', '', t('ov.rec')), h('p', '', rec.title + (rec.bikeName ? ` (${rec.bikeName})` : '')), h('p', '', rec.reason || ''),
+      button(t('ov.allRecs'), 'alt sm', () => { current = tabs.findIndex(([, fn]) => fn === recsView); render(); }));
+    g.append(c2);
+  }
+  v.append(g);
+}
+
+// Open recommendations, the urgent ones first.
+const openRecs = () => recommendations.filter((r) => r.status === 'open')
+  .sort((a, b) => (a.urgency === 'soon' ? 0 : 1) - (b.urgency === 'soon' ? 0 : 1));
+
+// ---- History: one record per logged visit, the newest open ----
+function historyView(v) {
+  if (!records.length) { v.append(h('p', 'sub', t('hist.empty'))); return; }
+  records.forEach((r, i) => {
+    const d = h('details', 'paper record');
+    d.dataset.ref = r.bookingRef || '';
+    if (i === 0) d.open = true;
+    const body = h('div', 'body');
+    const ul = h('ul');
+    for (const w of r.work) ul.append(h('li', '', w));
+    A(body, h('h4', '', t('hist.work')), ul);
+    if (r.parts.length) {
+      const pl = h('ul');
+      for (const p of r.parts) pl.append(h('li', '', `${p.name} · ${dkk(p.price)}`));
+      A(body, h('h4', '', t('hist.parts')), pl);
+    }
+    if (r.notes) A(body, h('h4', '', t('hist.notes')), h('p', '', r.notes));
+    if (r.photos?.length) {
+      const row = h('div', 'pics-grid');
+      r.photos.forEach((p, k) => {
+        const btn = h('button', 'pic');
+        btn.type = 'button';
+        const img = h('img');
+        img.alt = t('hist.photo', { n: k + 1 });
+        photoUrl(p.thumbPath).then((u) => { img.src = u; }, () => {});
+        btn.onclick = async () => UI.openPhoto(await photoUrl(p.path), img.alt);
+        btn.append(img);
+        row.append(btn);
+      });
+      body.append(row);
+    }
+    body.append(h('h4', '', t('hist.cost')));
+    const row2 = (a, b, total) => { const e = h('div', `row2${total ? ' t' : ''}`); A(e, h('span', '', a), h('span', '', b)); body.append(e); };
+    row2(r.title, dkk(r.cost.service));
+    for (const p of r.parts) row2(p.name, dkk(p.price));
+    row2(t('hist.travel'), dkk(r.cost.travel));
+    row2(t('hist.total'), dkk(r.cost.total), true);
+    A(d, h('summary', '', `${fmtDate(r.date)} · ${r.title}${r.bikeName ? ` · ${r.bikeName}` : ''}`), body);
+    v.append(d);
+  });
+}
+
+// ---- Recommendations from the mechanic ----
+function recsView(v) {
+  const open = openRecs();
+  if (!open.length) { v.append(h('p', 'sub', t('rec.empty'))); return; }
+  const g = h('div', 'grid');
+  for (const r of open) {
+    const c = h('div', 'paper rec');
+    const link = h('a', 'pill', t('rec.book'));
+    link.href = 'index.html#book';
+    A(c, tag(r.urgency === 'soon' ? 'soon' : 'pending', t(`rec.${r.urgency}`)), h('h3', '', r.title),
+      h('p', 'meta', [r.bikeName, r.dueBy].filter(Boolean).join(' · ')), h('p', '', r.reason || ''), link);
+    g.append(c);
+  }
   v.append(g);
 }
 
