@@ -135,13 +135,12 @@ from an address on the new .dk domain needs SPF and DKIM records on Cloudflare.
 
 ## 4. Data model (Firestore)
 
+Settings, services and fleet plans are **not** in Firestore for now: they live in
+`shared/booking-rules.js` (`CONFIG`, `SERVICES`, `PLANS`; 2026-10-17), so a price change is a code
+change and a deploy. If the owner should edit prices without a developer, they can move into
+`config/site`, `services/{id}` and `plans/{id}` later, read by the Functions.
+
 ```text
-config/site                 businessName, base address, kmRate 2.5 (one way), maxKm 18,
-                            comboOff 0.10, open Mon–Sat, hours 08:30–15:30 step 30, minLeadDays
-services/{id}               name { da, en }, price | null, monthly: bool, durationMin,
-                            description { da, en }, active, sort
-plans/{basic|standard|premium}
-                            pricePerBike, includes[], maxBikes (premium: 35), monthlyReport: bool
 
 users/{uid}                 role: private | business | admin, name, email, phone, address,
                             companyId?, consent { data, terms, version, at }, createdAt
@@ -159,7 +158,8 @@ companies/{id}/reports/{yyyy-mm}
 
 bookings/{id}               ref "TN-1042", status pending | confirmed | completed | cancelled,
                             customerUid?, guestToken, services[{ id, name, price, monthly }],
-                            date, arrival "10:30", bikeType | bikeId, address, distanceKm,
+                            date, arrival "10:30", workMin, blockMin, bikeType | bikeId, address,
+                            distanceKm, name, email, phone,
                             pricing { oneOff, discount, discountReason, monthly, travel, total },
                             urgent: bool, note, photos[{ id, path, thumbPath, w, h, uploadedAt }]
                             (max 3), consent { data, terms, version, at }, createdAt
@@ -172,8 +172,11 @@ recommendations/{id}        ownerUid | companyId, bikeId, title, urgency soon | 
                             reason, dueBy, status open | done
 consultations/{id}          name, company, email, phone, companyType, bikes, preferredDate,
                             preferredTime, message, status new | contacted | won | lost
-subscriptions/{id}          customerUid | companyId, planOrService, price, bikes?, status, startDate
+subscriptions/{id}          customerUid | companyId, email, planOrService, price, bikes?, status,
+                            startDate, commitmentEnds, bookingId
 closedDates/{yyyy-mm-dd}    reason
+counters/bookings           last (the last booking number, e.g. 1041 for TN-1041)
+mail/{id}                   to, message { subject, text }, createdAt  (outbox; Trigger Email format)
 ```
 
 **Money** is stored as whole kroner (integers), with discounts rounded when they are calculated, so

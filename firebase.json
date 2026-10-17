@@ -14,6 +14,15 @@
       "anonymous": true
     }
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs24",
+      "predeploy": ["npm run sync-shared"],
+      "ignore": ["node_modules", ".git", "*.local", ".env*", "firebase-debug.log"]
+    }
+  ],
   "hosting": {
     "public": "web",
     "predeploy": ["npm run sync-shared"],
@@ -23,6 +32,7 @@
     "singleProjectMode": true,
     "auth": { "port": 9099 },
     "firestore": { "port": 8085 },
+    "functions": { "port": 5001 },
     "storage": { "port": 9199 },
     "hosting": { "port": 5000 },
     "ui": { "enabled": true, "port": 4000 }

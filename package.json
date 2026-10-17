@@ -9,7 +9,9 @@
     "start": "node server.js",
     "dev:express": "node --watch server.js",
     "sync-shared": "node scripts/sync-shared.js",
-    "dev": "npm run sync-shared && firebase emulators:start --only auth,firestore,storage,hosting",
+    "dev": "npm run sync-shared && firebase emulators:start --only auth,firestore,functions,storage,hosting",
+    "stop-emulators": "node scripts/stop-emulators.js",
+    "test:functions": "node scripts/test-functions.js",
     "test": "node --test \"test/*.test.js\""
   },
   "engines": {
