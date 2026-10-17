@@ -1,10 +1,50 @@
 rules_version = '2';
 
-// Locked: nothing is readable or writable from a browser yet. Phase 1 opens collections one by one,
-// following the data model in docs/firebase-plan.md (customers read their own data; writes go
-// through Cloud Functions, which bypass these rules; the owner writes with the admin claim).
+// Firestore rules. Customers never read or write the database directly: the public site goes
+// through Cloud Functions, which these rules do not restrict. The owner's dashboard (web/admin.html)
+// reads and writes directly, as a signed-in account with the `admin` custom claim
+// (scripts/set-owner.js). Customer accounts open their own data in phase 3.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Bookings: the owner reads them and changes only their status and the owner's own note.
+    match /bookings/{id} {
+      allow read: if isOwner();
+      allow update: if isOwner()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ownerNote', 'statusAt'])
+        && request.resource.data.status in ['pending', 'confirmed', 'completed', 'cancelled'];
+    }
+
+    // Business consultation requests: read, and move along new -> contacted -> won / lost.
+    match /consultations/{id} {
+      allow read: if isOwner();
+      allow update: if isOwner()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ownerNote'])
+        && request.resource.data.status in ['new', 'contacted', 'won', 'lost'];
+    }
+
+    // Days the owner blocks: the document id is the date (YYYY-MM-DD).
+    match /closedDates/{date} {
+      allow read: if isOwner();
+      allow create, update: if isOwner()
+        && date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && request.resource.data.keys().hasOnly(['reason'])
+        && (request.resource.data.reason is string && request.resource.data.reason.size() <= 100);
+      allow delete: if isOwner();
+    }
+
+    // Care subscriptions and the email outbox: read only.
+    match /subscriptions/{id} {
+      allow read: if isOwner();
+    }
+    match /mail/{id} {
+      allow read: if isOwner();
+    }
+
+    // Everything else stays closed.
     match /{document=**} {
       allow read, write: if false;
     }

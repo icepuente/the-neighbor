@@ -18,7 +18,7 @@ git diff --quiet HEAD -- web || VERSION="$VERSION-$(date +%s)"
 tar -czf - \
   --exclude='functions/node_modules' --exclude='functions/.env*' \
   web functions/index.js functions/photos.js functions/package.json functions/package-lock.json \
-  functions/shared firestore.rules firestore.indexes.json storage.rules deploy/demo \
+  functions/shared firestore.rules firestore.indexes.json storage.rules deploy/demo scripts/seed-demo.js \
   | ssh -o BatchMode=yes "$HOST" "set -e
       # Separate commands, so set -e stops the deploy if the folder is missing (root creates it,
       # through Jarvis: deploy cannot create folders in /opt).
@@ -26,7 +26,7 @@ tar -czf - \
       cd $DIR
       # Remove old files but keep every folder: nginx has web/ and deploy/demo/nginx/ mounted, and a
       # deleted (then recreated) folder leaves it attached to the old, empty one: no config, no site.
-      for d in web functions deploy; do mkdir -p \$d; find \$d -mindepth 1 ! -type d -delete; done
+      for d in web functions deploy scripts; do mkdir -p \$d; find \$d -mindepth 1 ! -type d -delete; done
       tar -xzf - --no-same-owner
       # Pages load scripts, styles and fonts from r/$VERSION/ (relative paths inside follow).
       sed -i -E 's#(src|href)=\"(js|css)/#\1=\"r/$VERSION/\2/#g' web/*.html

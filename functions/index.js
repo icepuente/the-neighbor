@@ -10,6 +10,7 @@ import { logger } from 'firebase-functions';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { defineString } from 'firebase-functions/params';
 import * as R from './shared/booking-rules.js';
 import * as P from './photos.js';
@@ -272,6 +273,30 @@ export const createBooking = onCall(async (request) => {
 export const cleanUploads = onSchedule({ schedule: 'every 6 hours', timeZone: R.TIME_ZONE }, async () => {
   const n = await P.deleteStaleUploads(P.bucket());
   logger.info(`cleanUploads: deleted ${n} stale upload(s)`);
+});
+
+// ---- bookingStatusChanged: tell the customer when the owner confirms, completes or cancels ----
+// The dashboard only changes the booking's status (firestore.rules allow nothing else); this sends
+// the matching email, so it cannot be forgotten and the customer's address never leaves the server.
+const STATUS_MAIL = {
+  confirmed: ['is confirmed', 'We look forward to seeing you'],
+  completed: ['is complete', 'Thank you for choosing The Neighbor'],
+  cancelled: ['has been cancelled', 'Get in touch if you would like a new time'],
+};
+export const bookingStatusChanged = onDocumentUpdated('bookings/{id}', async (event) => {
+  const before = event.data.before.data();
+  const b = event.data.after.data();
+  if (before.status === b.status || !STATUS_MAIL[b.status]) return;
+  const [what, closing] = STATUS_MAIL[b.status];
+  await db.collection('mail').add({
+    to: b.email,
+    message: {
+      subject: `Your booking ${b.ref} ${what}`,
+      text: `Hi ${b.name},\n\nYour booking on ${b.date} at ${b.arrival} ${what}.\n${R.fullAddress(b.address, b.apartment)}\n\n${closing}.\n\nThe Neighbor`,
+    },
+    bookingId: event.params.id,
+    createdAt: FieldValue.serverTimestamp(),
+  });
 });
 
 // ---- createConsultation: a business asks for a consultation ----

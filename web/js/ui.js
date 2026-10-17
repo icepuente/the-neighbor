@@ -16,8 +16,9 @@
     return e;
   }
 
+  // Appends elements and plain text (text is added as text, never as markup).
   function A(parent, ...children) {
-    children.forEach((c) => c && parent.appendChild(c));
+    children.forEach((c) => c && parent.append(c));
     return parent;
   }
 
@@ -30,7 +31,13 @@
 
   function defList(pairs) {
     const l = h('dl');
-    pairs.forEach(([k, v]) => A(l, h('dt', '', k), h('dd', '', v == null || v === '' ? '–' : String(v))));
+    // A value may be text, or an element such as a link.
+    for (const [k, v] of pairs) {
+      const dd = h('dd');
+      if (v instanceof Node) dd.append(v);
+      else dd.textContent = v == null || v === '' ? '–' : String(v);
+      A(l, h('dt', '', k), dd);
+    }
     return l;
   }
 

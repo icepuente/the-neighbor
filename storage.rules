@@ -3,7 +3,8 @@ rules_version = '2';
 // Cloud Storage rules (plan, decision 15). Browsers may only drop booking photos into their own
 // upload folder; createBooking (a Cloud Function, which these rules do not restrict) checks them and
 // moves them into the booking's folder, and a scheduled clean-up deletes uploads never booked.
-// Reading photos comes with the owner's dashboard (phase 2) and accounts (phase 3).
+// The owner (an account with the `admin` claim) reads booking photos in the dashboard; customer
+// accounts read their own in phase 3.
 service firebase.storage {
   match /b/{bucket}/o {
     // uploads/{uid}/{photoId}.jpg and {photoId}_thumb.jpg: the signed-in visitor (often an
@@ -17,6 +18,11 @@ service firebase.storage {
         && file.matches('[a-z0-9]{20}(_thumb)?[.]jpg')
         && request.resource.contentType == 'image/jpeg'
         && request.resource.size <= 2 * 1024 * 1024;
+    }
+
+    // Booking photos: the owner may look at them.
+    match /bookings/{bookingId}/{file} {
+      allow read: if request.auth != null && request.auth.token.admin == true;
     }
 
     // Everything else stays closed to browsers.

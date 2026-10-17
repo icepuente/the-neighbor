@@ -9,10 +9,10 @@ const up = async (url) => { try { await fetch(url, { signal: AbortSignal.timeout
 let status = run('node test/browser/mock.js');
 if (await up('http://127.0.0.1:5000/') && await up('http://127.0.0.1:5001/')) {
   console.log('\nweb: using the running emulators');
-  status ||= run('npm run sync-shared && node test/browser/web.js');
+  status ||= run('npm run sync-shared && node test/browser/web.js && node test/browser/admin.js');
 } else {
   console.log('\nweb: starting emulators for the run');
-  status ||= run('npm run sync-shared && npx firebase emulators:exec --only auth,firestore,functions,storage,hosting "node test/browser/web.js"');
+  status ||= run('npm run sync-shared && npx firebase emulators:exec --only auth,firestore,functions,storage,hosting "node test/browser/web.js && node test/browser/admin.js"');
   run('node scripts/stop-emulators.js');
 }
 process.exit(status ?? 1);

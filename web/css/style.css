@@ -323,3 +323,7 @@ mark.todo { background: #f2c14e; color: #102f33; padding: 0 4px; border-radius: 
 .suggest-item { padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 16px; color: var(--ink); }
 .suggest-item:hover, .suggest-item[aria-selected=true] { background: var(--paper); }
 @media (max-width: 560px) { .addr-row { grid-template-columns: 1fr; } }
+
+/* Owner dashboard (admin.html) */
+pre.mail { white-space: pre-wrap; font: 15px/1.5 'Source Serif 4', serif; margin: 8px 0 0; }
+.page .box.narrow { margin-left: 0; }

@@ -21,6 +21,8 @@ COPY functions/shared/ functions/shared/
 COPY firestore.rules firestore.indexes.json storage.rules ./
 COPY deploy/demo/firebase.json firebase.json
 COPY deploy/demo/healthcheck.js healthcheck.js
+COPY deploy/demo/start.sh start.sh
+COPY scripts/seed-demo.js seed-demo.js
 # Parameter values for the Functions (no real email is sent in the demo).
 RUN printf 'OWNER_EMAIL=owner@demo.invalid\n' > functions/.env.local
 
@@ -30,6 +32,6 @@ ENV CI=true \
 # Fetch the emulator programs now, so a restart does not download them.
 RUN firebase setup:emulators:firestore && firebase setup:emulators:storage
 
-# Run for a day, then exit: Docker restarts the container with empty emulators, so the demo is
-# wiped daily and anything visitors left behind goes with it.
-CMD ["timeout", "24h", "firebase", "emulators:start", "--project", "demo-the-neighbor", "--only", "auth,firestore,functions,storage"]
+# Start the emulators, load the demo data, and exit after a day: Docker restarts the container with
+# empty emulators, so the demo is wiped daily and anything visitors left behind goes with it.
+CMD ["sh", "/app/start.sh"]

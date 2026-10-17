@@ -45,6 +45,19 @@ run(9335, async () => {
   check(/TN-\d+/.test(await evaluate("document.getElementById('done-msg').textContent")), 'the booking is saved, with a TN- number');
   check((await evaluate("document.getElementById('sum').textContent")).includes(await evaluate("I18N.t('pics.attached', { n: 1 })")),
     'the photo was uploaded through the anonymous sign-in and Storage, and attached');
+  const ref = (await evaluate("document.getElementById('done-msg').textContent")).match(/TN-\d+/)[0];
+
+  // The owner's dashboard: demo login, the new booking live from Firestore, and its photo from
+  // Storage, both through this address.
+  await open(`${origin}/admin.html`);
+  await waitFor("!document.getElementById('gate').hidden || !document.getElementById('app').hidden", 'the dashboard page');
+  if (await evaluate("document.getElementById('app').hidden")) {
+    await evaluate("document.querySelector('#demo-login button').click(); document.querySelector('#signin button[type=submit]').click()");
+  }
+  await waitFor(`!!document.querySelector('.booking[data-ref="${ref}"]')`, 'the new booking in the dashboard', 30000);
+  check(true, `the demo owner signs in and sees ${ref} (Firestore through ${origin}/google.firestore.v1.Firestore/)`);
+  await waitFor(`document.querySelector('.booking[data-ref="${ref}"] .pic img')?.naturalWidth > 0`, 'the booking photo', 20000);
+  check(true, 'and its photo, read from Storage with the owner\'s sign-in');
 
   const elsewhere = requests.filter((u) => /^https?:/.test(u) && !u.startsWith(origin));
   check(elsewhere.length === 0, `all ${requests.length} requests went to ${origin}${elsewhere.length ? `; elsewhere: ${[...new Set(elsewhere)].join(', ')}` : ''}`);
