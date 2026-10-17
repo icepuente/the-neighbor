@@ -34,3 +34,6 @@ window.NBF = {
   sdk: { auth: authMod, firestore: fsMod, functions: fnMod, storage: stMod },
 };
 window.dispatchEvent(new Event('nbf-ready'));
+
+// For page modules: `const { NBF } = await import('./firebase.js')`.
+export const NBF = window.NBF;

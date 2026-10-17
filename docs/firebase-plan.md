@@ -463,7 +463,11 @@ deny everything from browsers until phase 1 opens what each page needs.
    that re-reads the day so two customers cannot get the same time; TN- numbers; Care
    subscriptions) and `createConsultation`; emails queued in `mail`. Tested in
    `test/emulator/functions.test.js`.
-4. Connect the booking page to the Functions, replacing the mock backend.
+4. *Done 2026-10-17:* the booking page and the consultation form use the Functions; static parts
+   (plans, services, prices) come from the shared rules. `web/` now holds only the public site:
+   the account page, the dashboard, "Create an account", the log-in link and the saved-bike choice
+   return with phases 2 and 3 (they stay clickable in `mock/`), and the photo field is hidden until
+   step 5.
 5. Booking photos: anonymous sign-in, Storage upload, rules (small JPEGs only), tests.
 6. Consent popup, content check, full browser test run against the emulators.
 

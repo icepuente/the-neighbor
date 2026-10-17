@@ -160,8 +160,9 @@
 
   // Demo banner "Reset demo data" link, the header account link and the language switch.
   document.addEventListener('DOMContentLoaded', () => {
+    // The demo link and the account link need the mock backend; the real site (web/) has neither yet.
     const reset = $('reset-demo');
-    if (reset) {
+    if (reset && window.NB) {
       reset.onclick = (e) => {
         e.preventDefault();
         NB.reset();
@@ -169,7 +170,7 @@
       };
     }
     const acct = $('acct-link');
-    const user = NB.auth.current();
+    const user = window.NB ? NB.auth.current() : null;
     if (acct && user) {
       acct.textContent = t(user.role === 'admin' ? 'nav.dashboard' : 'nav.account');
       if (user.role === 'admin') acct.href = 'admin.html';

@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="demo" role="note"><span data-i18n="demo.site"></span> <a href="#" id="reset-demo" data-i18n="demo.reset"></a></div>
 
 <div id="consent" class="dialog" role="dialog" aria-modal="true" aria-labelledby="ct" hidden>
   <div class="box">
@@ -32,7 +31,6 @@
   <a class="logo" href="#top">The<br>Neighbor</a>
   <nav>
     <a href="#business" data-i18n="nav.business"></a><a href="#private" data-i18n="nav.private"></a><a href="#faq" data-i18n="nav.faq"></a>
-    <a href="account.html" id="acct-link" data-i18n="nav.login"></a>
     <span class="lang" role="group" aria-label="Sprog / Language"><button type="button" id="lang-da">DA</button><button type="button" id="lang-en">EN</button></span>
     <a class="pill" href="#book" data-i18n="nav.book"></a>
   </nav>
@@ -160,21 +158,18 @@
         <label for="note"><span data-i18n="bk.note"></span> <small data-i18n="bk.noteSub"></small></label>
         <textarea id="note" rows="2" data-i18n-ph="bk.notePh"></textarea>
         <p class="err" id="e-note"></p>
-        <span class="lb"><label for="bk-photo-input" data-i18n="pics.bookingLabel"></label> <small data-i18n="f.optional"></small></span>
-        <p class="det" data-i18n="pics.bookingHint"></p>
-        <p class="det" id="pics-to-bike" data-i18n="pics.toBike" hidden></p>
-        <div id="bk-photos"></div>
-        <p class="err" id="e-photos"></p>
+        <!-- Booking photos: shown again in phase 1 step 5, with uploads to Cloud Storage. -->
+        <div id="bk-photo-block" hidden>
+          <span class="lb"><label for="bk-photo-input" data-i18n="pics.bookingLabel"></label> <small data-i18n="f.optional"></small></span>
+          <p class="det" data-i18n="pics.bookingHint"></p>
+          <div id="bk-photos"></div>
+          <p class="err" id="e-photos"></p>
+        </div>
 
         <div class="opts" id="opts">
           <label class="opt"><input type="checkbox" id="remember">
             <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg><b data-i18n="bk.remember"></b><small data-i18n="bk.rememberSub"></small></span></label>
-          <label class="opt"><input type="checkbox" id="mkacct">
-            <span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M1.5 21c0-4 3.4-7 7.5-7s7.5 3 7.5 7z"/><path d="M19 7v6M16 10h6" fill="none" stroke-width="2" stroke-linecap="round"/></svg><b data-i18n="bk.create"></b><small data-i18n="bk.createSub"></small></span></label>
-        </div>
-        <div id="pw-row" hidden>
-          <label for="pw"><span data-i18n="bk.password"></span> <small data-i18n="bk.passwordSub"></small></label>
-          <input type="password" id="pw" autocomplete="new-password">
+          <!-- "Create an account" returns with accounts (phase 3); see mock/index.html. -->
         </div>
         <p class="err" id="e-form" role="alert"></p>
         <button class="pill" type="submit" data-i18n="bk.seePrice"></button>
@@ -194,7 +189,6 @@
         <h2 data-i18n="done.title"></h2>
         <p class="ok" id="done-msg"></p>
         <div class="sum" id="sum"></div>
-        <p id="done-acct"></p>
         <button class="alt" id="again" type="button" data-i18n="done.again"></button>
       </div>
     </div>
@@ -220,13 +214,12 @@
 
 <footer class="compact"><div class="wrap">
   <span>The Neighbor · Rørsangervej 45, København · <a href="mailto:hello@example.com">hello@example.com</a></span>
-  <span><a href="account.html" data-i18n="nav.account"></a><a href="#top" data-i18n="footer.terms"></a><a href="#top" data-i18n="footer.privacy"></a></span>
+  <span><a href="#top" data-i18n="footer.terms"></a><a href="#top" data-i18n="footer.privacy"></a></span>
 </div></footer>
 
-<script src="js/mock-backend.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/ui.js"></script>
-<script src="js/site.js"></script>
+<script type="module" src="js/site.js"></script>
 <script type="module" src="js/firebase.js"></script>
 </body>
 </html>

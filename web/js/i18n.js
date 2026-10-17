@@ -133,6 +133,7 @@
       'bk.when': '2. Hvornår', 'bk.date': 'Dato', 'bk.arrival': 'Ankomst',
       'bk.selectTime': 'Vælg et tidspunkt',
       'bk.noTimes': 'Ingen ledige tider den dag.',
+      'bk.loadingTimes': 'Henter ledige tider …',
       'bk.hours': 'Åbent mandag til lørdag, 8.30\u201315.30.',
       'bk.where': '3. Hvor og hvem',
       'bk.address': 'Adresse', 'bk.addressPh': 'Gade, nummer, postnummer',
@@ -154,7 +155,7 @@
       'co.special': 'specialreparation efter aftale',
       'co.visit': 'Besøget tager op til {min} minutter.',
       'co.urgent': 'Dette er dit akutte besøg for måneden (Neighbor Care Plus).',
-      'co.mockTravel': 'Demo: afstanden er anslået ud fra postnummeret. Den rigtige side bruger den præcise køreafstand fra Google Maps.',
+      'co.estimateTravel': 'Afstanden er indtil videre anslået ud fra postnummeret. Snart bruger vi den præcise køreafstand fra Google Maps.',
       'co.noteSpecial': 'Specialreparation: vi aftaler prisen, når vi har læst din beskrivelse.',
       'co.noteCombo': 'Tip: tilføj en reparation til Cykeltjekket, og få 5 % rabat på det hele.',
       'co.confirm': 'Bekræft booking',
@@ -173,7 +174,7 @@
       'err.lead': 'Book mindst 2 dage frem. Med Neighbor Care Plus kan du booke i morgen én gang om måneden.',
       'err.urgentUsed': 'Du har allerede brugt månedens akutte besøg. Book mindst 2 dage frem.',
       'err.photosMax': 'Du kan højst vedhæfte 3 billeder.',
-      'err.storage': 'Demo-lageret i browseren er fuldt. Fjern et billede, eller nulstil demodata.',
+      'err.server': 'Noget gik galt. Prøv igen om lidt.',
       'pics.bookingLabel': 'Billeder af cyklen',
       'pics.bookingHint': 'Vis os cyklen eller problemet, så er vi bedre forberedt. Op til 3 billeder.',
       'pics.add': 'Tilføj billede',
@@ -393,6 +394,7 @@
       'bk.when': '2. When', 'bk.date': 'Date', 'bk.arrival': 'Arrival',
       'bk.selectTime': 'Select a time',
       'bk.noTimes': 'No free times that day.',
+      'bk.loadingTimes': 'Loading free times …',
       'bk.hours': 'Open Monday to Saturday, 08:30\u201315:30.',
       'bk.where': '3. Where & who',
       'bk.address': 'Address', 'bk.addressPh': 'Street, number, postcode',
@@ -414,7 +416,7 @@
       'co.special': 'special repair by agreement',
       'co.visit': 'The visit takes up to {min} minutes.',
       'co.urgent': 'This is your urgent visit for the month (Neighbor Care Plus).',
-      'co.mockTravel': 'Mock: the distance is estimated from the postcode. The real site uses the exact driving distance from Google Maps.',
+      'co.estimateTravel': 'For now, the distance is estimated from the postcode. Soon we will use the exact driving distance from Google Maps.',
       'co.noteSpecial': 'Special repair: we agree the price after reading your description.',
       'co.noteCombo': 'Tip: add a repair to the Bike Check and get 5% off everything.',
       'co.confirm': 'Confirm booking',
@@ -433,7 +435,7 @@
       'err.lead': 'Please book at least 2 days ahead. With Neighbor Care Plus you can book tomorrow once a month.',
       'err.urgentUsed': "You have already used this month's urgent visit. Please book at least 2 days ahead.",
       'err.photosMax': 'You can attach at most 3 photos.',
-      'err.storage': "The browser's demo storage is full. Remove a photo, or reset the demo data.",
+      'err.server': 'Something went wrong. Please try again shortly.',
       'pics.bookingLabel': 'Photos of the bike',
       'pics.bookingHint': 'Show us the bike or the problem so we come prepared. Up to 3 photos.',
       'pics.add': 'Add photo',
@@ -543,8 +545,12 @@
   function apply(root = document) {
     root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
     root.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
-    root.querySelectorAll('[data-dkk]').forEach((el) => { el.textContent = NB.util.fmtDkk(Number(el.dataset.dkk)); });
+    root.querySelectorAll('[data-dkk]').forEach((el) => { el.textContent = dkk(Number(el.dataset.dkk)); });
   }
+
+  // Prices and dates in the page language: "199 kr." and Danish dates, or "199 DKK" in English.
+  const dkk = (n) => Math.round(n).toLocaleString('da-DK') + (lang === 'da' ? ' kr.' : ' DKK');
+  const date = (s) => new Date(`${s}T12:00:00`).toLocaleDateString(lang === 'da' ? 'da-DK' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
   if (typeof document !== 'undefined') {
     document.documentElement.lang = lang;
@@ -555,6 +561,8 @@
     lang,
     t,
     apply,
+    dkk,
+    date,
     dict: D,
     set(l) {
       try { localStorage.setItem(KEY, l); } catch { /* storage unavailable: the switch lasts this page only */ }
