@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Locked: nothing is readable or writable from a browser yet. Phase 1 opens collections one by one,
+// following the data model in docs/firebase-plan.md (customers read their own data; writes go
+// through Cloud Functions, which bypass these rules; the owner writes with the admin claim).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

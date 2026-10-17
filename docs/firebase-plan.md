@@ -125,9 +125,9 @@ on Alec's Proxmox home server (phase 7, decision 6). Nothing in the code may dep
 Firebase Hosting specifically: rewrites and headers live in `firebase.json`, and the home server's
 nginx config mirrors them. The demo build also turns on a "demo" banner and sends no real email.
 
-**Region.** Firestore, Functions and Storage all in one EU region, e.g. `europe-west1` (Belgium) or
-`europe-north1` (Finland). Keeping customer data in the EU covers the GDPR basics and matches the
-privacy text the site already has.
+**Region.** Firestore, Functions and Storage all in **`europe-west1` (Belgium)** (decided
+2026-10-17; `europe-north1` was the alternative). Keeping customer data in the EU covers the GDPR
+basics and matches the privacy text the site already has. The region cannot be changed later.
 
 **Email.** Port `src/mailer.js` (Nodemailer) into Functions with the same SMTP setup. The alternative
 is Firebase's *Trigger Email* extension, but porting keeps the existing templates and tests. Sending
@@ -244,6 +244,19 @@ Each phase ends with something usable, so it can stop at any point.
 
 ## 7. Costs and accounts
 
+- **Who owns what (decided 2026-10-17).** The Neighbor is Alec's friend's business. The Firebase
+  project (name "the-neighbor-cph", ID **`my-first-firebase-projec-b242f`**: the console's default ID
+  was kept, decided 2026-10-17) belongs to the friend's own Google account, billing is on the
+  friend's card, and Alec's Google account is a project **Owner** who does the setup and
+  development. The Firebase CLI is a dev dependency of this repo (`npx firebase ...`).
+- **Budget alert: 50 DKK a month** (decided 2026-10-17). It only sends an email; it does not stop
+  spending.
+- **Spend cap for Cloud Functions** (to set when Functions are first deployed). Firebase's
+  service-level spend caps (Settings → Usage and billing → Details & settings → Service-level spend
+  caps) pause a service for the rest of the month when its budget is reached, after a delay of a few
+  minutes. They cover only Cloud Functions, App Hosting, Extensions and AI Logic, not Firestore,
+  Storage or Google Maps.
+
 - **Blaze plan required.** Cloud Functions and (since 3 February 2026) Cloud Storage only work on the
   pay-as-you-go Blaze plan, which needs a payment card. Blaze keeps the no-cost quotas (for example
   50,000 Firestore reads and 20,000 writes per day), so at this scale the bill should be close to zero.
@@ -255,8 +268,9 @@ Each phase ends with something usable, so it can stop at any point.
 - **Domain:** a .dk name from a Danish registrar (Cloudflare Registrar does not sell .dk), with DNS on
   Cloudflare.
 - **Photos** (decision 15): about 300 KB per photo after shrinking, plus a small thumbnail, so 1,000
-  photos take roughly 0.3 GB. Check that against Cloud Storage's no-cost quota when the project is
-  created in phase 1. Anonymous sign-in for guests is part of the free Authentication options.
+  photos take roughly 0.3 GB. Cloud Storage's no-cost tier only applies to US buckets, so an
+  `europe-west1` bucket is billed from the first byte at standard Cloud Storage prices (about
+  $0.02–0.03 per GB a month): well under 1 cent a month at that volume. Anonymous sign-in for guests is part of the free Authentication options.
 
 ## 8. Decisions
 
@@ -385,7 +399,9 @@ Decided 2026-10-13 unless marked otherwise. Open items are at the end.
       `createBooking` refuses more than 3.
     - **Clean-up.** A scheduled Function deletes uploads not attached to a booking within 24 hours.
       Removing a photo, deleting a bike or deleting an account deletes the files too (GDPR).
-      Otherwise photos are kept indefinitely (see above).
+      Otherwise photos are kept indefinitely (see above). The bucket has Cloud Storage's default
+      **7-day soft delete**, so a deleted file can be recovered for 7 days before it is gone; the
+      privacy text should say deletion completes within 7 days (or soft delete is turned off).
     - **Demo.** The Storage emulator covers this on the home server; it is the part already
       flagged as least certain in the phase 1 proof of concept.
 
@@ -398,6 +414,25 @@ Nothing at the moment.
 - *Done 2026-10-13:* the travel gap (15 minutes), the Diagnostics time and tube, the monthly plans,
   the combo discount, Care Plus scheduling (decision 14), a repair added to the Care check-up (no
   combo), and connecting the Windows PC to Jarvis.
+
+## Firebase setup (phase 1, started 2026-10-17)
+
+Created in project `my-first-firebase-projec-b242f`, all in `europe-west1`: the Firestore
+`(default)` database (standard edition, delete protection on), the default Storage bucket
+`my-first-firebase-projec-b242f.firebasestorage.app`, the web app "The Neighbor", and the
+email/password and anonymous sign-in providers. The rules in `firestore.rules` and `storage.rules`
+deny everything from browsers until phase 1 opens what each page needs.
+
+- **Config in the repo:** `firebase.json` (rules, sign-in providers, Hosting from `web/`, emulator
+  ports), `.firebaserc` (the project). `web/` is a placeholder until phase 1 builds the site there
+  from `mock/`; `public/` stays the live Spoke & Go site until it is switched off.
+- **Tools:** the Firebase CLI is a dev dependency (`npx firebase ...`); the Google Cloud CLI
+  (`gcloud`) covers what the Firebase CLI cannot, such as enabling APIs and creating the bucket.
+- **Emulators:** `npx firebase emulators:start --only auth,firestore,storage,hosting`. Site on
+  127.0.0.1:5000, emulator UI on 127.0.0.1:4000, Firestore on **8085** (8080 is taken on Alec's PC).
+  Stop them with Ctrl+C; killing only the parent process leaves the Java emulators running.
+- **Publish rules and sign-in settings:** `npx firebase deploy --only firestore:rules,storage,auth`.
+  Hosting is not deployed yet.
 
 ## The mock site
 

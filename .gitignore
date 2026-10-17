@@ -5,3 +5,8 @@ backups/
 .env.*
 !.env.example
 cloudflared/
+
+# Firebase CLI and emulators
+.firebase/
+*-debug.log
+emulator-data/

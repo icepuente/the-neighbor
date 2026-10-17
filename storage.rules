@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Locked: no uploads or downloads from a browser yet. Phase 1 adds the photo rules from decision 15
+// in docs/firebase-plan.md (own uploads/{uid}/ only, JPEG, at most 2 MB; read by owner and customer).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
