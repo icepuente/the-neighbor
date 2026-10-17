@@ -1,10 +1,37 @@
 # the-neighbor
 
+## The Neighbor (Firebase)
+
+**The Neighbor** is a mobile bike mechanic in Copenhagen. The new site is in `web/`, backed by Firebase
+(Firestore, Cloud Storage, Cloud Functions in `functions/`, rules in `firestore.rules` and
+`storage.rules`). It covers the public booking site (Danish, with English), customer accounts, business
+fleet accounts with monthly reports, and the owner's dashboard. The plan and its phases are in
+[`docs/firebase-plan.md`](docs/firebase-plan.md), and running it is covered in
+[`docs/operations.md`](docs/operations.md).
+
+**Demo:** [book.icepuente.com](https://book.icepuente.com) runs on the Firebase emulators with fake
+data that is reset daily, and sends no real email. The logins:
+
+| Who | Page | Login |
+|---|---|---|
+| Owner | `/admin.html` | owner@demo.dk / neighbor-demo |
+| Private customer | `/account.html` | anna@demo.dk / neighbor-demo |
+| Business customer (Hotel ABC) | `/account.html` | hotel@demo.dk / neighbor-demo |
+
+Local development: `npm run dev` (emulators, site at http://127.0.0.1:5000), `npm run seed` for the demo
+data. Tests: `npm test`, `npm run test:functions`, `npm run test:browser`, and `npm run test:demo` against
+the live demo. `npm run deploy:demo` updates the demo.
+
+## The old Spoke & Go app (Express)
+
+Everything below describes the original Express and SQLite app, which is still in the repo
+(`npm run dev:express`) until phase 5 retires it.
+
 A small, self-hosted booking site for a mobile bike repair service. Customers pick a service, a day and a two-hour slot, then enter their bike and address details. You manage everything from a password-protected admin page, and both sides get email at each step.
 
 It's one Node process with a SQLite file. There's no frontend build step, no external database and no third-party booking service. All business details (name, prices, opening hours, FAQ) live in one JSON file.
 
-Running at **[book.icepuente.com](https://book.icepuente.com)** as "Spoke & Go".
+It ran at book.icepuente.com as "Spoke & Go" until 2026-10-17; that address now hosts The Neighbor demo.
 
 ## Features
 
