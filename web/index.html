@@ -9,17 +9,6 @@
 </head>
 <body>
 
-<div id="consent" class="dialog" role="dialog" aria-modal="true" aria-labelledby="ct" hidden>
-  <div class="box">
-    <h2 id="ct" data-i18n="consent.title"></h2>
-    <p data-i18n="consent.text"></p>
-    <label class="cb"><input type="checkbox" id="c1"><span data-i18n="consent.data"></span></label>
-    <label class="cb"><input type="checkbox" id="c2"><span data-i18n="consent.terms"></span></label>
-    <p class="det"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="consent.readPrivacy"></a> · <a href="terms.html" target="_blank" rel="noopener" data-i18n="consent.readTerms"></a></p>
-    <button class="pill" id="cok" type="button" disabled data-i18n="consent.ok"></button>
-  </div>
-</div>
-
 <div id="rules" class="dialog" role="dialog" aria-modal="true" aria-labelledby="rt" hidden>
   <div class="box">
     <h2 id="rt" data-i18n="rules.title"></h2>
@@ -181,6 +170,11 @@
         <p class="det" id="codet"></p>
         <table class="tbl" id="tbl"></table>
         <div id="notes"></div>
+        <!-- Accepted at the moment of booking (no consent popup): booking data rests on the agreement,
+             and the early start must be asked for actively (forbrugeraftaleloven § 18, stk. 2, nr. 2). -->
+        <label class="cb"><input type="checkbox" id="acc-terms"><span><span data-i18n="co.acceptTerms"></span> (<a href="terms.html" target="_blank" rel="noopener" data-i18n="co.readTerms"></a>)</span></label>
+        <label class="cb"><input type="checkbox" id="acc-start"><span data-i18n="co.earlyStart"></span></label>
+        <p class="det"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="co.privacy"></a></p>
         <p class="err" id="e-confirm" role="alert"></p>
         <button class="pill" id="confirm" type="button" data-i18n="co.confirm"></button>
         <button class="alt" id="back" type="button" data-i18n="co.change"></button>

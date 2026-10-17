@@ -64,7 +64,7 @@ const D1 = R.nextOpenDay(R.addDays(TODAY, 3)); // well outside the lead time
 const D2 = R.nextOpenDay(R.addDays(D1, 1));
 const SUNDAY = (() => { let d = TODAY; while (R.weekday(d) !== 0) d = R.addDays(d, 1); return d; })();
 const CPH = 'Jagtvej 1, 2200 København N'; // 5 km: 13 kr. travel
-const CONSENT = { data: true, terms: true, version: R.CONFIG.consentVersion };
+const ACCEPT = { terms: true, earlyStart: true };
 const input = (over = {}) => ({ serviceIds: ['chain'], date: D1, arrival: '10:00', bike: 'City bike', address: CPH, name: 'Test Person', email: 'guest@example.com', phone: '12345678', note: '', ...over });
 
 test('bookingOptions: today, earliest date and free times, without revealing bookings', async () => {
@@ -88,8 +88,9 @@ test('quoteBooking: full price with travel and the combo discount', async () => 
 });
 
 test('createBooking: refuses incomplete or impossible bookings', async () => {
-  const errs = async (over, consent = CONSENT) => (await call('createBooking', { input: input(over), consent })).errors || {};
-  assert.equal((await errs({}, null)).form, 'consent');
+  const errs = async (over, accept = ACCEPT) => (await call('createBooking', { input: input(over), accept })).errors || {};
+  assert.equal((await errs({}, null)).accept, 'terms', 'the terms must be accepted');
+  assert.equal((await errs({}, { terms: true })).accept, 'earlyStart', 'and the early start of work asked for');
   assert.equal((await errs({ serviceIds: ['bike-check', 'puncture', 'gears'] })).services, 'tooLong');
   assert.equal((await errs({ address: 'Somewhere, 4000 Roskilde' })).form, 'far');
   assert.equal((await errs({ serviceIds: ['diagnostics'] })).note, 'note');
@@ -100,7 +101,7 @@ test('createBooking: refuses incomplete or impossible bookings', async () => {
 });
 
 test('createBooking: saves the booking, numbers it, queues both emails', async () => {
-  const r = await call('createBooking', { input: input({ serviceIds: ['bike-check', 'chain'], note: 'x'.repeat(5000) }), consent: CONSENT });
+  const r = await call('createBooking', { input: input({ serviceIds: ['bike-check', 'chain'], note: 'x'.repeat(5000) }), accept: ACCEPT });
   assert.ok(r.booking, JSON.stringify(r.errors));
   assert.equal(r.booking.ref, 'TN-1041');
   assert.equal(r.booking.pricing.total, 344);
@@ -108,7 +109,8 @@ test('createBooking: saves the booking, numbers it, queues both emails', async (
   const [b] = await list('bookings');
   assert.deepEqual([b.status, b.customerUid, b.workMin, b.blockMin, b.arrival], ['pending', null, 40, 55, '10:00']);
   assert.equal(b.note.length, 2000, 'long notes are cut to 2000 characters');
-  assert.equal(b.consent.version, R.CONFIG.consentVersion);
+  assert.deepEqual([b.accepted.terms, b.accepted.earlyStart, b.accepted.termsVersion], [true, true, R.CONFIG.termsVersion], 'what was accepted is recorded');
+  assert.ok(b.accepted.at, 'with the time');
   assert.equal(b.guestToken.length, 48);
   const mail = await list('mail');
   assert.equal(mail.length, 2);
@@ -117,7 +119,7 @@ test('createBooking: saves the booking, numbers it, queues both emails', async (
 });
 
 test('createBooking: a taken time is refused, and shows as taken', async () => {
-  const again = await call('createBooking', { input: input({ email: 'other@example.com' }), consent: CONSENT });
+  const again = await call('createBooking', { input: input({ email: 'other@example.com' }), accept: ACCEPT });
   assert.equal(again.errors?.arrival, 'taken');
   const o = await call('bookingOptions', { date: D1, serviceIds: ['chain'] });
   const free = (t) => o.times.find((x) => x.time === t).free;
@@ -127,16 +129,16 @@ test('createBooking: a taken time is refused, and shows as taken', async () => {
 
 test('createBooking: two customers grabbing the same time at once, only one gets it', async () => {
   const both = await Promise.all(['a@example.com', 'b@example.com'].map((email) =>
-    call('createBooking', { input: input({ arrival: '13:00', email }), consent: CONSENT })));
+    call('createBooking', { input: input({ arrival: '13:00', email }), accept: ACCEPT })));
   assert.equal(both.filter((r) => r.booking).length, 1);
   assert.equal(both.filter((r) => r.errors?.arrival === 'taken').length, 1);
 });
 
 test('Care plans: the first booking starts a subscription, the next does not start another', async () => {
-  const first = await call('createBooking', { input: input({ serviceIds: ['premium-monthly', 'chain'], arrival: '08:30', email: 'care@example.com' }), consent: CONSENT });
+  const first = await call('createBooking', { input: input({ serviceIds: ['premium-monthly', 'chain'], arrival: '08:30', email: 'care@example.com' }), accept: ACCEPT });
   assert.ok(first.booking, JSON.stringify(first.errors));
   assert.equal(first.booking.pricing.discountReason, 'carePlus');
-  const again = await call('createBooking', { input: input({ serviceIds: ['premium-monthly'], date: R.nextOpenDay(R.addDays(D1, 7)), email: 'care@example.com' }), consent: CONSENT });
+  const again = await call('createBooking', { input: input({ serviceIds: ['premium-monthly'], date: R.nextOpenDay(R.addDays(D1, 7)), email: 'care@example.com' }), accept: ACCEPT });
   assert.ok(again.booking);
   const subs = (await list('subscriptions')).filter((s) => s.email === 'care@example.com');
   assert.equal(subs.length, 1);
@@ -153,15 +155,15 @@ test('a signed-in Care Plus member gets the discount and the urgent visit; anony
   // Tomorrow is the urgent visit, unless tomorrow is closed (a Sunday or a blocked day).
   assert.equal(o.earliest, R.earliestDate({ todayDate: TODAY, carePlus: true, closedDates: [] }));
   if (!R.closedReason(TOMORROW)) {
-    const urgent = await call('createBooking', { input: input({ date: TOMORROW, email: 'anna@example.com' }), consent: CONSENT }, member.token);
+    const urgent = await call('createBooking', { input: input({ date: TOMORROW, email: 'anna@example.com' }), accept: ACCEPT }, member.token);
     assert.equal(urgent.booking?.urgent, true);
     assert.ok((await list('mail')).some((m) => m.message.subject.startsWith('URGENT New booking')));
   }
   const anon = await signUp();
   assert.equal((await call('quoteBooking', { serviceIds: ['chain'], address: CPH }, anon.token)).discountReason, null);
-  const r = await call('createBooking', { input: input({ arrival: '14:00', email: 'anon@example.com' }), consent: CONSENT }, anon.token);
+  const r = await call('createBooking', { input: input({ arrival: '14:00', email: 'anon@example.com' }), accept: ACCEPT }, anon.token);
   assert.equal((await list('bookings')).find((b) => b.id === r.booking.id).customerUid, null, 'an anonymous session is a guest');
-  const mine = await call('createBooking', { input: input({ arrival: '14:30', email: 'anna@example.com' }), consent: CONSENT }, member.token);
+  const mine = await call('createBooking', { input: input({ arrival: '14:30', email: 'anna@example.com' }), accept: ACCEPT }, member.token);
   assert.equal((await list('bookings')).find((b) => b.id === mine.booking.id).customerUid, member.uid, 'a signed-in customer owns the booking');
 });
 

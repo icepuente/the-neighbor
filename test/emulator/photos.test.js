@@ -10,7 +10,7 @@ const BUCKET = `${PROJECT}.firebasestorage.app`;
 const FN = `http://127.0.0.1:5001/${PROJECT}/europe-west1`;
 const AUTH = 'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1';
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1, 0xff, 0xd9]);
-const CONSENT = { data: true, terms: true, version: R.CONFIG.consentVersion };
+const ACCEPT = { terms: true, earlyStart: true };
 const D = R.nextOpenDay(R.addDays(R.today(), 20)); // a day of its own, away from other tests' bookings
 
 let counter = 0;
@@ -31,7 +31,7 @@ const uploadPhoto = async (user, id) => [await upload(user, `uploads/${user.uid}
 async function book(user, arrival, photos) {
   const input = { serviceIds: ['chain'], date: D, arrival, bike: 'City bike', address: 'Jagtvej 1, 2200 København N', name: 'Photo Test', phone: '1', email: 'photo@example.com', photos };
   const res = await (await fetch(`${FN}/createBooking`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` }, body: JSON.stringify({ data: { input, consent: CONSENT } }),
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` }, body: JSON.stringify({ data: { input, accept: ACCEPT } }),
   })).json();
   if (res.error) throw new Error(res.error.message);
   return res.result;

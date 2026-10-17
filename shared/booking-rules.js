@@ -38,7 +38,8 @@ export const CONFIG = {
   // Bike photos: at most 3 per booking and 4 per saved bike (plan, decision 15).
   maxBookingPhotos: 3,
   maxBikePhotos: 4,
-  consentVersion: '2026-10',
+  // Version of the terms (web/terms.html) a booking is accepted under; change it when they change.
+  termsVersion: '2026-10',
 };
 
 // The owner's service list (2026-10-13). durationMin is the top of the owner's range, so the
@@ -244,3 +245,17 @@ export function checkConsultation(input) {
 
 // When a new subscription's 3-month minimum ends.
 export const commitmentEnds = (startDate) => addMonths(startDate, CONFIG.subscriptionMinMonths);
+
+// What the customer ticks on the price page before booking: { terms, earlyStart }. Returns an error
+// code, or null when both are ticked.
+// - terms: they accept the terms and conditions.
+// - earlyStart: they ask for the work to be done within the 14-day withdrawal period, and
+//   acknowledge that the right of withdrawal ends once the work is fully done. Without this the
+//   right would not end on completion (forbrugeraftaleloven § 18, stk. 2, nr. 2). It is asked of
+//   every booking: the period runs from when the owner confirms, which is not known in advance, and
+//   for a visit after the period the request has no effect.
+export function checkAcceptance(accept) {
+  if (accept?.terms !== true) return 'terms';
+  if (accept?.earlyStart !== true) return 'earlyStart';
+  return null;
+}

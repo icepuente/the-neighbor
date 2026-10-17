@@ -1,4 +1,4 @@
-// Landing page: consent, booking flow and consultation form.
+// Landing page: booking flow and consultation form.
 // The page draws everything static from the shared rules (prices, services, plans) at once; free
 // times, the earliest date, the price and the bookings themselves come from the Cloud Functions,
 // so only the server's answer counts. Firebase loads in the background (js/firebase.js).
@@ -18,25 +18,6 @@ async function callFn(name, data) {
   const res = await NBF.sdk.functions.httpsCallable(NBF.functions, name)(data);
   return res.data;
 }
-
-// ---- Consent ----
-const CONSENT_KEY = 'neighbor-consent';
-let consent = null;
-try { consent = JSON.parse(localStorage.getItem(CONSENT_KEY)); } catch { consent = null; }
-if (!consent || consent.version !== CONFIG.consentVersion) {
-  consent = null;
-  $('consent').hidden = false;
-  document.body.style.overflow = 'hidden';
-}
-const consentReady = () => { $('cok').disabled = !($('c1').checked && $('c2').checked); };
-$('c1').onchange = consentReady;
-$('c2').onchange = consentReady;
-$('cok').onclick = () => {
-  consent = { data: true, terms: true, version: CONFIG.consentVersion, at: new Date().toISOString() };
-  localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
-  $('consent').hidden = true;
-  document.body.style.overflow = '';
-};
 
 // ---- Business plan cards ----
 for (const p of PLANS) {
@@ -295,8 +276,11 @@ function renderCheckout() {
 $('back').onclick = () => show('f');
 
 $('confirm').onclick = async () => {
-  if (!consent) {
-    $('consent').hidden = false;
+  // The terms and the early start of work, ticked here; the server checks the same.
+  const accept = { terms: $('acc-terms').checked, earlyStart: $('acc-start').checked };
+  const notAccepted = R.checkAcceptance(accept);
+  if (notAccepted) {
+    $('e-confirm').textContent = t(`err.accept.${notAccepted}`);
     return;
   }
   const btn = $('confirm');
@@ -310,12 +294,16 @@ $('confirm').onclick = async () => {
       $('e-confirm').textContent = t('err.photos');
       return;
     }
-    res = await callFn('createBooking', { input: { ...draft, photos }, consent });
+    res = await callFn('createBooking', { input: { ...draft, photos }, accept });
   } catch {
     $('e-confirm').textContent = t('err.server');
     return;
   } finally {
     btn.disabled = false;
+  }
+  if (res.errors?.accept) {
+    $('e-confirm').textContent = t(`err.accept.${res.errors.accept}`);
+    return;
   }
   if (res.errors) {
     showErrors(res.errors);

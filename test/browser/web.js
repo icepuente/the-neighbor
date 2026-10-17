@@ -37,8 +37,7 @@ run(9334, async () => {
   await open(SITE);
   await waitFor('!!window.NBF', 'Firebase');
   check(await evaluate('NBF.emulated') && await evaluate("!!document.querySelector('.env-bar')"), 'the site runs on the emulators and says so');
-  check(await evaluate("!document.getElementById('consent').hidden"), 'the consent dialog is shown');
-  await evaluate("document.getElementById('c1').click();document.getElementById('c2').click();document.getElementById('cok').click()");
+  check(await evaluate("!document.getElementById('consent') && !document.querySelector('.dialog:not([hidden])')"), 'no popup blocks the page on arrival');
   check(await evaluate("document.querySelectorAll('#plan-cards .plan').length") === 3
     && await evaluate("document.querySelectorAll('#svc-cards a').length") === 6
     && await evaluate("document.querySelectorAll('#care-cards .plan').length") === 2, 'plan, service and Care cards come from the shared rules (3, 6, 2)');
@@ -80,7 +79,16 @@ run(9334, async () => {
   const total = await evaluate("document.querySelector('#tbl .tot').textContent");
   check(total.includes('162 kr.'), `the price page shows the server's total, travel included: "${total}"`);
   check((await evaluate("document.getElementById('notes').textContent")).includes(await evaluate("I18N.t('co.estimateTravel')")), 'and says the distance is estimated for now');
+  check(await evaluate("[...document.querySelectorAll('#co a')].map(a=>a.getAttribute('href')).join(' ')") === 'terms.html privacy.html',
+    'the price page links to the terms and the privacy policy');
+  // Both boxes must be ticked: first neither, then only the terms.
   await evaluate("document.getElementById('confirm').click()");
+  check(await evaluate("document.getElementById('e-confirm').textContent === I18N.t('err.accept.terms')") && await evaluate("!document.getElementById('co').hidden"),
+    'booking without accepting the terms is stopped, on the price page');
+  await evaluate("document.getElementById('acc-terms').click(); document.getElementById('confirm').click()");
+  check(await evaluate("document.getElementById('e-confirm').textContent === I18N.t('err.accept.earlyStart')"), 'and without the right-of-withdrawal box too');
+  check((await list('bookings')).length === 0, 'nothing was booked');
+  await evaluate("document.getElementById('acc-start').click(); document.getElementById('confirm').click()");
   await waitFor("!document.getElementById('done').hidden", 'the confirmation');
   const done = await evaluate("document.getElementById('done-msg').textContent");
   check(done.includes('TN-1041'), `the confirmation shows the booking number: "${done.slice(0, 60)}…"`);
@@ -92,6 +100,9 @@ run(9334, async () => {
   check(await exists(photo.path.stringValue) && await exists(photo.thumbPath.stringValue), 'the photo and its thumbnail are in the booking\'s folder in Storage');
   check((await listFiles('uploads/')).every((f) => !f.includes(photo.id.stringValue)), 'and the upload itself is gone');
   check((await list('mail')).length === 2, 'two emails are queued (customer and owner)');
+  const accepted = bookings[0].accepted?.fields;
+  check(accepted?.terms.booleanValue && accepted?.earlyStart.booleanValue && accepted?.termsVersion.stringValue === R.CONFIG.termsVersion && accepted?.at,
+    'the booking records both boxes, the terms version and the time');
 
   // Next visit: remembered details, and 10:00 is now taken.
   await evaluate("document.getElementById('again').click()");
@@ -110,10 +121,10 @@ run(9334, async () => {
   const otherInput = { serviceIds: ['chain'], date: D1, arrival: '11:00', bike: 'City bike', address: 'Nørrebrogade 1, 2200 København N', name: 'Other', phone: '1', email: 'other@example.com' };
   const other = await (await fetch(`http://127.0.0.1:5001/${PROJECT}/europe-west1/createBooking`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data: { input: otherInput, consent: { data: true, terms: true, version: R.CONFIG.consentVersion } } }),
+    body: JSON.stringify({ data: { input: otherInput, accept: { terms: true, earlyStart: true } } }),
   })).json();
   check(other.result?.booking, 'meanwhile someone else books 11:00');
-  await evaluate("document.getElementById('confirm').click()");
+  await evaluate("document.getElementById('acc-terms').click(); document.getElementById('acc-start').click(); document.getElementById('confirm').click()");
   await waitFor("!document.getElementById('f').hidden && document.getElementById('e-arrival').textContent", 'the refusal');
   check(await evaluate("document.getElementById('e-arrival').textContent === I18N.t('err.taken')"), 'the visitor is told the time was just taken, back on the form');
   await waitFor(slotsReady, 'refreshed times');
@@ -132,10 +143,9 @@ run(9334, async () => {
   check((await list('consultations')).length === 1, 'the consultation request is in the database');
   await shot('web-done.png', 1000);
 
-  // Privacy policy and terms (drafts): reached from the footer and the consent dialog, one language at a time.
-  check(await evaluate("[...document.querySelectorAll('footer a')].map(a=>a.getAttribute('href')).join(' ')") === 'terms.html privacy.html'
-    && await evaluate("[...document.querySelectorAll('#consent a')].map(a=>a.getAttribute('href')).join(' ')") === 'privacy.html terms.html',
-    'the footer and the consent dialog link to the terms and the privacy policy');
+  // Privacy policy and terms (drafts): reached from the footer, one language at a time.
+  check(await evaluate("[...document.querySelectorAll('footer a')].map(a=>a.getAttribute('href')).join(' ')") === 'terms.html privacy.html',
+    'the footer links to the terms and the privacy policy');
   const visible = (id) => `getComputedStyle(document.getElementById('${id}')).display !== 'none'`;
   await evaluate("document.querySelector('footer a[href=\"privacy.html\"]').click()");
   await waitFor("location.pathname.endsWith('/privacy.html') && document.readyState === 'complete'", 'the privacy page');

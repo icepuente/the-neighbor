@@ -42,7 +42,11 @@ especially, and have a native speaker proofread the Danish.
       settings, privacy section), so Google is formally the data processor the policy describes.
 - [ ] The booking confirmation **email** must contain the withdrawal information and the standard
       withdrawal form: a link is not enough (Forbrugerombudsmanden). To build with email sending.
-- [ ] A checkbox in the booking for the right of withdrawal (see below), or the terms must change.
+- [x] A checkbox in the booking for the right of withdrawal (see below). *Done 2026-10-17:* the
+      price page has two required boxes, "I accept the terms" and the early-start request with the
+      acknowledgement; the booking records both, with the terms version and the time. The old consent
+      popup is gone: booking data rests on the agreement, not on consent. Check the wording of the
+      early-start box (`co.earlyStart` in `web/js/i18n.js`) with the rest.
 - [ ] Native-speaker proofreading of the Danish text; legal review of the terms.
 
 ## Rules checked (2026-10-17)

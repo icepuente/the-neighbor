@@ -119,7 +119,7 @@ export const quoteBooking = onCall(async (request) => {
 // bookings, so two customers cannot both get the same time. Returns { errors } or { booking }.
 export const createBooking = onCall(async (request) => {
   const input = bookingInput(request.data?.input);
-  const consent = request.data?.consent;
+  const accept = request.data?.accept;
   const uid = customerUid(request);
   const todayDate = R.today();
   const [ctx, closed, km] = await Promise.all([
@@ -132,7 +132,9 @@ export const createBooking = onCall(async (request) => {
 
   // Cheap checks first, outside the transaction.
   const errors = R.checkBooking(input, q, { ...base, dayBookings: [] });
-  if (!consent?.data || !consent?.terms) errors.form = 'consent';
+  // The terms and the early start of work, both ticked on the price page.
+  const notAccepted = R.checkAcceptance(accept);
+  if (notAccepted) errors.accept = notAccepted;
   delete errors.arrival; // needs the day's bookings: checked in the transaction
   if (Object.keys(errors).length) return { errors };
 
@@ -200,7 +202,8 @@ export const createBooking = onCall(async (request) => {
       note: input.note,
       photos,
       pricing: { oneOff: q.oneOff, discount: q.discount, discountReason: q.discountReason, monthly: q.monthly, travel: q.travel, total: q.total },
-      consent: { data: true, terms: true, version: str(consent.version, 20), at: FieldValue.serverTimestamp() },
+      // Proof of what the customer accepted, and when; the version is the server's, not the browser's.
+      accepted: { terms: true, earlyStart: true, termsVersion: R.CONFIG.termsVersion, at: FieldValue.serverTimestamp() },
       createdAt: FieldValue.serverTimestamp(),
     };
     tx.set(ref, booking);

@@ -162,7 +162,7 @@ bookings/{id}               ref "TN-1042", status pending | confirmed | complete
                             distanceKm, name, email, phone,
                             pricing { oneOff, discount, discountReason, monthly, travel, total },
                             urgent: bool, note, photos[{ id, path, thumbPath, w, h, uploadedAt }]
-                            (max 3), consent { data, terms, version, at }, createdAt
+                            (max 3), accepted { terms, earlyStart, termsVersion, at }, createdAt
 bookings/{id}/messages/{id} direction in | out, body, emailStatus, createdAt  (as today)
 
 serviceRecords/{id}         ownerUid | companyId, bikeId, bookingId?, date, title,

@@ -129,3 +129,11 @@ test('travel estimate stand-in, consultation form, subscriptions', () => {
   assert.equal(R.checkConsultation({ name: 'A', company: 'B', email: 'x', phone: '1', companyType: 'Hotel', bikes: '6–15' }), 'email');
   assert.equal(R.commitmentEnds('2026-10-20'), '2027-01-20', 'Care plans: 3-month minimum');
 });
+
+test('accepting the terms and the early start of work', () => {
+  assert.equal(R.checkAcceptance({ terms: true, earlyStart: true }), null);
+  assert.equal(R.checkAcceptance({ earlyStart: true }), 'terms');
+  assert.equal(R.checkAcceptance({ terms: true }), 'earlyStart', 'the withdrawal acknowledgement is required too');
+  assert.equal(R.checkAcceptance({ terms: 'yes', earlyStart: true }), 'terms', 'only a real true counts');
+  assert.equal(R.checkAcceptance(null), 'terms');
+});
