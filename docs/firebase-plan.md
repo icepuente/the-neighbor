@@ -434,6 +434,22 @@ deny everything from browsers until phase 1 opens what each page needs.
 - **Publish rules and sign-in settings:** `npx firebase deploy --only firestore:rules,storage,auth`.
   Hosting is not deployed yet.
 
+**Phase 1 steps** (the public site; the account page and dashboard follow in phases 2 and 3):
+
+1. *Done 2026-10-17:* copy the mock into `web/` and connect Firebase (`js/firebase-config.js`,
+   `js/firebase.js`: SDK 13.0.0 from the gstatic CDN, emulators on localhost with a
+   test-environment bar). The page still runs on the mock backend.
+2. One shared rules file (services, prices, discounts, opening hours, the 45-minute limit, lead
+   time) used by both the page and the Functions, tested with the existing logic tests.
+3. Cloud Functions on the emulator: start times, price, `createBooking`, `createConsultation`;
+   emails to a test outbox.
+4. Connect the booking page to the Functions, replacing the mock backend.
+5. Booking photos: anonymous sign-in, Storage upload, rules (small JPEGs only), tests.
+6. Consent popup, content check, full browser test run against the emulators.
+
+Waiting for Alec's go-ahead (cost or live services): deploying Functions, a Google Maps key (the
+postcode estimate stays until then), an email service, the HTTPS proof of concept.
+
 ## The mock site
 
 [`mock/`](../mock/) is a static, clickable version of the finished site. It has no Firebase and no
