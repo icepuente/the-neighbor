@@ -20,7 +20,12 @@ run(9335, async () => {
   // A chain service a few days ahead, at the first free time the server offers.
   await evaluate("document.querySelector('input[name=svc][value=\"chain\"]').click()");
   const day = R.nextOpenDay(R.addDays(R.today(), 3));
-  await evaluate(`(()=>{const e=document.getElementById('date');e.value='${day}';e.dispatchEvent(new Event('change'))})()`);
+  // Pick the day in the calendar, by clicking.
+  await waitFor('!!document.getElementById("date").min', 'the earliest date');
+  await evaluate("document.getElementById('dacc').click()");
+  if (!await evaluate(`!!document.querySelector('#cal [data-date="${day}"]')`)) await evaluate("document.querySelector('#cal .cal-nav.next').click()");
+  await evaluate(`document.querySelector('#cal [data-date="${day}"]').click()`);
+  check(await evaluate("document.getElementById('date').value") === day && await evaluate("!document.getElementById('slots').hidden"), `the calendar picks ${day} and opens the time list`);
   await waitFor("document.querySelectorAll('#slots input[name=slot]').length > 0", 'start times from the Functions');
   check(true, `the Functions answer through ${origin}/fn/ (start times for ${day})`);
   await evaluate("document.querySelector('#slots input[name=slot]:not(:disabled)').click()");

@@ -24,9 +24,9 @@ tar -czf - \
       # through Jarvis: deploy cannot create folders in /opt).
       test -d $DIR
       cd $DIR
-      # Empty the folders rather than delete them: nginx has web/ and deploy/demo/nginx/ mounted, and
-      # a deleted folder would leave it serving nothing.
-      for d in web functions deploy; do mkdir -p \$d; find \$d -mindepth 1 -delete; done
+      # Remove old files but keep every folder: nginx has web/ and deploy/demo/nginx/ mounted, and a
+      # deleted (then recreated) folder leaves it attached to the old, empty one: no config, no site.
+      for d in web functions deploy; do mkdir -p \$d; find \$d -mindepth 1 ! -type d -delete; done
       tar -xzf - --no-same-owner
       # Pages load scripts, styles and fonts from r/$VERSION/ (relative paths inside follow).
       sed -i -E 's#(src|href)=\"(js|css)/#\1=\"r/$VERSION/\2/#g' web/*.html
@@ -37,6 +37,15 @@ tar -czf - \
       docker compose \$profile up -d --build --remove-orphans --wait --wait-timeout 300
       docker compose exec -T nginx nginx -t -q
       docker compose exec -T nginx nginx -s reload
+      sleep 1
+      # The page must really be served, with this version's links; otherwise restart nginx and check again.
+      served() { docker compose exec -T nginx wget -qO- http://127.0.0.1/ 2>/dev/null | grep -q 'r/$VERSION/js/'; }
+      if ! served; then
+        echo 'nginx did not serve the new page after reload: restarting it'
+        docker compose \$profile up -d --force-recreate --no-deps nginx
+        sleep 2
+        served
+      fi
       docker image prune -f >/dev/null
       docker compose \$profile ps --format '{{.Service}}: {{.Status}}'
       echo 'deployed version $VERSION'"
