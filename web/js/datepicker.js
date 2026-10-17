@@ -195,9 +195,13 @@ export function attachDatePicker(input, opts) {
   button.addEventListener('click', () => (panel.hidden ? open() : close()));
   // A click anywhere else closes the calendar. composedPath() is taken when the click happens, so
   // the month buttons (which re-draw the calendar) still count as inside.
-  document.addEventListener('click', (e) => {
+  // The listener removes itself once the field has left the page (pages that re-draw, like the
+  // dashboard, make new fields).
+  const outside = (e) => {
+    if (!wrap.isConnected) { document.removeEventListener('click', outside); return; }
     if (!panel.hidden && !e.composedPath().includes(wrap)) close();
-  });
+  };
+  document.addEventListener('click', outside);
   // Dates set by other code (a reset, a test) show in the button too.
   input.addEventListener('change', showValue);
 

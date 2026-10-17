@@ -369,3 +369,17 @@ pre.mail { white-space: pre-wrap; font: 15px/1.5 'Source Serif 4', serif; margin
   .bchip { font-size: 11px; padding: 2px 3px; }
   .bcal-day { min-height: 56px; padding: 3px; }
 }
+
+/* Booking card tools in the dashboard: private note, reschedule, message (admin.js) */
+.booking .tools { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 6px; display: grid; gap: 2px; }
+.booking .tool > summary { cursor: pointer; padding: 4px 0; }
+.booking .tool[open] { padding-bottom: 8px; }
+.booking .tool textarea { margin-top: 6px; }
+.booking .tool .slots { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
+.slotbtn { border: 1.5px solid var(--field); border-radius: 99px; background: #fff; color: var(--ink); padding: 7px 2px; font: 400 15px 'Source Serif 4', serif; cursor: pointer; }
+.slotbtn.on { background: var(--base); color: #fff; border-color: var(--base); }
+.slotbtn:disabled { opacity: .4; text-decoration: line-through; cursor: not-allowed; }
+.booking .tool .pill { width: auto; margin-top: 10px; }
+.sent-msg { background: #fff; border-radius: 10px; padding: 6px 10px; margin: 6px 0; }
+.sent-msg p { margin: 2px 0; font-size: 15px; white-space: pre-wrap; }
+.toolbar .alt.csv { color: #fff; border-color: #fff; margin: 0 0 10px; }

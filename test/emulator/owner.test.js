@@ -92,3 +92,49 @@ test('requests: the owner archives and restores them, as true or false only', as
   assert.equal((await setArchived({ stringValue: 'yes' }, owner)).status, 403, 'only true or false');
   assert.equal((await setArchived({ booleanValue: true }, await account('z@example.com'))).status, 403, 'not a customer');
 });
+
+const callAs = async (name, data, headers = {}) => (await fetch(`${FN}/${name}`, {
+  method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ data }),
+})).json();
+
+test('rescheduleBooking: owner only; free times leave the booking itself out; the customer is emailed', async () => {
+  const owner = await account('owner-resched@example.com', { admin: true });
+  const a = await makeBooking('resched-a@example.com', '12:00');
+  const b = await makeBooking('resched-b@example.com', '13:00');
+  const day = R.nextOpenDay(R.addDays(R.today(), 30));
+  assert.equal((await callAs('rescheduleBooking', { bookingId: a.id, date: day }, await account('cust@example.com'))).error?.status, 'PERMISSION_DENIED', 'not for customers');
+  assert.equal((await callAs('rescheduleBooking', { bookingId: a.id, date: day })).error?.status, 'PERMISSION_DENIED', 'not for guests');
+  const times = (await callAs('rescheduleBooking', { bookingId: a.id, date: day }, owner)).result.times;
+  const free = (t) => times.find((s) => s.time === t).free;
+  assert.equal(free('12:00'), true, 'its own time counts as free');
+  assert.equal(free('13:00'), false, "the other booking's time does not");
+  assert.equal((await callAs('rescheduleBooking', { bookingId: a.id, date: day, arrival: '13:00' }, owner)).result.error, 'taken', 'a taken time is refused');
+  const sunday = (() => { let d = day; while (R.weekday(d) !== 0) d = R.addDays(d, 1); return d; })();
+  assert.equal((await callAs('rescheduleBooking', { bookingId: a.id, date: sunday }, owner)).result.error, 'sunday', 'Sundays are closed');
+  const later = R.nextOpenDay(R.addDays(day, 1));
+  const moved = (await callAs('rescheduleBooking', { bookingId: a.id, date: later, arrival: '09:30' }, owner)).result;
+  assert.deepEqual([moved.ok, moved.date, moved.arrival], [true, later, '09:30']);
+  const doc = await (await getDoc(`bookings/${a.id}`, ADMIN)).json();
+  assert.deepEqual([doc.fields.date.stringValue, doc.fields.arrival.stringValue, doc.fields.previous.mapValue.fields.arrival.stringValue], [later, '09:30', '12:00'], 'moved, with the old time kept');
+  assert.ok((await mailFor('resched-a@example.com')).includes(`Your booking ${a.ref} has a new time`), 'the customer is emailed');
+  assert.ok(b.id, 'the other booking is untouched');
+});
+
+test('messageCustomer: owner only; emailed and kept with the booking', async () => {
+  const owner = await account('owner-msg@example.com', { admin: true });
+  const b = await makeBooking('msg@example.com', '14:00');
+  assert.equal((await callAs('messageCustomer', { bookingId: b.id, text: 'Hi' }, await account('cust2@example.com'))).error?.status, 'PERMISSION_DENIED', 'not for customers');
+  assert.equal((await callAs('messageCustomer', { bookingId: b.id, text: '  ' }, owner)).result.error, 'empty');
+  assert.equal((await callAs('messageCustomer', { bookingId: b.id, text: 'Could I come at 14:30 instead?' }, owner)).result.ok, true);
+  assert.ok((await mailFor('msg@example.com')).includes(`About your booking ${b.ref}`), 'emailed');
+  const kept = await (await getDoc(`bookings/${b.id}/messages`, owner)).json();
+  assert.equal(kept.documents?.[0]?.fields.text.stringValue, 'Could I come at 14:30 instead?', 'kept with the booking, readable by the owner');
+  assert.equal((await getDoc(`bookings/${b.id}/messages`, await account('cust3@example.com'))).status, 403, 'not readable by customers');
+});
+
+test('the owner can save a private note on a booking', async () => {
+  const owner = await account('owner-note@example.com', { admin: true });
+  const b = await makeBooking('note@example.com', '15:00');
+  assert.equal((await patch(`bookings/${b.id}`, { ownerNote: 'Gate code 1234' }, owner)).status, 200);
+  assert.equal((await patch(`bookings/${b.id}`, { ownerNote: 'x' }, await account('cust4@example.com'))).status, 403, 'not customers');
+});

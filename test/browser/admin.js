@@ -69,12 +69,51 @@ run(9336, async () => {
   await waitFor(`!${card('TN-1043')}`, 'the cancelled booking to leave the upcoming list');
   check(true, 'the second click cancels TN-1043, which leaves the upcoming list');
 
+  // Booking tools on TN-1042: private note, reschedule, message.
+  const toolOf = (ref, key) => `${card(ref)}.querySelector('details.tool[data-key^="${key}-"]')`;
+  await evaluate(`${toolOf('TN-1042', 'note')}.open = true`);
+  await evaluate(`(()=>{const t=${toolOf('TN-1042', 'note')}.querySelector('textarea');t.value='Gate code 1234';t.dispatchEvent(new Event('input',{bubbles:true}));[...${toolOf('TN-1042', 'note')}.querySelectorAll('button')][0].click()})()`);
+  await waitFor(`${toolOf('TN-1042', 'note')}.querySelector('summary').textContent.includes('✎')`, 'the saved note');
+  check(await evaluate(`${toolOf('TN-1042', 'note')}.querySelector('textarea').value`) === 'Gate code 1234', 'a private note is saved on the booking (and marked ✎)');
+
+  const newDay = R.nextOpenDay(R.addDays(R.today(), 10));
+  await evaluate(`${toolOf('TN-1042', 'resched')}.open = true`);
+  await evaluate(`${toolOf('TN-1042', 'resched')}.querySelector('.datefield button').click()`);
+  const reschedCal = `${toolOf('TN-1042', 'resched')}.querySelector('.cal')`;
+  if (!await evaluate(`!!${reschedCal}.querySelector('[data-date="${newDay}"]')`)) await evaluate(`${reschedCal}.querySelector('.cal-nav.next').click()`);
+  await evaluate(`${reschedCal}.querySelector('[data-date="${newDay}"]').click()`);
+  await waitFor(`${toolOf('TN-1042', 'resched')}.querySelectorAll('.slotbtn').length > 0`, 'free times for the new day', 15000);
+  await evaluate(`[...${toolOf('TN-1042', 'resched')}.querySelectorAll('.slotbtn')].find((t)=>t.textContent==='11:00').click()`);
+  const moveLabel = await evaluate(`${toolOf('TN-1042', 'resched')}.querySelector('.pill').textContent`);
+  check(moveLabel.includes('at 11:00 and email Mikkel Holm'), `picking a day and a free time offers the move ("${moveLabel}")`);
+  await evaluate(`${toolOf('TN-1042', 'resched')}.querySelector('.pill').click()`);
+  await waitFor(`${card('TN-1042')}.querySelector('h3').textContent.includes('11:00')`, 'the moved booking', 15000);
+  check((await evaluate(`${card('TN-1042')}.querySelector('h3').textContent`)).includes(`${new Date(`${newDay}T12:00:00Z`).getUTCDate()}`), 'the booking moves to the new day and time');
+
+  await evaluate(`${toolOf('TN-1042', 'msg')}.open = true`);
+  await evaluate(`(()=>{const t=${toolOf('TN-1042', 'msg')}.querySelector('textarea');t.value='I will bring a new chain.';t.dispatchEvent(new Event('input',{bubbles:true}));${toolOf('TN-1042', 'msg')}.querySelector('button').click()})()`);
+  await waitFor(`${toolOf('TN-1042', 'msg')}.textContent.includes('I will bring a new chain.') && !${toolOf('TN-1042', 'msg')}.querySelector('textarea').value`, 'the sent message', 15000);
+  check((await evaluate(`${toolOf('TN-1042', 'msg')}.querySelector('summary').textContent`)) === 'Message the customer (1 sent)', 'a message is sent and kept with the booking');
+  await shot('admin-tools.png', 1300);
+
+  // CSV of the list: Danish Excel format.
+  // Read the raw bytes: Blob.text() would silently drop the BOM.
+  await evaluate("window.__csv=null;const o=URL.createObjectURL.bind(URL);URL.createObjectURL=(b)=>{b.arrayBuffer().then((a)=>{window.__csv=new TextDecoder('utf-8',{ignoreBOM:true}).decode(a)});return o(b)}");
+  await evaluate("document.querySelector('.toolbar .csv').click()");
+  await waitFor('window.__csv !== null', 'the CSV');
+  const csv = await evaluate('window.__csv');
+  const lines = csv.replace(/^\ufeff/, '').trim().split('\r\n');
+  check(csv.startsWith('\ufeff') && lines[0].startsWith('"Ref";"Date";"Time";"Status"'), 'Download CSV gives a semicolon file with a BOM, for Danish Excel');
+  check(lines.some((l) => l.includes('"TN-1042"') && l.includes('"Gate code 1234"') && l.includes('"11:00"')), 'with the bookings shown, including the private note and the new time');
+
   // Outbox: both emails queued.
   await tab('Outbox');
   await waitFor("[...document.querySelectorAll('#view summary')].some((s)=>s.textContent.includes('TN-1043 has been cancelled'))", 'the emails', 15000);
   const subjects = await evaluate("[...document.querySelectorAll('#view summary')].map((s)=>s.textContent)");
   check(subjects.some((s) => s === 'Your booking TN-1042 is confirmed → mikkel@example.com'), 'the outbox shows the confirmation email to Mikkel');
   check(subjects.some((s) => s.startsWith('Your booking TN-1043 has been cancelled')), 'and the cancellation email to Sara');
+  check(subjects.some((s) => s.startsWith('Your booking TN-1042 has a new time')) && subjects.some((s) => s.startsWith('About your booking TN-1042')),
+    'and the new-time email and the message to Mikkel');
 
   // Requests.
   await tab('Requests');

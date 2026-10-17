@@ -10,7 +10,7 @@ import * as R from './shared/booking-rules.js';
 const { $, h, A, button, defList, tag } = UI;
 const { auth, db, storage, sdk } = NBF;
 const { onAuthStateChanged, signInWithEmailAndPassword, signOut } = sdk.auth;
-const { collection, doc, onSnapshot, updateDoc, setDoc, deleteDoc, serverTimestamp } = sdk.firestore;
+const { collection, doc, getDocs, onSnapshot, updateDoc, setDoc, deleteDoc, serverTimestamp } = sdk.firestore;
 const { ref: storageRef, getBlob } = sdk.storage;
 
 const dkk = (n) => `${Math.round(n).toLocaleString('da-DK')} DKK`;
@@ -84,14 +84,40 @@ function render() {
     if (i === current) b.setAttribute('aria-current', 'page');
     t.append(b);
   });
-  // Keep an open <details> and a half-filled form when the data refreshes underneath.
+  // Keep open <details>, typed text and the cursor when the data refreshes underneath (a booking
+  // arriving or changing re-draws the view).
   const v = $('view');
   const open = new Set([...v.querySelectorAll('details[open]')].map((d) => d.dataset.key));
-  const keep = [...v.querySelectorAll('[data-keep]')].map((el) => [el.dataset.keep, el.value]);
+  const keep = [...v.querySelectorAll('[data-keep]')].map((el) => [el.dataset.keep, el.value, el.dataset.dirty]);
+  const active = document.activeElement?.dataset?.keep;
+  const caret = active ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
   v.textContent = '';
   tabs[current][1](v);
   for (const d of v.querySelectorAll('details')) if (open.has(d.dataset.key)) d.open = true;
-  for (const [k, val] of keep) { const el = v.querySelector(`[data-keep="${k}"]`); if (el && !el.value) el.value = val; }
+  for (const [k, val, dirty] of keep) {
+    const el = v.querySelector(`[data-keep="${k}"]`);
+    // Text the owner has typed wins over what was saved.
+    if (el && dirty) { el.value = val; el.dataset.dirty = '1'; }
+  }
+  if (active) {
+    const el = v.querySelector(`[data-keep="${active}"]`);
+    if (el) { el.focus(); el.setSelectionRange?.(...caret); }
+  }
+}
+// Marks typed text so a re-draw keeps it (see render).
+document.addEventListener('input', (e) => { if (e.target.dataset?.keep) e.target.dataset.dirty = '1'; });
+// Empties a kept field once its text is saved or sent. Looks the field up again: a re-draw while
+// saving may have replaced the element the click came from.
+function clearKept(key, value = '') {
+  const el = document.querySelector(`[data-keep="${key}"]`);
+  if (!el) return;
+  el.value = value;
+  delete el.dataset.dirty;
+}
+
+async function callFn(name, payload) {
+  const res = await sdk.functions.httpsCallable(NBF.functions, name)(payload);
+  return res.data;
 }
 
 function field(labelText, input) {
@@ -149,20 +175,60 @@ function bookingsView(v) {
     A(l, cb, h('span', '', 'Show cancelled'));
     bar.append(l);
   }
+  // CSV of what is shown: the list's filter, or the calendar's month.
+  const csvBtn = button('Download CSV', 'alt sm csv', () => downloadCsv(shownBookings()));
+  bar.append(csvBtn);
   v.append(bar);
   if (bookingMode === 'calendar') { calendarView(v); return; }
 
-  const today = R.today();
-  const list = data.bookings.filter((b) => {
-    if (bookingFilter === 'pending') return b.status === 'pending';
-    if (bookingFilter === 'upcoming') return b.date >= today && b.status !== 'cancelled';
-    return true;
-  }).sort((a, b) => (a.date + a.arrival).localeCompare(b.date + b.arrival));
+  const list = shownBookings();
   if (!list.length) v.append(h('p', 'sub', 'Nothing here.'));
 
   const wrap = h('div', 'list');
   for (const b of list) wrap.append(bookingCard(b));
   v.append(wrap);
+}
+
+// The bookings the current view shows, by date and time.
+function shownBookings() {
+  const today = R.today();
+  const month = `${calMonth[0]}-${String(calMonth[1] + 1).padStart(2, '0')}`;
+  return data.bookings.filter((b) => {
+    if (bookingMode === 'calendar') return b.date.startsWith(month) && (showCancelled || b.status !== 'cancelled');
+    if (bookingFilter === 'pending') return b.status === 'pending';
+    if (bookingFilter === 'upcoming') return b.date >= today && b.status !== 'cancelled';
+    return true;
+  }).sort((a, b) => (a.date + a.arrival).localeCompare(b.date + b.arrival));
+}
+
+// A CSV file for Excel in Denmark: semicolons between fields, a BOM so æ, ø and å show
+// correctly, and every value quoted. Values that could start a formula are prefixed with ' so a
+// spreadsheet shows them as text.
+function downloadCsv(list) {
+  const cols = [
+    ['Ref', (b) => b.ref], ['Date', (b) => b.date], ['Time', (b) => b.arrival], ['Status', (b) => b.status],
+    ['Urgent', (b) => (b.urgent ? 'yes' : '')], ['Name', (b) => b.name], ['Phone', (b) => b.phone], ['Email', (b) => b.email],
+    ['Address', (b) => R.fullAddress(b.address, b.apartment)], ['Bike', (b) => b.bikeType || ''],
+    ['Services', (b) => b.services.map((s) => s.name).join(', ')], ['Work (min)', (b) => b.workMin],
+    ['Services (DKK)', (b) => b.pricing.oneOff], ['Discount (DKK)', (b) => b.pricing.discount], ['Travel (DKK)', (b) => b.pricing.travel ?? ''],
+    ['Total (DKK)', (b) => b.pricing.total], ['Monthly (DKK)', (b) => b.pricing.monthly || ''],
+    ['Customer note', (b) => b.note || ''], ['Private note', (b) => b.ownerNote || ''], ['Photos', (b) => b.photos?.length || 0],
+    ['Booked', (b) => (b.createdAt?.toDate ? b.createdAt.toDate().toISOString() : '')],
+  ];
+  const cell = (v) => {
+    let s = String(v ?? '');
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
+  const rows = [cols.map(([name]) => cell(name)).join(';'), ...list.map((b) => cols.map(([, get]) => cell(get(b))).join(';'))];
+  const blob = new Blob([`\uFEFF${rows.join('\r\n')}\r\n`], { type: 'text/csv;charset=utf-8' });
+  const a = h('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `the-neighbor-bookings-${R.today()}.csv`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // One booking: the essentials, photos, details and the actions. Used by the list and the calendar.
@@ -203,7 +269,140 @@ function bookingCard(b) {
     });
     c.append(cancel);
   }
+  // Tools: private note, reschedule, message the customer.
+  const tools = h('div', 'tools');
+  tools.append(noteBox(b));
+  if (['pending', 'confirmed'].includes(b.status)) tools.append(rescheduleBox(b));
+  tools.append(messageBox(b));
+  c.append(tools);
   return c;
+}
+
+// A collapsible tool on the booking card; stays open through re-draws (render keeps data-key).
+function tool(b, key, title) {
+  const d = h('details', 'tool');
+  d.dataset.key = `${key}-${b.id}`;
+  d.append(h('summary', 'meta', title));
+  return d;
+}
+
+// ---- Private note: only the owner sees it ----
+function noteBox(b) {
+  const d = tool(b, 'note', b.ownerNote ? 'Private note ✎' : 'Private note');
+  const ta = h('textarea');
+  ta.rows = 3;
+  ta.maxLength = 2000;
+  ta.value = b.ownerNote || '';
+  ta.dataset.keep = `note-${b.id}`;
+  ta.setAttribute('aria-label', `Private note for ${b.ref}`);
+  const msg = h('span', 'det');
+  const save = button('Save note', 'alt sm', () => {
+    updateDoc(doc(db, 'bookings', b.id), { ownerNote: ta.value.trim() })
+      .then(() => { clearKept(`note-${b.id}`, ta.value.trim()); msg.textContent = ' Saved.'; }, (e) => { msg.textContent = ` Could not save: ${e.code || e.message}`; });
+  });
+  A(d, h('p', 'det', 'Only you see this. Customers never do.'), ta, save, msg);
+  return d;
+}
+
+// ---- Reschedule: pick a day, then a free time; the Function moves it and emails the customer ----
+const resched = new Map(); // booking id -> { date, times, pick, error, busy, done }
+const RESCHED_ERRORS = {
+  sunday: 'Sundays are closed.', closed: 'That day is closed.', taken: 'That time was just taken. Pick another.',
+  arrival: 'That is not a start time.', date: 'Choose a day from today on.', status: 'Only pending or confirmed bookings can be moved.',
+  missing: 'This booking no longer exists.',
+};
+function rescheduleBox(b) {
+  const st = resched.get(b.id) || {};
+  const d = tool(b, 'resched', 'Reschedule');
+  const dateIn = h('input');
+  dateIn.type = 'date';
+  dateIn.id = `resched-${b.id}`;
+  dateIn.value = st.date || '';
+  A(d, h('p', 'det', `Now ${fmtDate(b.date)} at ${b.arrival} (${b.workMin} min). Choose a new day:`), dateIn);
+  attachDatePicker(dateIn, {
+    locale: 'en-GB',
+    labels: { choose: 'Choose a day', prev: 'Previous month', next: 'Next month', unavailable: 'closed' },
+    today: R.today,
+    earliest: R.today,
+    unavailable: (x) => R.closedReason(x, data.closedDates.map((cd) => cd.id)),
+  });
+  dateIn.onchange = async () => {
+    resched.set(b.id, { date: dateIn.value, busy: true });
+    render();
+    try {
+      const r = await callFn('rescheduleBooking', { bookingId: b.id, date: dateIn.value });
+      resched.set(b.id, { date: dateIn.value, times: r.times, error: r.error });
+    } catch (e) {
+      resched.set(b.id, { date: dateIn.value, error: e.message });
+    }
+    render();
+  };
+  if (st.busy) d.append(h('p', 'det', 'Working…'));
+  if (st.error) d.append(h('p', 'err', RESCHED_ERRORS[st.error] || st.error));
+  if (st.done) d.append(h('p', 'ok', st.done));
+  if (st.times) {
+    const slots = h('div', 'slots');
+    for (const s of st.times) {
+      const t = button(s.time, `slotbtn${st.pick === s.time ? ' on' : ''}`, () => { resched.set(b.id, { ...st, pick: s.time, error: null }); render(); });
+      t.disabled = !s.free;
+      t.setAttribute('aria-pressed', String(st.pick === s.time));
+      slots.append(t);
+    }
+    if (!st.times.some((s) => s.free)) d.append(h('p', 'det', 'No free times that day.'));
+    d.append(slots);
+  }
+  if (st.pick) {
+    d.append(button(`Move to ${fmtDate(st.date)} at ${st.pick} and email ${b.name}`, 'pill', async () => {
+      resched.set(b.id, { ...st, busy: true });
+      render();
+      try {
+        const r = await callFn('rescheduleBooking', { bookingId: b.id, date: st.date, arrival: st.pick });
+        resched.set(b.id, r.ok ? { done: `Moved to ${fmtDate(r.date)} at ${r.arrival}. ${b.name} has been emailed.` } : { ...st, busy: false, pick: null, error: r.error });
+      } catch (e) {
+        resched.set(b.id, { ...st, busy: false, error: e.message });
+      }
+      render();
+    }));
+  }
+  return d;
+}
+
+// ---- Message the customer: emailed, and kept with the booking ----
+const messages = new Map(); // booking id -> [{ text, createdAt }] once loaded
+async function loadMessages(id) {
+  const snap = await getDocs(collection(db, 'bookings', id, 'messages'));
+  messages.set(id, snap.docs.map((m) => m.data()).sort((x, y) => (x.createdAt?.toMillis?.() || 0) - (y.createdAt?.toMillis?.() || 0)));
+  render();
+}
+function messageBox(b) {
+  const sent = messages.get(b.id);
+  const d = tool(b, 'msg', sent?.length ? `Message the customer (${sent.length} sent)` : 'Message the customer');
+  d.addEventListener('toggle', () => { if (d.open && !messages.has(b.id)) loadMessages(b.id); });
+  for (const m of sent || []) {
+    const p = h('div', 'sent-msg');
+    A(p, h('p', 'meta', `Sent ${fmtTime(m.createdAt)}`), h('p', '', m.text));
+    d.append(p);
+  }
+  const ta = h('textarea');
+  ta.rows = 3;
+  ta.maxLength = 4000;
+  ta.dataset.keep = `msg-${b.id}`;
+  ta.setAttribute('aria-label', `Message to ${b.name}`);
+  const note = h('span', 'det');
+  const send = button(`Send to ${b.email}`, 'alt sm', async () => {
+    if (!ta.value.trim()) { note.textContent = ' Write a message first.'; return; }
+    send.disabled = true;
+    try {
+      const r = await callFn('messageCustomer', { bookingId: b.id, text: ta.value });
+      if (r.ok) { clearKept(`msg-${b.id}`); await loadMessages(b.id); } else note.textContent = ` Could not send (${r.error}).`;
+    } catch (e) {
+      note.textContent = ` Could not send: ${e.message}`;
+    } finally {
+      send.disabled = false;
+    }
+  });
+  A(d, ta, send, note);
+  return d;
 }
 
 // ---- Month calendar of bookings ----
@@ -389,7 +588,7 @@ function closedView(v) {
     err.textContent = '';
     if (!dateIn.value) { err.textContent = 'Choose a day.'; return; }
     setDoc(doc(db, 'closedDates', dateIn.value), { reason: reason.value.trim() })
-      .then(() => { reason.value = ''; }, (x) => { err.textContent = `Could not save: ${x.code || x.message}`; });
+      .then(() => { reason.value = ''; delete reason.dataset.dirty; }, (x) => { err.textContent = `Could not save: ${x.code || x.message}`; });
   };
 
   const upcoming = data.closedDates.filter((c) => c.id >= R.today()).sort((a, b) => a.id.localeCompare(b.id));

@@ -8,7 +8,7 @@ import { initializeApp } from 'firebase-admin/app';
 import { FieldPath, FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { setGlobalOptions } from 'firebase-functions/v2';
-import { onCall } from 'firebase-functions/v2/https';
+import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { defineString } from 'firebase-functions/params';
@@ -66,10 +66,18 @@ const customerUid = (request) => {
 // ---- Reads the rules need ----
 const notCancelled = (d) => d.status !== 'cancelled';
 
-async function dayBookings(date, tx) {
+// The day's bookings that are not cancelled, as { arrival, blockMin }; `except` leaves one out (the
+// booking being moved).
+async function dayBookings(date, tx, except = null) {
   const q = db.collection('bookings').where('date', '==', date);
   const snap = tx ? await tx.get(q) : await q.get();
-  return snap.docs.map((d) => d.data()).filter(notCancelled).map((b) => ({ arrival: b.arrival, blockMin: b.blockMin }));
+  return snap.docs.filter((d) => d.id !== except).map((d) => d.data()).filter(notCancelled)
+    .map((b) => ({ arrival: b.arrival, blockMin: b.blockMin }));
+}
+
+// Owner-only Functions: the caller must be signed in with the `admin` claim.
+function requireOwner(request) {
+  if (request.auth?.token?.admin !== true) throw new HttpsError('permission-denied', 'Only the owner can do this.');
 }
 
 async function closedDates(dates) {
@@ -273,6 +281,57 @@ export const createBooking = onCall(async (request) => {
 export const cleanUploads = onSchedule({ schedule: 'every 6 hours', timeZone: R.TIME_ZONE }, async () => {
   const n = await P.deleteStaleUploads(P.bucket());
   logger.info(`cleanUploads: deleted ${n} stale upload(s)`);
+});
+
+// ---- rescheduleBooking (owner): move a booking to another day and time ----
+// Without `arrival`, returns the free start times for `date` (the booking itself not counted). With
+// it, moves the booking inside a transaction that re-checks the time, and emails the customer.
+// The owner is not bound by the customers' lead time, but closed days and the working hours apply.
+export const rescheduleBooking = onCall(async (request) => {
+  requireOwner(request);
+  const id = str(request.data?.bookingId, 64);
+  const date = str(request.data?.date, 10);
+  const arrival = request.data?.arrival ? str(request.data.arrival, 5) : null;
+  if (!id || !R.isDate(date) || date < R.today()) return { error: 'date' };
+  const ref = db.doc(`bookings/${id}`);
+  const current = await ref.get();
+  if (!current.exists) return { error: 'missing' };
+  const b = current.data();
+  if (!['pending', 'confirmed'].includes(b.status)) return { error: 'status' };
+  const closed = R.closedReason(date, await closedDates([date]));
+  if (closed) return { error: closed };
+  if (!arrival) return { times: R.startTimes(b.workMin, await dayBookings(date, null, id)) };
+  if (!R.isTime(arrival)) return { error: 'arrival' };
+
+  const result = await db.runTransaction(async (tx) => {
+    const day = await dayBookings(date, tx, id);
+    const slot = R.startTimes(b.workMin, day).find((s) => s.time === arrival);
+    if (!slot) return { error: 'arrival' };
+    if (!slot.free) return { error: 'taken' };
+    tx.update(ref, { date, arrival, urgent: false, rescheduledAt: FieldValue.serverTimestamp(), previous: { date: b.date, arrival: b.arrival } });
+    queueMail(tx, b.email, `Your booking ${b.ref} has a new time`,
+      `Hi ${b.name},\n\nYour booking has been moved to ${date} at ${arrival} (it was ${b.date} at ${b.arrival}).\n${R.fullAddress(b.address, b.apartment)}\n\nReply to this email if the new time does not suit you.\n\nThe Neighbor`);
+    return { ok: true, date, arrival };
+  });
+  return result;
+});
+
+// ---- messageCustomer (owner): write to the customer about a booking ----
+// Queues the email and keeps the message with the booking (bookings/{id}/messages).
+export const messageCustomer = onCall(async (request) => {
+  requireOwner(request);
+  const id = str(request.data?.bookingId, 64);
+  const text = str(request.data?.text, 4000);
+  if (!id || !text) return { error: 'empty' };
+  const ref = db.doc(`bookings/${id}`);
+  const snap = await ref.get();
+  if (!snap.exists) return { error: 'missing' };
+  const b = snap.data();
+  const batch = db.batch();
+  batch.set(ref.collection('messages').doc(), { direction: 'out', text, to: b.email, createdAt: FieldValue.serverTimestamp() });
+  queueMail(batch, b.email, `About your booking ${b.ref}`, `Hi ${b.name},\n\n${text}\n\nThe Neighbor`);
+  await batch.commit();
+  return { ok: true };
 });
 
 // ---- bookingStatusChanged: tell the customer when the owner confirms, completes or cancels ----

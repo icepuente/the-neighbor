@@ -16,6 +16,11 @@ service cloud.firestore {
       allow update: if isOwner()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'ownerNote', 'statusAt'])
         && request.resource.data.status in ['pending', 'confirmed', 'completed', 'cancelled'];
+
+      // Messages to the customer, written by the Function messageCustomer: the owner reads them.
+      match /messages/{messageId} {
+        allow read: if isOwner();
+      }
     }
 
     // Business consultation requests: read, move along new -> contacted -> won / lost, and archive
