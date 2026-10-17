@@ -220,8 +220,12 @@ Each phase ends with something usable, so it can stop at any point.
    business requests (status), closed days (added with the site calendar) and the email outbox.
    Rules let the owner change only statuses and closed days; the Function `bookingStatusChanged`
    queues the customer's email on every status change. Demo owner login: owner@demo.dk /
-   neighbor-demo (`scripts/seed-demo.js`, run on every daily demo start). Still to do: reschedule,
-   owner notes, replying to customers, CSV export.
+   neighbor-demo (`scripts/seed-demo.js`, run on every daily demo start).
+   *Rest done 2026-10-17:* a List / Calendar switch (month view, status by colour, outline and
+   symbol); archiving requests; on each booking a private note, Reschedule (owner-only Function
+   `rescheduleBooking`: free times leave the booking itself out, transaction, previous time kept,
+   customer emailed) and Message the customer (owner-only `messageCustomer`, kept in
+   `bookings/{id}/messages`); Download CSV (semicolons and BOM for Danish Excel). *Phase 2 done.*
 3. **Private accounts.** Sign-up and log-in, linking past guest bookings by verified email; history,
    bikes (with **bike photos**, added and edited, decision 15) and recommendations; the owner's "log
    a visit" form with photo upload.
@@ -274,8 +278,8 @@ Each phase ends with something usable, so it can stop at any point.
      allows POST only on `/fn/`, limits uploads to 3 MB and rate-limits per visitor; `noindex`.
    - **Deploy:** `npm run deploy:demo` (packs `web/`, the Functions, rules and `deploy/demo/`, sends
      them over SSH as `deploy`, rebuilds, waits until healthy). Jarvis runs root-level tasks.
-   - Sample data (Anna Jensen, Hotel ABC) is not loaded yet: the public page does not show it. It
-     comes with the dashboard (phase 2).
+   - Sample data: `scripts/seed-demo.js` loads the demo owner and a few bookings, a request and a
+     closed day on every daily start (`deploy/demo/start.sh`).
 
 ## 7. Costs and accounts
 
