@@ -54,6 +54,11 @@ export function attachDatePicker(input, opts) {
   panel.className = 'cal';
   panel.id = `${input.id}-cal`;
   panel.hidden = true;
+  // Dates are already in the page's language: a browser translating the page (e.g. Chrome turning
+  // Danish into English) would only garble them ("man" became "Monday", "søn" became "Son").
+  // The site's own DA/EN switch changes them properly.
+  panel.translate = false;
+  valueEl.translate = false;
   button.setAttribute('aria-controls', panel.id);
   input.type = 'hidden';
   wrap.append(button, panel, input);

@@ -64,6 +64,13 @@ run(9334, async () => {
   if (!await evaluate(`!!${dayBtn(D1)}`)) await evaluate("document.querySelector('#date-cal .cal-nav.next').click()");
   check(await evaluate("!document.getElementById('date-cal').hidden"), 'changing month keeps the calendar open');
   await shotEl('calendar.png', '#f');
+  // A browser translating the page once turned "man" into "Monday" and pushed the weekend out of
+  // the box: the calendar asks translators to leave it alone, and long names cannot widen it.
+  check(await evaluate("document.getElementById('date-cal').translate === false"), 'the calendar asks browser translators to leave it alone');
+  const fits = "(()=>{const c=document.getElementById('date-cal');const r=c.getBoundingClientRect();return [...c.querySelectorAll('.cal-day,.cal-wd')].every((d)=>{const b=d.getBoundingClientRect();return b.right<=r.right+0.5&&b.left>=r.left-0.5})})()";
+  check(await evaluate(fits), 'every day fits inside the calendar');
+  await evaluate("(()=>{const long=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];document.querySelectorAll('#date-cal .cal-wd').forEach((w,i)=>{w.textContent=long[i]})})()");
+  check(await evaluate(fits), 'and still does with long, translated weekday names');
   await evaluate(`${dayBtn(D1)}.click()`);
   check(await evaluate("document.getElementById('date-cal').hidden") && await evaluate("document.getElementById('date').value") === D1, 'picking a day closes the calendar');
   check(await evaluate("document.getElementById('date-btn').textContent !== I18N.t('bk.selectDate')"), `the date button shows the day: "${await evaluate("document.getElementById('date-btn').textContent")}"`);

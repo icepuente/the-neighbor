@@ -183,8 +183,10 @@ input[type=text], input[type=tel], input[type=email], input[type=password], inpu
 .cal-title { margin: 0; font: 600 18px 'Source Serif 4', serif; text-transform: capitalize; }
 .cal-nav { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--field); background: #fff; color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
 .cal-nav:disabled { opacity: .3; cursor: default; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.cal-wd { text-align: center; font-size: 13px; text-transform: capitalize; opacity: .65; padding: 4px 0; }
+/* minmax(0, 1fr): columns stay equal whatever text is in them (a browser translating the page once
+   turned "man" into "Monday" and pushed the weekend out of the box). */
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-wd { text-align: center; font-size: 13px; text-transform: capitalize; opacity: .65; padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
 .cal-day { aspect-ratio: 1; min-height: 38px; border: 0; border-radius: 50%; background: transparent; color: var(--ink); font: 400 16px 'Source Serif 4', serif; cursor: pointer; }
 .cal-day:not(:disabled):hover { background: var(--paper); }
 .cal-day.today { box-shadow: inset 0 0 0 1.5px var(--field); }
