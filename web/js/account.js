@@ -106,7 +106,10 @@ if (NBF.environment !== 'production') {
   A(hint, `${t('acc.demoLogin')} `, button(t('acc.fill'), 'lnk', () => { $('le').value = 'anna@demo.dk'; $('lp').value = 'neighbor-demo'; }));
   const business = button(t('acc.fill'), 'lnk', () => { $('le').value = 'hotel@demo.dk'; $('lp').value = 'neighbor-demo'; });
   business.id = 'demo-business';
-  A(hint, h('br'), `${t('acc.demoBusiness')} `, business);
+  A(hint, h('br'), `${t('acc.demoLoginBusiness')} `, business);
+  const owner = button(t('acc.fill'), 'lnk', () => { $('le').value = 'owner@demo.dk'; $('lp').value = 'neighbor-demo'; });
+  owner.id = 'demo-owner';
+  A(hint, h('br'), `${t('acc.demoLoginOwner')} `, owner);
 }
 
 // ---- Signed in ----

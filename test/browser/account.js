@@ -210,4 +210,13 @@ run(9337, async () => {
   await tab(1);
   await waitFor("document.querySelector('.fleet-bike .cover img')?.naturalWidth > 0", 'the fleet photo', 20000);
   check(true, 'and the fleet bike\'s photo, read from Storage');
+
+  // The owner's demo login, filled in on the log-in form: the page points to the dashboard.
+  await evaluate("document.getElementById('out').click()");
+  await waitFor("!document.getElementById('login').hidden", 'the log-in form');
+  await evaluate("document.getElementById('demo-owner').click()");
+  check(await evaluate("document.getElementById('le').value") === 'owner@demo.dk', 'the owner\'s Udfyld button fills in owner@demo.dk');
+  await evaluate("document.querySelector('#lf button[type=submit]').click()");
+  await waitFor("!document.getElementById('owner').hidden", 'the owner section', 20000);
+  check(await evaluate("document.querySelector('#owner a').getAttribute('href')") === 'admin.html', 'signed in as the owner, the page links to the dashboard');
 });
