@@ -1,65 +1,55 @@
 # Operations: book.icepuente.com
 
-Booking website for a mobile bike service. Customers pick a service, a day and a two-hour slot, and enter their details. They get an email straight away. You manage bookings and email customers from `/admin`.
+The site is static: nginx serves `web/`, and a Cloudflare Tunnel makes it public. There is no
+database, no backend and nothing to back up on the server (the repo is the source of truth).
 
-**Live:** https://book.icepuente.com · **Admin:** https://book.icepuente.com/admin
-
-## How it works
-
-- **Customers** book on `/`. Each booking gets a private page (`/b/<token>`, linked in every email) where they can see its status, message you, or cancel.
-- **You** get an email for every new booking, customer message and cancellation. Reply to a notification email to answer the customer directly from Gmail.
-- **Admin** (`/admin`): confirm, complete or cancel bookings, move them to a new time, keep private notes, block days off, export CSV, and email the customer using quick templates. Status changes can send the customer an email automatically, and confirmations include a calendar invite (.ics).
-- Bookings start as **pending** until you confirm them. Set `"autoConfirm": true` in `config/site.json` to confirm them automatically.
-- A slot holds `slotCapacity` active bookings (default 1). Customers can't double-book a slot.
-
-## Customising
-
-Everything business-specific is in [`config/site.json`](config/site.json): name, service area, services and prices, slots, opening days, booking window, FAQ, and admin message templates. On the server the file is mounted read-only into the container, so after editing it just restart:
-
-```bash
-ssh deploy@192.168.0.223 'cd /opt/bike-booking && docker compose restart app'
-```
-
-(Or edit it locally and run `./deploy.sh`.)
-
-## Running locally
-
-```bash
-npm install
-npm run dev:express
-```
-
-Without `SMTP_HOST`, emails are printed to the console. The admin password defaults to `admin` in development (see `.env.example`).
-
-## Deployment
-
-| | |
+| What | Where |
 |---|---|
-| Host | Proxmox LXC 114 `bike-booking`, `192.168.0.223` (Debian 13, Docker) |
-| App dir | `/opt/bike-booking` (user `deploy`) |
-| Containers | `app` (Node 22, port 3000 on localhost only) and `cloudflared` (tunnel) |
-| Public access | Cloudflare Tunnel `bike-booking` → `book.icepuente.com`. No router ports opened. |
-| Data | SQLite at `/opt/bike-booking/data/bookings.db` |
-| Backups | Nightly at 03:15 to `/opt/bike-booking/backups` (30 days), plus the weekly Proxmox vzdump of CT 114 |
-| Email | Gmail SMTP (`/opt/bike-booking/.env.smtp`) |
-| Secrets | `/opt/bike-booking/.env` (`ADMIN_PASSWORD`, `SESSION_SECRET`), mode 600 |
+| Server | Proxmox LXC 114 (`192.168.0.223`), managed through Jarvis; SSH as `deploy` |
+| Folder | `/opt/the-neighbor-demo` (owned by `deploy`; root created it) |
+| Containers | Docker compose project `the-neighbor-demo`: `nginx` (port 8088 on localhost only) and `cloudflared` |
+| Files | `web/` (the site), `deploy/` (nginx config, compose file), `compose.yaml` (copied from `deploy/`) |
+| Tunnel | the existing tunnel `bike-booking`; its config and credentials are in `cloudflared/` on the server only |
+| nginx config | [`deploy/nginx/default.conf`](../deploy/nginx/default.conf): GET only, no access log, security headers, `noindex` |
 
-Deploy changes:
+## Deploy
 
 ```bash
-./deploy.sh
+npm run deploy        # scripts/deploy.sh: sends web/ and deploy/, restarts what changed, checks the page
+npm run test:live     # the booking in headless Chrome against https://book.icepuente.com/
 ```
 
-Show the admin password:
+Each deploy serves scripts, styles and fonts from a new path, `/r/<commit>/...` (the deploy rewrites
+the pages' links and nginx maps the path back), because Cloudflare keeps JS and CSS in browsers for
+4 hours. Pages themselves are never cached.
+
+**Never delete or recreate `web/` or `deploy/nginx/` on the server**: nginx has them mounted, and a
+recreated folder leaves it attached to the deleted one (no site, or no config). The deploy empties
+them in place.
+
+## Check and logs
 
 ```bash
-ssh deploy@192.168.0.223 'grep ADMIN_PASSWORD /opt/bike-booking/.env'
+ssh deploy@192.168.0.223 'cd /opt/the-neighbor-demo && docker compose --profile public ps'
+ssh deploy@192.168.0.223 'cd /opt/the-neighbor-demo && docker compose logs --tail 50 nginx cloudflared'
 ```
 
-Logs:
+nginx keeps no access log (the privacy policy says the server keeps no log of visitors); its error
+log has only real errors.
 
-```bash
-ssh deploy@192.168.0.223 'cd /opt/bike-booking && docker compose logs -f --tail 100'
-```
+## Small changes without a developer
 
-To change the admin password, edit `ADMIN_PASSWORD` in `.env` and run `docker compose up -d app`. Changing `SESSION_SECRET` signs out every admin session.
+- **Booking address, phone, demo bar:** `CONFIG.contact` and `CONFIG.demo` in
+  `web/js/booking-rules.js`.
+- **Closed days** (holidays, sick days): `CONFIG.closedDates` in the same file, e.g.
+  `['2026-12-24', '2026-12-31']`.
+- **Prices and services:** `SERVICES` in the same file. Texts: `web/js/i18n.js`.
+
+Then `npm test`, `npm run test:browser` and `npm run deploy`.
+
+## Earlier setups on this server
+
+- Spoke & Go (Express and SQLite) ran here until 2026-10-17; a vzdump of CT 114 was taken before it
+  was removed.
+- The Firebase emulator demo ran here from 2026-10-17 to 2026-10-23 (an `emulators` container next
+  to nginx). It was removed with the switch to the static site.

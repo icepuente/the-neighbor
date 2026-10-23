@@ -5,16 +5,9 @@ backups/
 .env.*
 !.env.example
 cloudflared/
-
-# Firebase CLI and emulators
-.firebase/
 *-debug.log
-emulator-data/
 
-# Copies of shared/ made by `npm run sync-shared`: edit shared/, not these
-web/js/shared/
-functions/shared/
-# Firebase SDK and fonts copied from node_modules by scripts/sync-vendor.js
+# Fonts copied from node_modules by scripts/vendor.js
 web/vendor/
 
 # Browser test screenshots

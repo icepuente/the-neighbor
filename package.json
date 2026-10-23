@@ -1,23 +1,19 @@
 {
-  "name": "bike-booking",
-  "version": "1.0.0",
+  "name": "the-neighbor",
+  "version": "2.0.0",
   "private": true,
-  "description": "Booking website for a mobile bike service",
+  "description": "The Neighbor: a mobile bike mechanic in Copenhagen. A static site; repairs are booked by email.",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev:express": "node --watch server.js",
-    "sync-shared": "node scripts/sync-shared.js && node scripts/sync-vendor.js",
-    "dev": "npm run sync-shared && firebase emulators:start --only auth,firestore,functions,storage,hosting",
-    "stop-emulators": "node scripts/stop-emulators.js",
-    "test:functions": "node scripts/test-functions.js",
-    "test:browser": "node scripts/test-browser.js",
-    "test:demo": "node test/browser/demo.js",
-    "seed": "node scripts/seed-demo.js",
-    "set-owner": "node scripts/set-owner.js",
-    "deploy:demo": "bash scripts/deploy-demo.sh",
+    "vendor": "node scripts/vendor.js",
+    "serve": "npm run vendor && node scripts/serve.js",
     "test": "node --test \"test/*.test.js\"",
+    "test:browser": "node scripts/test-browser.js",
+    "test:live": "node test/browser/live.js",
+    "deploy": "bash scripts/deploy.sh",
     "export-texts": "node scripts/texts.js export",
     "import-texts": "node scripts/texts.js import"
   },
@@ -32,13 +28,6 @@
   },
   "devDependencies": {
     "@fontsource-variable/source-serif-4": "5.3.1",
-    "@fontsource/dm-serif-display": "5.3.0",
-    "firebase": "13.0.0",
-    "firebase-tools": "^15.34.0"
-  },
-  "knip": {
-    "ignoreDependencies": [
-      "firebase-admin"
-    ]
+    "@fontsource/dm-serif-display": "5.3.0"
   }
 }

@@ -1,0 +1,35 @@
+---
+# The Neighbor on the home server (Proxmox LXC 114,
+# /opt/the-neighbor-demo), serving book.icepuente.com through the
+# existing Cloudflare Tunnel. A static site: nginx and the tunnel,
+# nothing else. Deployed by scripts/deploy.sh.
+name: the-neighbor-demo
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    mem_limit: 128m
+    # Whole folders, not single files: a deploy replaces the files inside
+    # them (nginx sees the new ones), then reloads nginx.
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./deploy/nginx:/etc/nginx/conf.d:ro
+    # Local access only, for checks; the public comes through cloudflared.
+    ports:
+      - "127.0.0.1:8088:80"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    # Matches the owner of ./cloudflared (the deploy user) so it can read
+    # the credentials.
+    user: "1000:1000"
+    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    depends_on:
+      - nginx
+    # Started only when cloudflared/config.yml exists:
+    # docker compose --profile public up
+    profiles: ["public"]

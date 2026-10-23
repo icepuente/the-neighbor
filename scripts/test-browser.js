@@ -1,18 +1,16 @@
-// Runs the browser tests: the mock (no server needed), then the real site on the emulators. If
-// `npm run dev` is already running, the web test uses those emulators; otherwise it starts a fresh
-// set for the run and cleans up afterwards (see stop-emulators.js).
-import { spawnSync } from 'node:child_process';
+// Runs the browser test (test/browser/site.js) against the local server: uses `npm run serve` if it
+// is already running on port 5000, otherwise starts one for the run and stops it afterwards.
+import { spawn, spawnSync } from 'node:child_process';
 
-const run = (cmd) => spawnSync(cmd, { stdio: 'inherit', shell: true }).status;
-const up = async (url) => { try { await fetch(url, { signal: AbortSignal.timeout(2000) }); return true; } catch { return false; } };
+const SITE = 'http://127.0.0.1:5000/';
+const up = async () => { try { return (await fetch(SITE, { signal: AbortSignal.timeout(2000) })).ok; } catch { return false; } };
 
-let status = run('node test/browser/mock.js');
-if (await up('http://127.0.0.1:5000/') && await up('http://127.0.0.1:5001/')) {
-  console.log('\nweb: using the running emulators');
-  status ||= run('npm run sync-shared && node test/browser/web.js && node test/browser/admin.js && node test/browser/account.js');
-} else {
-  console.log('\nweb: starting emulators for the run');
-  status ||= run('npm run sync-shared && npx firebase emulators:exec --only auth,firestore,functions,storage,hosting "node test/browser/web.js && node test/browser/admin.js && node test/browser/account.js"');
-  run('node scripts/stop-emulators.js');
+spawnSync(process.execPath, ['scripts/vendor.js'], { stdio: 'inherit' });
+let server = null;
+if (!await up()) {
+  server = spawn(process.execPath, ['scripts/serve.js'], { stdio: 'ignore' });
+  for (let i = 0; i < 50 && !await up(); i++) await new Promise((r) => setTimeout(r, 100));
 }
+const { status } = spawnSync(process.execPath, ['test/browser/site.js'], { stdio: 'inherit', env: { ...process.env, SITE } });
+server?.kill();
 process.exit(status ?? 1);

@@ -1,7 +1,7 @@
-// Tests for shared/booking-rules.js. Run with `npm test`.
+// Tests for web/js/booking-rules.js. Run with `npm test`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as R from '../shared/booking-rules.js';
+import * as R from '../web/js/booking-rules.js';
 
 // Saturday 17 October 2026; the Tuesday after is a normal open day.
 const SAT = '2026-10-17';
@@ -9,10 +9,9 @@ const TUE = '2026-10-20';
 const NEAR = { distanceKm: 5 }; // a Copenhagen postcode: 13 kr. travel
 
 const okInput = (over = {}) => ({
-  date: TUE, arrival: '10:00', address: 'Jagtvej 1, 2200 København N', name: 'Test', phone: '12345678',
-  email: 'test@example.com', note: '', photos: [], ...over,
+  date: TUE, arrival: '10:00', street: 'Jagtvej 1, 2. tv.', postcode: '2200', name: 'Test', phone: '12345678', note: '', ...over,
 });
-const ctx = (over = {}) => ({ todayDate: SAT, closedDates: [], dayBookings: [], carePlus: false, urgentDates: [], ...over });
+const ctx = (over = {}) => ({ todayDate: SAT, closedDates: [], ...over });
 
 test('today is worked out in Copenhagen time, not the machine\'s', () => {
   assert.equal(R.today(new Date('2026-10-17T21:30:00Z')), '2026-10-17'); // 23:30 in Copenhagen (summer time)
@@ -20,114 +19,88 @@ test('today is worked out in Copenhagen time, not the machine\'s', () => {
   assert.equal(R.today(new Date('2026-12-31T23:30:00Z')), '2027-01-01'); // winter time, new year
 });
 
-test('date arithmetic crosses months, years and the clock change', () => {
+test('date arithmetic crosses months and years', () => {
   assert.equal(R.addDays('2026-10-24', 2), '2026-10-26');
   assert.equal(R.addDays('2026-12-31', 1), '2027-01-01');
-  assert.equal(R.addMonths('2026-10-17', 3), '2027-01-17');
   assert.equal(R.weekday(SAT), 6);
 });
 
-test('prices, discounts and travel', () => {
-  let q = R.quote(['puncture', 'chain'], NEAR);
-  assert.deepEqual([q.oneOff, q.discount, q.travel, q.total], [348, 0, 13, 361], 'repairs without the Bike Check get no combo');
-  q = R.quote(['bike-check', 'chain'], NEAR);
-  assert.deepEqual([q.discount, q.discountReason, q.total], [17, 'combo', 344], 'Bike Check + another service: 5% off');
-  assert.equal(R.quote(['bike-check'], NEAR).discount, 0, 'the Bike Check alone is not a combo');
-  q = R.quote(['premium-monthly', 'chain'], NEAR);
-  assert.deepEqual([q.discountReason, q.discount, q.monthly], ['carePlus', 7, 99], 'choosing Care Plus gives 5% in the same booking');
-  q = R.quote(['bike-check', 'chain'], { ...NEAR, carePlus: true });
-  assert.deepEqual([q.discountReason, q.discount], ['carePlus', 17], 'combo and Care Plus do not stack');
-  assert.equal(R.quote(['chain'], { ...NEAR, carePlus: true }).discount, 7, 'a Care Plus member gets 5% off later repairs');
-  assert.equal(R.quote(['chain']).travel, null, 'no distance, no travel fee yet');
+test('repairs only: the five services', () => {
+  assert.deepEqual(R.SERVICES.map((s) => s.id), ['puncture', 'brakes', 'gears', 'chain', 'diagnostics']);
+  assert.equal(R.service('bike-check'), undefined, 'no Bike Check');
+  assert.equal(R.service('monthly'), undefined, 'no subscriptions');
+  assert.equal(R.service('puncture').tubeIncluded, true);
+  assert.equal(R.service('diagnostics').needsNote, true);
+});
+
+test('prices and travel', () => {
+  const q = R.quote(['puncture', 'chain'], NEAR);
+  assert.deepEqual([q.servicesTotal, q.travel, q.total], [348, 13, 361]);
+  assert.equal(R.quote(['chain']).travel, null, 'no postcode, no travel fee');
+  assert.equal(R.quote(['chain']).total, 149);
+  assert.equal(R.travelFee(14), 35);
 });
 
 test('work time and the 45-minute limit', () => {
-  assert.equal(R.quote(['bike-check', 'brakes']).workMin, 40);
-  assert.equal(R.quote(['bike-check', 'brakes']).blockMin, 55, 'a booking blocks its work plus 15 minutes of travel');
-  assert.equal(R.quote(['bike-check', 'puncture', 'gears']).tooLong, true, '55 minutes is refused');
+  assert.equal(R.quote(['puncture', 'brakes']).workMin, 35);
+  assert.equal(R.quote(['puncture', 'brakes', 'diagnostics']).tooLong, true, '55 minutes does not fit in one visit');
+  assert.equal(R.quote(['brakes', 'gears', 'chain']).tooLong, false, '45 minutes does');
   assert.equal(R.quote([]).workMin, 45, 'with nothing chosen, times are shown for a full visit');
-  assert.equal(R.service('diagnostics').price, 299);
-  assert.equal(R.service('diagnostics').durationMin, 20);
 });
 
 test('start times: 08:30 onwards, work finished by 15:30', () => {
   const t = R.startTimes(45);
-  assert.equal(t[0].time, '08:30');
-  assert.equal(t.at(-1).time, '14:30');
+  assert.equal(t[0], '08:30');
+  assert.equal(t.at(-1), '14:30');
   assert.equal(t.length, 13);
-  assert.equal(R.startTimes(15).at(-1).time, '15:00', 'a short job can start at 15:00');
-  assert.deepEqual(R.arrivalTimes().slice(0, 2), ['08:30', '09:00']);
+  assert.equal(R.startTimes(15).at(-1), '15:00', 'a short job can start at 15:00');
 });
 
-test('a booking blocks its time plus the travel gap', () => {
-  const day = [{ arrival: '11:00', blockMin: 55 }]; // 11:00–11:55
-  const free = (time, work = 40) => R.startTimes(work, day).find((s) => s.time === time).free;
-  assert.equal(free('11:00'), false, 'the same start');
-  assert.equal(free('11:30'), false, 'a start inside the blocked time');
-  assert.equal(free('10:30'), false, 'a job that would run into the next booking');
-  assert.equal(free('12:00'), true, 'the next free start');
-  assert.equal(free('10:00', 15), true, '10:00 + 15 min work + 15 min travel ends at 10:30');
-});
-
-test('closed days', () => {
+test('closed days and the earliest date', () => {
   assert.equal(R.closedReason('2026-10-18'), 'sunday');
   assert.equal(R.closedReason(TUE, [TUE]), 'closed');
-  assert.equal(R.closedReason(TUE, { [TUE]: { reason: 'Holiday' } }), 'closed');
-  assert.equal(R.closedReason(TUE), null);
-  assert.equal(R.nextOpenDay('2026-10-18'), '2026-10-19');
+  assert.equal(R.closedReason(TUE, []), null);
+  assert.equal(R.nextOpenDay('2026-10-18', []), '2026-10-19');
+  assert.equal(R.earliestDate('2026-10-19'), '2026-10-21', '2 days ahead');
 });
 
-test('lead time and the Care Plus urgent visit', () => {
+test('the booking form checks', () => {
   const q = R.quote(['chain'], NEAR);
-  const err = (date, c) => R.checkBooking(okInput({ date }), q, ctx(c)).date;
-  assert.equal(err(SAT), 'lead', 'booking for today is refused');
-  assert.equal(err('2026-10-16'), 'past');
-  assert.equal(err('2026-10-19'), undefined, 'guests can book from 2 days ahead');
-  // Monday 19 Oct is 2 days ahead of Saturday; use a Monday "today" to test tomorrow.
-  const MON = '2026-10-19';
-  const errMon = (date, c) => R.checkBooking(okInput({ date }), q, ctx({ todayDate: MON, ...c })).date;
-  assert.equal(errMon(TUE), 'lead', 'a guest cannot book tomorrow');
-  assert.equal(errMon(TUE, { carePlus: true }), undefined, 'a Care Plus member can book tomorrow');
-  assert.equal(errMon(TUE, { carePlus: true, urgentDates: ['2026-10-05'] }), 'urgentUsed', 'one urgent visit per month');
-  assert.equal(errMon(TUE, { carePlus: true, urgentDates: ['2026-09-30'] }), undefined, 'last month\'s does not count');
-  assert.equal(R.isUrgentDate(TUE, MON), true);
-  assert.equal(R.isUrgentDate('2026-10-21', MON), false);
+  const check = (input, qq = q, c) => R.checkRequest(okInput(input), qq, ctx(c));
+  assert.deepEqual(check({}), {}, 'a complete request passes');
+  assert.equal(check({}, R.quote([], NEAR)).services, 'services');
+  assert.equal(check({}, R.quote(['puncture', 'brakes', 'diagnostics'], NEAR)).services, 'tooLong');
+  assert.equal(check({}, R.quote(['diagnostics'], NEAR)).note, 'note', 'Diagnostics needs a description');
+  assert.equal(check({ note: 'Creaks' }, R.quote(['diagnostics'], NEAR)).note, undefined);
+  assert.equal(check({ note: 'x'.repeat(301) }).note, 'noteLong');
+  assert.equal(check({ date: SAT }).date, 'lead', 'today is too soon');
+  assert.equal(check({ date: '2026-10-18' }).date, 'sunday');
+  assert.equal(check({ date: '2026-10-19' }).date, undefined, 'two days ahead is fine');
+  assert.equal(check({ date: '2026-10-16' }).date, 'past');
+  assert.equal(check({ date: '' }).date, 'date');
+  assert.equal(check({}, q, { closedDates: [TUE] }).date, 'closed', 'a day the owner closed');
+  assert.equal(check({ arrival: '' }).arrival, 'arrival');
+  assert.equal(check({ arrival: '15:00' }, R.quote(['puncture', 'brakes'], NEAR)).arrival, 'arrival', '15:00 + 35 min ends after 15:30');
+  assert.equal(check({ arrival: '15:00' }).arrival, undefined, 'a 15-minute job can start at 15:00');
+  assert.equal(check({ phone: ' ' }).form, 'contact');
+  assert.equal(check({ postcode: '' }).form, 'contact');
+  assert.equal(check({}, R.quote(['chain'])).form, 'postcode', 'a postcode that cannot be priced');
+  assert.equal(check({}, R.quote(['chain'], { distanceKm: 30 })).form, 'far', 'beyond 18 km');
 });
 
-test('the earliest date offered', () => {
-  assert.equal(R.earliestDate({ todayDate: '2026-10-19' }), '2026-10-21', 'everyone: 2 days ahead');
-  assert.equal(R.earliestDate({ todayDate: '2026-10-19', carePlus: true }), '2026-10-20', 'Care Plus: tomorrow');
-  assert.equal(R.earliestDate({ todayDate: SAT, carePlus: true }), '2026-10-19', 'not when tomorrow is a Sunday');
-  assert.equal(R.earliestDate({ todayDate: '2026-10-19', carePlus: true, closedDates: ['2026-10-20'] }), '2026-10-21', 'or blocked');
-  assert.equal(R.earliestDate({ todayDate: '2026-10-19', carePlus: true, urgentDates: ['2026-10-02'] }), '2026-10-21', 'or already used');
+test('travel estimate from the postcode', () => {
+  assert.equal(R.estimateKm('2200'), 5);
+  assert.equal(R.estimateKm(' 2500 '), 9);
+  assert.equal(R.estimateKm('2900'), 14);
+  assert.equal(R.estimateKm('4000'), 30);
+  assert.equal(R.estimateKm('22000'), null);
+  assert.equal(R.estimateKm('abcd'), null);
 });
 
-test('booking form checks', () => {
-  const q = R.quote(['chain'], NEAR);
-  assert.deepEqual(R.checkBooking(okInput(), q, ctx()), {}, 'a complete booking passes');
-  assert.equal(R.checkBooking(okInput(), R.quote([], NEAR), ctx()).services, 'services');
-  assert.equal(R.checkBooking(okInput(), R.quote(['bike-check', 'puncture', 'gears'], NEAR), ctx()).services, 'tooLong');
-  assert.equal(R.checkBooking(okInput(), R.quote(['diagnostics'], NEAR), ctx()).note, 'note', 'Diagnostics needs a description');
-  assert.equal(R.checkBooking(okInput({ note: 'Creaks' }), R.quote(['diagnostics'], NEAR), ctx()).note, undefined);
-  assert.equal(R.checkBooking(okInput({ date: '2026-10-25' }), q, ctx()).date, 'sunday');
-  assert.equal(R.checkBooking(okInput({ arrival: '15:00' }), R.quote(['bike-check', 'brakes'], NEAR), ctx()).arrival, 'arrival', '15:00 + 40 min ends after 15:30');
-  assert.equal(R.checkBooking(okInput({ arrival: '10:00' }), q, ctx({ dayBookings: [{ arrival: '10:00', blockMin: 30 }] })).arrival, 'taken');
-  assert.equal(R.checkBooking(okInput({ email: '' }), q, ctx()).form, 'contact');
-  assert.equal(R.checkBooking(okInput({ email: 'nope' }), q, ctx()).form, 'email');
-  assert.equal(R.checkBooking(okInput(), R.quote(['chain'], { distanceKm: 30 }), ctx()).form, 'far', 'beyond 18 km');
-  assert.equal(R.checkBooking(okInput(), R.quote(['chain']), ctx()).form, 'address', 'an address that cannot be priced');
-  assert.equal(R.checkBooking(okInput({ photos: [1, 2, 3, 4] }), q, ctx()).photos, 'photosMax');
-  assert.equal(R.checkBooking(okInput({ date: 'tomorrow' }), q, ctx()).date, 'past', 'malformed dates are refused');
-});
-
-test('travel estimate stand-in, consultation form, subscriptions', () => {
-  assert.equal(R.estimateKm('Jagtvej 1, 2200 København N'), 5);
-  assert.equal(R.estimateKm('No postcode'), null);
-  assert.equal(R.travelFee(14), 35);
-  assert.equal(R.checkConsultation({ name: 'A', company: 'B', email: 'a@b.dk', phone: '1', companyType: 'Hotel', bikes: '6–15' }), null);
-  assert.equal(R.checkConsultation({ name: 'A' }), 'missing');
-  assert.equal(R.checkConsultation({ name: 'A', company: 'B', email: 'x', phone: '1', companyType: 'Hotel', bikes: '6–15' }), 'email');
-  assert.equal(R.commitmentEnds('2026-10-20'), '2027-01-20', 'Care plans: 3-month minimum');
+test('the address written the Danish way', () => {
+  assert.equal(R.fullAddress('Jagtvej 10, 2. tv.', '2200'), 'Jagtvej 10, 2. tv., 2200');
+  assert.equal(R.fullAddress('Jagtvej 10,', '2200'), 'Jagtvej 10, 2200');
+  assert.equal(R.fullAddress('Jagtvej 10', ''), 'Jagtvej 10');
 });
 
 test('accepting the terms and the early start of work', () => {
@@ -138,31 +111,41 @@ test('accepting the terms and the early start of work', () => {
   assert.equal(R.checkAcceptance(null), 'terms');
 });
 
-test('the address with floor and door, written the Danish way', () => {
-  assert.equal(R.fullAddress('Jagtvej 10, 2200 København N', '2. tv.'), 'Jagtvej 10, 2. tv., 2200 København N');
-  assert.equal(R.fullAddress('Jagtvej 10, Grønholt, 3480 Fredensborg', 'st.'), 'Jagtvej 10, st., Grønholt, 3480 Fredensborg');
-  assert.equal(R.fullAddress('Jagtvej 10, 2200 København N', ''), 'Jagtvej 10, 2200 København N', 'no apartment');
-  assert.equal(R.fullAddress('Jagtvej 10', ' 3. th, '), 'Jagtvej 10, 3. th', 'no comma in the address');
+test('the request email and its mailto: link', () => {
+  const t = (k, v) => `${k}${v ? JSON.stringify(v) : ''}`;
+  const fmt = { dkk: (n) => `${n} kr.`, date: (d) => d };
+  const r = { ...okInput(), bike: 'Racer', note: 'Æble & "pære"?' };
+  const q = R.quote(['puncture', 'chain'], NEAR);
+  const mail = R.requestEmail(r, q, { t, fmt, svcName: (s) => s.name });
+  assert.match(mail.subject, /Puncture Fix, Chain Service/);
+  const lines = mail.body.split('\r\n');
+  assert.ok(lines.includes('mail.services: Puncture Fix (199 kr.), Chain Service (149 kr.)'));
+  assert.ok(lines.includes('mail.address: Jagtvej 1, 2. tv., 2200'));
+  assert.ok(lines.includes('mail.phone: 12345678'));
+  assert.ok(lines.some((l) => l.startsWith('mail.price') && l.includes('"total":"361 kr."')), 'the price with travel');
+  assert.ok(lines.includes('- co.acceptTerms.') && lines.includes('- co.earlyStart'), 'both ticked statements are in the email');
+  assert.ok(!mail.body.includes('\n\n'), 'lines end in CRLF only');
+
+  const link = R.mailtoLink('booking@example.com', mail);
+  assert.match(link, /^mailto:booking@example\.com\?subject=[^&]+&body=/);
+  const url = new URL(link);
+  assert.equal(url.searchParams.get('body'), mail.body, 'the body survives encoding, & and ? included');
+  assert.equal(url.searchParams.get('subject'), mail.subject);
+  assert.ok(!link.includes('+'), 'spaces are %20, not +, which mail programs would show');
 });
 
-test('customers can cancel online until 24 hours before the visit, in Copenhagen time', () => {
-  const now = new Date('2026-10-17T08:00:00Z'); // 10:00 in Copenhagen (summer time)
-  assert.equal(R.minutesUntil('2026-10-17', '11:00', now), 60);
-  assert.equal(R.minutesUntil('2026-10-18', '10:00', now), 1440);
-  const b = (date, arrival, status = 'confirmed') => ({ date, arrival, status });
-  assert.equal(R.customerCanCancel(b('2026-10-18', '10:00'), now), true, 'exactly 24 hours ahead');
-  assert.equal(R.customerCanCancel(b('2026-10-18', '09:30'), now), false, 'less than 24 hours ahead');
-  assert.equal(R.customerCanCancel(b('2026-10-20', '09:00', 'completed'), now), false, 'not when completed');
-  assert.equal(R.minutesUntil('2026-10-26', '10:00', new Date('2026-10-24T08:00:00Z')), 2 * 1440, 'across the clock change');
-});
-
-test('fleet reports: counts by status, months and their names', () => {
-  const ok = { status: 'ready' };
-  assert.deepEqual(R.fleetCounts({ a: ok, b: ok, c: { status: 'repair' }, d: { status: 'attention' }, e: { status: 'odd' } }), { ready: 2, attention: 1, repair: 1 });
-  assert.deepEqual(R.fleetCounts(undefined), { ready: 0, attention: 0, repair: 0 });
-  assert.equal(R.isMonth('2026-10'), true);
-  assert.equal(R.isMonth('2026-13'), false);
-  assert.equal(R.isMonth('2026-1'), false);
-  assert.equal(R.monthLabel('2026-10'), 'October 2026');
-  assert.equal(R.monthLabel('2026-01', 'da-DK'), 'januar 2026');
+test('a long request still fits in a mailto: link', () => {
+  // Classic Outlook on Windows has refused mailto: links over about 2,000 characters. A long but
+  // realistic request, in the page's own Danish texts: three services and a full note of Danish
+  // text (æ, ø and å take 6 characters each once encoded). Beyond that the page offers the text to copy.
+  globalThis.window = {};
+  globalThis.localStorage = { getItem: () => 'da' };
+  return import('../web/js/i18n.js').then(() => {
+    const { I18N } = globalThis.window;
+    const words = 'Bagbremsen hviner, og gearet hopper på de små tandhjul. Cyklen står i gården bag porten. ';
+    const r = { ...okInput(), bike: I18N.t('bike.cargo'), name: 'Søren Ødegård-Æbelø', street: 'Frederikssundsvej 120, 3. th.', note: words.repeat(10).slice(0, R.CONFIG.maxNote) };
+    const mail = R.requestEmail(r, R.quote(['brakes', 'gears', 'chain'], NEAR), { t: I18N.t, fmt: { dkk: I18N.dkk, date: I18N.date }, svcName: I18N.svc });
+    const len = R.mailtoLink('booking@the-neighbor.dk', mail).length;
+    assert.ok(len < 2000, `link of ${len} characters`);
+  });
 });

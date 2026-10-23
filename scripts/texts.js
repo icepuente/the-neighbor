@@ -3,15 +3,15 @@
 //
 //   npm run export-texts                 writes docs/review/proofreading.csv
 //   npm run import-texts -- <file.csv>   applies the "Rettelse" (correction) column for site texts to
-//                                         web/js/i18n.js, and lists the email and legal rows to apply by hand
+//                                         web/js/i18n.js, and lists the legal rows to apply by hand
 //
-// Site texts come from web/js/i18n.js, emails from shared/emails.js (rendered with sample values),
-// and the privacy policy and terms from web/privacy.html and web/terms.html, paragraph by paragraph.
+// Site texts come from web/js/i18n.js (including the request email the customer sends, the mail.*
+// keys), and the privacy policy and terms from web/privacy.html and web/terms.html, paragraph by
+// paragraph.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
-import { TEMPLATES } from '../shared/emails.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const I18N_FILE = join(root, 'web', 'js', 'i18n.js');
@@ -23,26 +23,8 @@ function siteTexts() {
   const sandbox = { window: {} };
   vm.runInNewContext(readFileSync(I18N_FILE, 'utf8'), sandbox);
   const { da, en } = sandbox.window.I18N.dict;
-  // Keys only the mock uses (its demo banner) are not on the real site.
-  return Object.keys(da).filter((k) => !k.startsWith('demo.')).map((k) => ['Hjemmeside', k, da[k], en[k] ?? '']);
-}
-
-const SAMPLE = {
-  name: 'Anna', contact: 'Mette', ref: 'TN-1042', date: '2026-10-20', time: '10:00', oldDate: '2026-10-19', oldTime: '13:00',
-  address: 'Fuglebakkevej 12, 3. th., 2000 Frederiksberg', total: 212,
-  services: [{ name: 'Punkteringsreparation / Puncture Fix', price: 199 }],
-  message: '(Ejerens egen besked / the owner\'s own message)',
-  work: ['Punkteret bagslange skiftet / Rear inner tube replaced'], parts: [{ name: 'Slange 700×35c / Inner tube', price: 59 }],
-  notes: 'Bagdækket er slidt. / The rear tyre is worn.', recommendation: { title: 'Skift bagdækket / Replace the rear tyre', reason: 'slidt / worn' }, hasAccount: true,
-  company: 'Hotel ABC', plan: 'Standard', price: 300, link: 'https://…/account.html', demo: null,
-  month: '2026-10', visitDate: '2026-10-08', counts: { ready: 4, attention: 1, repair: 1 }, updated: false,
-};
-function emailTexts() {
-  return Object.keys(TEMPLATES).flatMap((name) => {
-    const da = TEMPLATES[name](SAMPLE, 'da');
-    const en = TEMPLATES[name](SAMPLE, 'en');
-    return [['E-mail', `${name}.subject`, da.subject, en.subject], ['E-mail', `${name}.text`, da.text, en.text]];
-  });
+  // The demo bar goes at launch; empty texts have nothing to read.
+  return Object.keys(da).filter((k) => !k.startsWith('demo.') && da[k]).map((k) => ['Hjemmeside', k, da[k], en[k] ?? '']);
 }
 
 // The text of each heading, paragraph and list item in an <article lang="..">, tags removed.
@@ -102,7 +84,7 @@ function applySiteText(source, key, value) {
 
 const [cmd, file] = process.argv.slice(2);
 if (cmd === 'export') {
-  const rows = [HEAD, ...siteTexts(), ...emailTexts(), ...legalTexts()].map((r) => (r.length < 6 ? [...r, '', ''] : r));
+  const rows = [HEAD, ...siteTexts(), ...legalTexts()].map((r) => (r.length < 6 ? [...r, '', ''] : r));
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, toCsv(rows));
   console.log(`${rows.length - 1} texts -> ${OUT.slice(root.length + 1)}`);
@@ -122,7 +104,7 @@ if (cmd === 'export') {
   }
   writeFileSync(I18N_FILE, source);
   console.log(`Applied ${applied.length} site text(s) to web/js/i18n.js${applied.length ? `: ${applied.join(', ')}` : ''}`);
-  if (byHand.length) console.log(`\nTo apply by hand (emails in shared/emails.js, legal pages in web/):\n${byHand.map((x) => `- ${x}`).join('\n')}`);
+  if (byHand.length) console.log(`\nTo apply by hand (legal pages in web/):\n${byHand.map((x) => `- ${x}`).join('\n')}`);
 } else {
   console.log('Usage: node scripts/texts.js export | import <file.csv>');
   process.exitCode = 1;

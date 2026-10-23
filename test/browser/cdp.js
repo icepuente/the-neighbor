@@ -9,7 +9,6 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.join(here, '..', '..');
-export const FIXTURE = path.join(here, 'fixtures', 'bike.png');
 const SHOTS = path.join(here, 'shots');
 
 const CHROME_CANDIDATES = [
@@ -69,14 +68,6 @@ export async function shotEl(name, selector) {
   fs.writeFileSync(path.join(SHOTS, name), Buffer.from(data, 'base64'));
 }
 
-// Chooses a file in a file input, as a visitor would, then gives the page time to shrink it.
-export async function setFile(selector, file = FIXTURE) {
-  const { root } = await send('DOM.getDocument', { depth: -1, pierce: true });
-  const { nodeId } = await send('DOM.querySelector', { nodeId: root.nodeId, selector });
-  await send('DOM.setFileInputFiles', { nodeId, files: [file] });
-  await sleep(800);
-}
-
 export const check = (cond, msg) => {
   if (!cond) throw new Error(`FAILED: ${msg}`);
   console.log(`ok ${++n} - ${msg}`);
@@ -103,10 +94,13 @@ async function start(port) {
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description || 'exception');
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errors.push(m.params.args.map((a) => a.value).join(' '));
     if (m.method === 'Network.requestWillBeSent') requests.push(m.params.request.url);
+    // The browser's own errors: Content-Security-Policy violations, failed loads (404s) and so on.
+    if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error') errors.push(`${m.params.entry.source}: ${m.params.entry.text} ${m.params.entry.url || ''}`.trim());
   };
   await send('Runtime.enable');
   await send('Page.enable');
   await send('Network.enable');
+  await send('Log.enable');
 }
 
 // Runs one test file's body in a fresh Chrome, then reports and cleans up.
@@ -114,7 +108,7 @@ export async function run(port, body) {
   try {
     await start(port);
     await body();
-    check(errors.length === 0, `no script errors in the browser${errors.length ? `: ${errors.join(' | ')}` : ''}`);
+    check(errors.length === 0, `no script or browser errors (CSP, failed loads)${errors.length ? `: ${errors.join(' | ')}` : ''}`);
     console.log(`\n${n} browser checks passed`);
   } catch (e) {
     console.error(e.message);

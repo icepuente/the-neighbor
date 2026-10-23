@@ -1,181 +1,75 @@
-# the-neighbor
+# The Neighbor
 
-## The Neighbor (Firebase)
+**The Neighbor** is a mobile bike mechanic in Copenhagen who repairs bikes where they stand. This
+repo is the website: a static site in [`web/`](web/), in Danish with English, with no backend.
 
-**The Neighbor** is a mobile bike mechanic in Copenhagen. The new site is in `web/`, backed by Firebase
-(Firestore, Cloud Storage, Cloud Functions in `functions/`, rules in `firestore.rules` and
-`storage.rules`). It covers the public booking site (Danish, with English), customer accounts, business
-fleet accounts with monthly reports, and the owner's dashboard. The plan and its phases are in
-[`docs/firebase-plan.md`](docs/firebase-plan.md), and running it is covered in
-[`docs/operations.md`](docs/operations.md).
+**Demo:** [book.icepuente.com](https://book.icepuente.com). Booking requests from the demo go to a
+placeholder address (`booking@example.com`), so they reach no one.
 
-**Demo:** [book.icepuente.com](https://book.icepuente.com) runs on the Firebase emulators with fake
-data that is reset daily, and sends no real email. The logins:
+## How booking works
 
-| Who | Page | Login |
-|---|---|---|
-| Owner | `/admin.html` | owner@demo.dk / neighbor-demo |
-| Private customer | `/account.html` | anna@demo.dk / neighbor-demo |
-| Business customer (Hotel ABC) | `/account.html` | hotel@demo.dk / neighbor-demo |
+1. The visitor chooses one or more repairs (puncture fix, brakes, gears, chain, diagnostics), a
+   preferred day and arrival time, and gives an address, postcode, name and phone.
+2. The site checks the request (open Monday to Saturday 08:30-15:30, at least 2 days ahead, at most
+   45 minutes of work, within 18 km) and shows the price: the repairs plus travel at 2.5 DKK per km,
+   one way, estimated from the postcode.
+3. The visitor ticks two boxes (the terms, and the early start of work with the withdrawal
+   acknowledgement), then **Send request by email** opens their own mail program with the request
+   written out, addressed to the owner. If no mail program opens, the page shows the same text to
+   copy.
+4. The owner replies to confirm the time and price (or suggest another time). The agreement is made
+   with that reply.
 
-Local development: `npm run dev` (emulators, site at http://127.0.0.1:5000), `npm run seed` for the demo
-data. Tests: `npm test`, `npm run test:functions`, `npm run test:browser`, and `npm run test:demo` against
-the live demo. `npm run deploy:demo` updates the demo.
+The site stores nothing and sends nothing: no accounts, no database, no cookies, no third-party
+requests (the fonts are self-hosted). The only thing it keeps is the visitor's language choice, in
+their own browser. That keeps the personal data to the emails the owner receives anyway.
 
-## The old Spoke & Go app (Express)
-
-Everything below describes the original Express and SQLite app, which is still in the repo
-(`npm run dev:express`) until phase 5 retires it.
-
-A small, self-hosted booking site for a mobile bike repair service. Customers pick a service, a day and a two-hour slot, then enter their bike and address details. You manage everything from a password-protected admin page, and both sides get email at each step.
-
-It's one Node process with a SQLite file. There's no frontend build step, no external database and no third-party booking service. All business details (name, prices, opening hours, FAQ) live in one JSON file.
-
-It ran at book.icepuente.com as "Spoke & Go" until 2026-10-17; that address now hosts The Neighbor demo.
-
-## Features
-
-### For customers
-
-- Book a service, date and time slot. The calendar only shows open days and free slots.
-- Get a confirmation email straight away, with a link to a private booking page (`/b/<token>`).
-- From that page, check the booking's status, message the mechanic, or cancel.
-
-### For the owner (`/admin`)
-
-- See every booking, filter and search them, and confirm, complete, cancel or reschedule it.
-- Keep private notes on a booking.
-- Email a customer from the dashboard using reusable templates ("On my way", "Running late", …).
-- Block off whole days (holidays, sick days).
-- Export bookings as CSV.
-- Get an email for every new booking, customer message and cancellation. Replying to the email reaches the customer directly.
-- Confirmation emails include a calendar invite (`.ics`).
-
-### Under the hood
-
-- Bookings start as `pending` until confirmed, or set `autoConfirm` to skip that step.
-- Slot capacity is enforced, so a slot can't be double-booked.
-- Booking, messaging and login endpoints are rate-limited. Responses have security headers via Helmet, and the admin session cookie is signed.
-- Booking pages and the admin page are marked `noindex` and excluded in `robots.txt`.
-
-## Stack
-
-- Node.js 20+ (22 in Docker), Express 5
-- SQLite via `better-sqlite3` (WAL mode)
-- Nodemailer for SMTP
-- Plain HTML, CSS and JavaScript in `public/`, no bundler
-- Docker Compose, plus an optional Cloudflare Tunnel for public access
-
-## Quick start
+## Running it
 
 ```bash
 npm install
-npm run dev:express
+npm run serve          # http://127.0.0.1:5000 (copies the fonts first)
+npm test               # the booking rules
+npm run test:browser   # the whole booking in headless Chrome, on a local server
+npm run deploy         # to the home server (book.icepuente.com)
+npm run test:live      # the browser test against book.icepuente.com
 ```
 
-(`npm run dev` now starts The Neighbor on the Firebase emulators; see `docs/firebase-plan.md`.)
+Chrome is needed for the browser tests (set `CHROME_PATH` if it is not in the usual place).
 
-Open http://localhost:3000 for the site and http://localhost:3000/admin for the dashboard. The admin password is `admin` in development.
-
-If `SMTP_HOST` isn't set, emails are printed to the console instead of being sent, so you can test the whole flow without a mail server. Data is stored in `data/bookings.db`, which is created automatically.
-
-## Configuration
-
-### Business settings: `config/site.json`
-
-Everything specific to the business is in [`config/site.json`](config/site.json):
-
-| Key | What it controls |
-|---|---|
-| `businessName`, `tagline`, `description`, `serviceArea` | Text shown on the site and in emails |
-| `contactEmail`, `contactPhone` | Public contact details (the email falls back to `OWNER_EMAIL`) |
-| `refPrefix` | Prefix for booking references, e.g. `SG-…` |
-| `timezone`, `locale`, `currency`, `currencyLocale` | Date, time and price formatting |
-| `services` | Services offered: `id`, `name`, `price`, `duration`, `description` |
-| `slots`, `openDays`, `slotCapacity` | Time slots, open weekdays (0 = Sunday) and bookings allowed per slot |
-| `minLeadDays`, `bookingWindowDays` | How soon, and how far ahead, customers can book |
-| `autoConfirm` | Skip the `pending` state |
-| `postcodePattern`, `postcodeHint` | Postcode validation (a regex) and the hint shown with it |
-| `highlights`, `bikeTypes`, `faq` | Content shown on the landing page and booking form |
-| `messageTemplates` | Admin email templates. Supports `{firstName}`, `{date}`, `{time}`, `{ref}`, `{price}` and `{service}` |
-
-Set `SITE_CONFIG=/path/to/site.json` to load the file from somewhere else.
-
-### Environment variables
-
-Copy [`.env.example`](.env.example) to `.env`:
-
-| Variable | Required in production | Notes |
-|---|---|---|
-| `PUBLIC_URL` | yes* | Base URL used in email links. With `https://`, cookies are marked secure and HSTS is turned on |
-| `ADMIN_PASSWORD` | **yes** | Admin login, e.g. from `openssl rand -base64 18` |
-| `SESSION_SECRET` | **yes** | Signs the admin session cookie, e.g. from `openssl rand -hex 32`. Changing it signs every admin out |
-| `OWNER_EMAIL` | recommended | Where notifications are sent, and the Reply-To address on customer emails |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | for email | Any SMTP provider. Gmail works with an app password |
-| `MAIL_FROM_ADDRESS` | no | Sender address. Defaults to `SMTP_USER` |
-| `PORT` | no | Defaults to `3000` |
-| `DATA_DIR` | no | Where `bookings.db` is stored. Defaults to `./data` |
-
-\* Defaults to `http://localhost:PORT`, which won't work in emails sent from a real deployment.
-
-When `NODE_ENV=production`, the server won't start if `ADMIN_PASSWORD` or `SESSION_SECRET` is missing.
-
-## Deployment
-
-The included `docker-compose.yml` runs two containers:
-
-- **`app`**: the Node server, listening on `127.0.0.1:3000` only. `./data` holds the database, and `./config` is mounted read-only, so editing `site.json` only needs `docker compose restart app`.
-- **`cloudflared`**: a Cloudflare Tunnel that makes the site public without opening any router ports.
-
-```bash
-cp .env.example .env              # then fill in the secrets
-mkdir -p data cloudflared
-# Create a tunnel with `cloudflared tunnel create <name>`, then put its
-# credentials and a config.yml (see cloudflared.example.yml) in ./cloudflared
-docker compose up -d --build
-```
-
-Not using Cloudflare? Remove the `cloudflared` service and put any reverse proxy (Caddy, nginx, Traefik) in front of port 3000. The app trusts `X-Forwarded-*` headers from loopback and private-network addresses.
-
-Other tools included:
-
-- [`deploy.sh`](deploy.sh) copies the project to a server with rsync and rebuilds it there: `./deploy.sh user@host`.
-- [`scripts/backup.sh`](scripts/backup.sh) is a nightly SQLite backup for cron. It keeps 30 days of gzipped backups.
-- `GET /healthz` is the health check used by Docker.
-
-The production setup and runbook for book.icepuente.com are in [`docs/operations.md`](docs/operations.md).
-
-## Project layout
+## Where things are
 
 ```text
-server.js            Express app: pages, static files, security headers
-config/site.json     Business settings
-src/
-  config.js          Loads env vars and site.json
-  db.js              SQLite schema and setup
-  bookings.js        Creating, updating and querying bookings
-  schedule.js        Availability: open days, slots, capacity, closed dates
-  emails.js          Email templates
-  mailer.js          SMTP transport (or console output in development)
-  notify.js          Which emails go out on which events
-  ics.js             Calendar invites
-  http.js            Rate limiting and request helpers
-  routes/public.js   /api: config, availability, bookings, messages, cancellation
-  routes/admin.js    /api/admin: login, booking management, closed dates, CSV export
-public/              Landing page, booking page, admin page, privacy page, JS, CSS
+web/index.html            The front page: services, the booking form, the price page, FAQ
+web/js/booking-rules.js   Services, prices, opening hours, travel, the checks and the request email.
+                          CONFIG at the top holds the booking address, the demo flag and closed days.
+web/js/landing.js         The booking form and the mailto: link
+web/js/i18n.js            Every Danish and English text
+web/js/datepicker.js      The calendar used for the date field
+web/privacy.html          Privacy policy (draft, DA/EN)
+web/terms.html            Terms and conditions (draft, DA/EN)
+deploy/                   nginx and Cloudflare Tunnel on the home server
+scripts/                  serve.js, deploy.sh, vendor.js (fonts), texts.js (proofreading sheet)
+docs/                     operations.md (the server), legal-checklist.md, review/ (proofreading)
 ```
 
-## API
+## Before real customers use it
 
-Public endpoints:
+- In `web/js/booking-rules.js`: put the owner's booking email (and phone, if wanted) in
+  `CONFIG.contact`, and set `CONFIG.demo` to `false`.
+- Fill in the business details marked in yellow on the site (legal name, address, CVR) and go
+  through [`docs/legal-checklist.md`](docs/legal-checklist.md).
+- Have the Danish proofread: [`docs/review/`](docs/review/README.md).
+- On its own domain: remove the `noindex` header and `robots.txt` from
+  [`deploy/nginx/default.conf`](deploy/nginx/default.conf).
 
-| Method | Path | |
-|---|---|---|
-| `GET` | `/api/config` | Public site config |
-| `GET` | `/api/availability` | Open dates and free slots |
-| `POST` | `/api/bookings` | Create a booking (10 per hour per IP) |
-| `GET` | `/api/bookings/:token` | View a booking |
-| `POST` | `/api/bookings/:token/messages` | Message the owner |
-| `POST` | `/api/bookings/:token/cancel` | Cancel |
+## History
 
-Admin endpoints are under `/api/admin/*` and need a signed-in session. Login is limited to 10 attempts per 15 minutes.
+- Until 2026-10-17: **Spoke & Go**, an Express and SQLite booking app, ran at book.icepuente.com.
+- 2026-10-17 to 2026-10-23: The Neighbor was built on Firebase (accounts, business fleet plans and
+  reports, subscriptions, photos, an owner's dashboard), demonstrated on the Firebase emulators. The
+  plan is in git history: `git show 437650b:docs/firebase-plan.md`.
+- 2026-10-23: the owner chose to start smaller: repairs for private customers only, no accounts or
+  subscriptions, and no personal data kept by the site. The site became the static, email-based
+  version above, and the Firebase project was deleted. The earlier versions can be recovered from
+  git history (commit `437650b` is the last Firebase version).

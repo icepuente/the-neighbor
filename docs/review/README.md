@@ -11,70 +11,50 @@ corrections come back.
 
 ## 1. Demo guide (for the owner)
 
-The demo is at **https://book.icepuente.com**. It is a full copy of the site with made-up data.
-Nothing you do there reaches a real customer, and no email is sent. The data is reset every day,
-so you can't break anything. Emails appear in the dashboard's **Outbox**, so you can read them
-there.
+The demo is at **https://book.icepuente.com**. The yellow bar at the top says so: requests from the
+demo go to a test address (`booking@example.com`), so nothing reaches anyone, and the site itself
+stores nothing.
 
 Try it on your phone as well as a computer: customers will mostly book on a phone.
 
-**As a private customer** (the site opens in Danish; EN at the top switches to English):
+1. On the front page, tap **Jeg er punkteret** (or pick repairs further down).
+2. In the form, choose a day in the calendar and an arrival time, enter an address, postcode, name
+   and phone, and tap **Se pris**.
+3. On the price page, check the price, tick both boxes, and tap **Send forespørgsel på mail**. Your
+   mail program opens with the request written out: this is exactly what you would receive. (Don't
+   send it; it would go to the test address.)
+4. The page then shows the same text to copy, for visitors whose phone or computer has no mail
+   program set up.
+5. Switch to **EN** at the top and look at the English version.
 
-1. Book a service on the front page: pick services, a day in the calendar and a time, enter an
-   address (suggestions come from the Danish address register), and attach a photo of a bike.
-   Tick **Opret en konto** and choose a password. On the price page, accept the terms and confirm.
-2. Follow the link to **Min konto**: the booking is there, and can be cancelled online until 24
-   hours before.
-3. Log out, and log in as the demo customer **anna@demo.dk / neighbor-demo**. Look at
-   **Historik** (a visit that was logged), **Mine cykler** (add a bike with photos) and
-   **Anbefalinger** (what the mechanic recommended).
-4. Send a business request with the form under **For virksomheder**.
-
-**As the owner:** open **https://book.icepuente.com/admin.html** and log in as
-**owner@demo.dk / neighbor-demo**.
-
-1. **Bookings:** your booking from step 1 has arrived. Confirm it, reschedule it, write a private
-   note and a message to the customer. Then open **Log the visit**: write what you did, add parts,
-   a photo and a recommendation, and save. The customer's account now shows it (step 3 above, if
-   you booked as Anna).
-2. **Requests:** your business request is there. Choose a plan and **Create business account**.
-3. **Companies:** add a few bikes to the company's fleet (with photos), then fill in this month's
-   report and save it.
-4. **Outbox:** read the emails the customers would have received.
-5. Log in on **/account.html** as the business you created (its email, with password
-   `neighbor-demo`), or as **hotel@demo.dk / neighbor-demo**: the monthly report, the fleet and
-   the plan. The report can be printed or saved as a PDF.
-
-**What to look for:** prices, services and opening hours that are wrong; anything a customer
-would not understand; anything you would do differently in your work (the visit form, the fleet
-report); and anything missing. Write it down in any form: a list, voice notes, screenshots.
+**What to look for:** prices, services, opening hours and travel that are wrong; anything a customer
+would not understand; whether the request email tells you everything you need to plan the visit;
+and anything missing.
 
 ## 2. Proofreading the Danish
 
 [`proofreading.csv`](proofreading.csv) opens in Excel. It has one row per text: the site's
-buttons and messages, every email the customers receive (rendered with sample values; the
-words in parentheses are examples), and the privacy policy and terms paragraph by paragraph.
+buttons and messages, the request email the customer sends (the `mail.*` rows), and the privacy
+policy and terms paragraph by paragraph.
 
-- **Dansk** is the text now; **English** is there for context. For the terms, the English
-  column is empty because the two versions are not split into the same paragraphs; the English
-  page is `/terms.html`, further down.
+- **Dansk** is the text now; **English** is there for context. For the terms, the English column
+  may be empty where the two versions are not split into the same paragraphs; the English page is
+  `/terms.html`, further down.
 - Write a correction in **Rettelse** (the whole corrected text, not just the changed word), and
   anything else in **Kommentar**. Leave rows that are fine empty.
-- Words in curly braces, such as `{ref}` or `{name}`, are filled in by the site. Keep them as they
+- Words in curly braces, such as `{time}` or `{total}`, are filled in by the site. Keep them as they
   are.
 - Save as CSV (either "CSV UTF-8" or plain CSV works) and send the file back.
 
-The site texts are applied with `npm run import-texts -- <file>`; the script lists the email and
-legal rows, which are applied by hand. After changes, run `npm run export-texts` to make a fresh
-sheet.
+The site texts are applied with `npm run import-texts -- <file>`; the script lists the legal rows,
+which are applied by hand. After changes, run `npm run export-texts` to make a fresh sheet.
 
-The texts were written by an AI assistant. They are understandable, but they will not always
-sound the way a Dane would write them. The **legal pages and the early-start checkbox**
-(`co.earlyStart`) matter most, then the emails and the booking form.
+The texts were written by an AI assistant. They are understandable, but they will not always sound
+the way a Dane would write them. The **legal pages and the early-start checkbox** (`co.earlyStart`)
+matter most, then the request email and the booking form.
 
 ## 3. Legal review
 
 See [`docs/legal-checklist.md`](../legal-checklist.md): what the owner must provide (business
-details, CVR, choices for the terms), the questions for the reviewer, and the rules that were
-checked. The privacy policy now also covers customer accounts, saved bikes, service history and
-business customers (added 2026-10-17).
+details, CVR, choices for the terms), what the owner's reply to a request must contain, the
+questions for the reviewer, and the rules that were checked.
