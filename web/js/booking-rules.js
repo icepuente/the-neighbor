@@ -38,14 +38,18 @@ export const CONFIG = {
   maxNote: 300,
 };
 
-// The owner's repair services (2026-10-13 list, repairs only since 2026-10-23). durationMin is the
-// top of the owner's range, so a visit never runs short; `mins` is the range shown to customers.
+// The owner's repair services (2026-10-13 list, repairs only since 2026-10-23; Diagnostics became
+// Bike Service / Eftersyn and Other Repair was added the same day). durationMin is the top of the
+// owner's range, so a visit never runs short; `mins` is the range shown to customers.
 export const SERVICES = [
   { id: 'puncture', name: 'Puncture Fix', da: 'Punkteringsreparation', price: 199, durationMin: 20, mins: '15–20', tubeIncluded: true },
   { id: 'brakes', name: 'Brake Adjustment', da: 'Bremsejustering', price: 129, durationMin: 15, mins: '15' },
   { id: 'gears', name: 'Gear Adjustment', da: 'Gearjustering', price: 129, durationMin: 15, mins: '15' },
   { id: 'chain', name: 'Chain Service', da: 'Kædeservice', price: 149, durationMin: 15, mins: '15' },
-  { id: 'diagnostics', name: 'Diagnostics', da: 'Fejlfinding', price: 299, durationMin: 20, mins: '15–20', needsNote: true },
+  { id: 'service', name: 'Bike Service', da: 'Eftersyn', price: 299, durationMin: 20, mins: '15–20' },
+  // Anything else: the customer describes it in the comment field, and the owner gives the price
+  // (price: null, "by agreement") and the time in the reply. 20 minutes are held for it meanwhile.
+  { id: 'other', name: 'Other Repair', da: 'Anden reparation', price: null, durationMin: 20, mins: null, needsNote: true },
 ];
 export const service = (id) => SERVICES.find((s) => s.id === id);
 
@@ -107,10 +111,11 @@ export function fullAddress(street, postcode) {
 }
 
 // ---- Price ----
-// Money is whole kroner. Spare parts are never included.
+// Money is whole kroner. Spare parts are never included, nor is an Other Repair (priced by the
+// owner later): `byAgreement` says one was chosen, and the totals leave it out.
 export function quote(serviceIds, { distanceKm = null } = {}) {
   const sel = (Array.isArray(serviceIds) ? serviceIds : []).map(service).filter(Boolean);
-  const services = sel.reduce((a, s) => a + s.price, 0);
+  const services = sel.reduce((a, s) => a + (s.price ?? 0), 0);
   const travel = travelFee(distanceKm);
   // Work time is the sum of the chosen services; with nothing chosen yet, show times for a full visit.
   const workMin = sel.reduce((a, s) => a + s.durationMin, 0) || CONFIG.maxWorkMin;
@@ -119,6 +124,7 @@ export function quote(serviceIds, { distanceKm = null } = {}) {
     workMin,
     tooLong: workMin > CONFIG.maxWorkMin,
     needsNote: sel.some((s) => s.needsNote),
+    byAgreement: sel.some((s) => s.price == null),
     servicesTotal: services,
     distanceKm,
     travel,
@@ -173,12 +179,14 @@ export function checkAcceptance(accept) {
 // I18N.t), `fmt` formats { dkk(n), date(d) } in the page language, and `svcName` names a service.
 // Returns { subject, body } (body lines end in CRLF, as RFC 6068 asks for in mailto: links).
 export function requestEmail(r, q, { t, fmt, svcName }) {
+  const price = (s) => (s.price == null ? t('byAgreement') : fmt.dkk(s.price));
+  const travel = { travel: fmt.dkk(q.travel), km: q.distanceKm };
   const lines = [
     t('mail.hello'),
     '',
     t('mail.intro'),
     '',
-    `${t('mail.services')}: ${q.services.map((s) => `${svcName(s)} (${fmt.dkk(s.price)})`).join(', ')}`,
+    `${t('mail.services')}: ${q.services.map((s) => `${svcName(s)} (${price(s)})`).join(', ')}`,
     `${t('mail.date')}: ${fmt.date(r.date)}`,
     `${t('mail.time')}: ${t('mail.timeVal', { time: r.arrival, min: q.workMin })}`,
     `${t('mail.bike')}: ${r.bike}`,
@@ -187,7 +195,9 @@ export function requestEmail(r, q, { t, fmt, svcName }) {
     `${t('mail.phone')}: ${r.phone}`,
     `${t('mail.note')}: ${r.note || '–'}`,
     '',
-    t('mail.price', { services: fmt.dkk(q.servicesTotal), travel: fmt.dkk(q.travel), km: q.distanceKm, total: fmt.dkk(q.total) }),
+    // Only an Other Repair chosen: there is no price yet but the travel.
+    q.servicesTotal ? t('mail.price', { ...travel, services: fmt.dkk(q.servicesTotal), total: fmt.dkk(q.total) }) : t('mail.priceTravel', travel),
+    ...(q.byAgreement ? [t('mail.other')] : []),
     '',
     `- ${t('co.acceptTerms')}.`,
     `- ${t('co.earlyStart')}`,

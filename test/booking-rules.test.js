@@ -25,12 +25,15 @@ test('date arithmetic crosses months and years', () => {
   assert.equal(R.weekday(SAT), 6);
 });
 
-test('repairs only: the five services', () => {
-  assert.deepEqual(R.SERVICES.map((s) => s.id), ['puncture', 'brakes', 'gears', 'chain', 'diagnostics']);
+test('repairs only: five services and Other Repair', () => {
+  assert.deepEqual(R.SERVICES.map((s) => s.id), ['puncture', 'brakes', 'gears', 'chain', 'service', 'other']);
   assert.equal(R.service('bike-check'), undefined, 'no Bike Check');
   assert.equal(R.service('monthly'), undefined, 'no subscriptions');
+  assert.equal(R.service('diagnostics'), undefined, 'Diagnostics became Bike Service');
+  assert.deepEqual([R.service('service').name, R.service('service').da, R.service('service').price], ['Bike Service', 'Eftersyn', 299]);
+  assert.equal(R.service('service').needsNote, undefined, 'a bike service needs no description');
   assert.equal(R.service('puncture').tubeIncluded, true);
-  assert.equal(R.service('diagnostics').needsNote, true);
+  assert.deepEqual([R.service('other').da, R.service('other').price, R.service('other').needsNote], ['Anden reparation', null, true]);
 });
 
 test('prices and travel', () => {
@@ -39,11 +42,15 @@ test('prices and travel', () => {
   assert.equal(R.quote(['chain']).travel, null, 'no postcode, no travel fee');
   assert.equal(R.quote(['chain']).total, 149);
   assert.equal(R.travelFee(14), 35);
+  const other = R.quote(['puncture', 'other'], NEAR);
+  assert.deepEqual([other.servicesTotal, other.total, other.byAgreement], [199, 212, true], 'an Other Repair is priced later, not in the total');
+  assert.equal(R.quote(['puncture'], NEAR).byAgreement, false);
 });
 
 test('work time and the 45-minute limit', () => {
   assert.equal(R.quote(['puncture', 'brakes']).workMin, 35);
-  assert.equal(R.quote(['puncture', 'brakes', 'diagnostics']).tooLong, true, '55 minutes does not fit in one visit');
+  assert.equal(R.quote(['puncture', 'brakes', 'service']).tooLong, true, '55 minutes does not fit in one visit');
+  assert.equal(R.quote(['other']).workMin, 20, '20 minutes are held for an Other Repair');
   assert.equal(R.quote(['brakes', 'gears', 'chain']).tooLong, false, '45 minutes does');
   assert.equal(R.quote([]).workMin, 45, 'with nothing chosen, times are shown for a full visit');
 });
@@ -69,9 +76,10 @@ test('the booking form checks', () => {
   const check = (input, qq = q, c) => R.checkRequest(okInput(input), qq, ctx(c));
   assert.deepEqual(check({}), {}, 'a complete request passes');
   assert.equal(check({}, R.quote([], NEAR)).services, 'services');
-  assert.equal(check({}, R.quote(['puncture', 'brakes', 'diagnostics'], NEAR)).services, 'tooLong');
-  assert.equal(check({}, R.quote(['diagnostics'], NEAR)).note, 'note', 'Diagnostics needs a description');
-  assert.equal(check({ note: 'Creaks' }, R.quote(['diagnostics'], NEAR)).note, undefined);
+  assert.equal(check({}, R.quote(['puncture', 'brakes', 'service'], NEAR)).services, 'tooLong');
+  assert.equal(check({}, R.quote(['other'], NEAR)).note, 'note', 'an Other Repair must be described in the comment');
+  assert.equal(check({ note: 'Loose mudguard' }, R.quote(['other'], NEAR)).note, undefined);
+  assert.equal(check({}, R.quote(['service'], NEAR)).note, undefined, 'a bike service needs no comment');
   assert.equal(check({ note: 'x'.repeat(301) }).note, 'noteLong');
   assert.equal(check({ date: SAT }).date, 'lead', 'today is too soon');
   assert.equal(check({ date: '2026-10-18' }).date, 'sunday');
@@ -132,6 +140,20 @@ test('the request email and its mailto: link', () => {
   assert.equal(url.searchParams.get('body'), mail.body, 'the body survives encoding, & and ? included');
   assert.equal(url.searchParams.get('subject'), mail.subject);
   assert.ok(!link.includes('+'), 'spaces are %20, not +, which mail programs would show');
+  assert.ok(!lines.includes('mail.other'), 'no Other Repair, no line about its price');
+});
+
+test('an Other Repair in the request email: price by agreement', () => {
+  const t = (k, v) => `${k}${v ? JSON.stringify(v) : ''}`;
+  const fmt = { dkk: (n) => `${n} kr.`, date: (d) => d };
+  const r = { ...okInput(), bike: 'Racer', note: 'Loose mudguard' };
+  let lines = R.requestEmail(r, R.quote(['puncture', 'other'], NEAR), { t, fmt, svcName: (s) => s.name }).body.split('\r\n');
+  assert.ok(lines.includes('mail.services: Puncture Fix (199 kr.), Other Repair (byAgreement)'));
+  assert.ok(lines.some((l) => l.startsWith('mail.price') && l.includes('"total":"212 kr."')), 'the total leaves the Other Repair out');
+  assert.ok(lines.includes('mail.other'), 'and says its price is agreed later');
+  assert.ok(lines.includes('mail.note: Loose mudguard'), 'with the comment that describes it');
+  lines = R.requestEmail(r, R.quote(['other'], NEAR), { t, fmt, svcName: (s) => s.name }).body.split('\r\n');
+  assert.ok(lines.some((l) => l.startsWith('mail.priceTravel')) && !lines.some((l) => l.startsWith('mail.price{')), 'only an Other Repair: just the travel');
 });
 
 test('a long request still fits in a mailto: link', () => {

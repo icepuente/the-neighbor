@@ -27,17 +27,21 @@ if (CONFIG.contact.phone) $('foot-mail').append(` · ${CONFIG.contact.phone}`);
 // ---- Hero and service cards ----
 const puncture = R.service('puncture');
 $('hero-puncture-sub').textContent = `${dkk(puncture.price)} · ${t('svc.tubeIncl')}`;
-$('hero-repairs-sub').textContent = t('hero.repairsSub', { price: dkk(Math.min(...SERVICES.map((s) => s.price))) });
+const fixedPrices = SERVICES.filter((s) => s.price != null).map((s) => s.price);
+$('hero-repairs-sub').textContent = t('hero.repairsSub', { price: dkk(Math.min(...fixedPrices)) });
 
+// A service's price, or "Pris efter aftale" for an Other Repair; its time estimate, when it has one.
+const priceText = (s) => (s.price == null ? t('byAgreement') : dkk(s.price));
+const timeText = (s) => (s.mins ? t('svc.time', { m: s.mins }) : null);
 // Price plus the owner's time estimate, e.g. "199 kr. · ca. 15–20 min."
-const svcDetail = (s) => `${dkk(s.price)} · ${t('svc.time', { m: s.mins })}`;
+const svcDetail = (s) => [priceText(s), timeText(s)].filter(Boolean).join(' · ');
 
 for (const s of SERVICES) {
   const a = h('a');
   a.href = '#book';
   a.dataset.pre = s.id;
-  const sub = [t('svc.time', { m: s.mins }), s.tubeIncluded ? t('svc.tubeIncl') : null, t(`svc.${s.id}.what`)].filter(Boolean).join(' · ');
-  A(a, h('b', '', svcName(s)), h('p', 'price', dkk(s.price)), h('span', '', sub));
+  const sub = [timeText(s), s.tubeIncluded ? t('svc.tubeIncl') : null, t(`svc.${s.id}.what`)].filter(Boolean).join(' · ');
+  A(a, h('b', '', svcName(s)), h('p', s.price == null ? 'price soft' : 'price', priceText(s)), h('span', '', sub));
   $('svc-cards').appendChild(a);
 }
 
@@ -163,17 +167,19 @@ function renderCheckout() {
     r.insertCell().textContent = a;
     r.insertCell().textContent = b;
   };
-  for (const s of q.services) add(svcName(s), dkk(s.price));
+  for (const s of q.services) add(svcName(s), priceText(s));
   const rulesBtn = h('button', 'lnk', t('co.travel'));
   rulesBtn.type = 'button';
   rulesBtn.onclick = openRules;
   const tr = tb.insertRow();
   tr.insertCell().appendChild(rulesBtn);
   tr.insertCell().textContent = t('co.travelVal', { amount: dkk(q.travel), km: q.distanceKm });
-  add(t('co.total'), dkk(q.total), 'tot');
+  // An Other Repair is priced later, so the total is "341 kr. + anden reparation".
+  add(t('co.total'), q.byAgreement ? t('co.totalPlus', { total: dkk(q.total) }) : dkk(q.total), 'tot');
 
   const notes = $('notes');
   notes.textContent = '';
+  if (q.byAgreement) notes.appendChild(h('div', 'note', t('co.noteOther')));
   notes.appendChild(h('div', 'note', t('co.visit', { min: q.workMin })));
   notes.appendChild(h('div', 'note', t('co.confirmNote', { time: draft.arrival })));
   notes.appendChild(h('p', 'det', t('co.estimate')));

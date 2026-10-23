@@ -54,11 +54,15 @@ run(9336, async () => {
   await open(SITE);
   await waitFor("document.querySelectorAll('#svc-cards a').length > 0", 'the service cards');
   check(await evaluate("!document.getElementById('demo-bar').hidden") && (await text('#demo-bar')).includes(TO), `the demo bar says requests go to ${TO}`);
-  check(await evaluate("document.querySelectorAll('#svc-cards a').length") === 5, 'five repair services');
+  check(await evaluate("document.querySelectorAll('#svc-cards a').length") === 6, 'six cards: five repairs and Anden reparation');
   check((await text('#svc-cards a .price')) === '199 kr.', 'prices in Danish: 199 kr.');
+  const cards = await evaluate("[...document.querySelectorAll('#svc-cards a')].map((a) => a.innerText.replace(/\\s+/g, ' '))");
+  check(cards[4].startsWith('Eftersyn 299 kr.') && !/Fejlfinding|diagnos/i.test(cards.join()), `Diagnostics is now Eftersyn: "${cards[4]}"`);
+  check(cards[5].startsWith('Anden reparation Pris efter aftale') && cards[5].includes('kommentarfeltet'), `Anden reparation: "${cards[5]}"`);
   check(await evaluate("!document.getElementById('business') && !document.querySelector('a[href*=\"account\"], a[href*=\"admin\"]')"), 'no business section, no log-in, no dashboard');
   check(!(await evaluate('document.body.innerText')).match(/Care Plus|abonnement|Firebase|Opret en konto/i), 'no subscriptions or accounts mentioned');
   check((await text('footer')).includes(TO), 'the footer gives the booking address');
+  check((await evaluate("I18N.t('faq.payA')")) === 'Du kan betale på stedet, med Vipps eller via bankoverførsel.' && !/faktura på mail/.test(await evaluate('document.body.textContent')), 'payment: on the spot, Vipps or bank transfer');
   await shot('front.png', 1600);
 
   // The puncture card starts a booking with the puncture fix chosen.
@@ -79,10 +83,10 @@ run(9336, async () => {
   check(await evaluate("[...document.querySelectorAll('#slots input')].every((x) => !x.disabled)"), 'every time can be asked for (the owner confirms)');
 
   // Too much for one visit.
-  await tick('diagnostics');
+  await tick('service');
   await tick('brakes');
   check((await text('#e-services')).includes('45'), 'more than 45 minutes is refused at once');
-  await tick('diagnostics');
+  await tick('service');
   await evaluate("document.querySelector('#slots input[value=\"14:30\"]').click()");
 
   // The form's checks.
@@ -116,7 +120,7 @@ run(9336, async () => {
   const mail = await mailParts();
   check(mail.to === TO, `the email goes to ${TO}`);
   check(mail.subject.startsWith('Bookingforespørgsel: Punkteringsreparation, Bremsejustering') && mail.subject.endsWith('kl. 14:30'), `subject: "${mail.subject}"`);
-  for (const line of ['Navn: Test Testesen', 'Telefon: 12345678', 'Adresse: Jagtvej 10, 2. tv., 2200', 'Besked: Cyklen står i gården & bag porten?',
+  for (const line of ['Navn: Test Testesen', 'Telefon: 12345678', 'Adresse: Jagtvej 10, 2. tv., 2200', 'Kommentar: Cyklen står i gården & bag porten?',
     'Ønsket ankomst: kl. 14:30 (besøget tager op til 35 min.)', '- Jeg accepterer handelsbetingelserne.']) {
     check(mail.body.split('\r\n').includes(line), `the email says "${line}"`);
   }
@@ -132,9 +136,13 @@ run(9336, async () => {
 
   // In English, the page and the email.
   await evaluate("document.getElementById('lang-en').click()");
-  await waitFor("document.documentElement.lang === 'en' && document.querySelectorAll('#svc-cards a').length === 5", 'the English page');
+  await waitFor("document.documentElement.lang === 'en' && document.querySelectorAll('#svc-cards a').length === 6", 'the English page');
   check((await text('#svc-cards a .price')) === '199 DKK' && (await text('h1')) === 'Flat tyre? We come to you.', 'English: 199 DKK');
+  check(await evaluate("[...document.querySelectorAll('#svc-cards b')].map((b) => b.textContent).join()") === 'Puncture Fix,Brake Adjustment,Gear Adjustment,Chain Service,Bike Service,Other Repair', 'English: Bike Service and Other Repair');
+  // A chain service and an Other Repair, which must be described in the comment.
   await tick('chain');
+  await evaluate("document.querySelector('#svc-cards a[data-pre=other]').click()");
+  check(await evaluate("document.querySelector('input[name=svc][value=other]').checked"), 'the Other Repair card chooses it in the form');
   await pickDay(D1);
   await evaluate("document.querySelector('#slots input[value=\"09:00\"]').click()");
   await fill('street', 'Nørrebrogade 1');
@@ -142,9 +150,16 @@ run(9336, async () => {
   await fill('name', 'Ann');
   await fill('tel', '87654321');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
+  check((await text('#e-note')).includes('comment field') && await evaluate("document.getElementById('co').hidden"), 'an Other Repair without a comment is refused');
+  await fill('note', 'The mudguard rattles');
+  await evaluate("document.querySelector('#f button[type=submit]').click()");
   await waitFor("!document.getElementById('co').hidden", 'the English price page');
+  check((await text('#tbl')).includes('Price by agreement') && (await text('#tbl .tot')).includes('162 DKK + other repair'), `the price page: ${await text('#tbl .tot')}`);
+  check((await text('#notes')).includes('we agree the price and time'), 'and says its price is agreed later');
   const en = await mailParts();
-  check(en.subject.startsWith('Booking request: Chain Service') && en.body.includes('Kind regards') && en.body.includes('- I accept the terms and conditions.'), 'the email is in English too');
+  check(en.subject.startsWith('Booking request: Chain Service, Other Repair') && en.body.includes('Kind regards') && en.body.includes('- I accept the terms and conditions.'), 'the email is in English too');
+  check(en.body.includes('Other Repair (Price by agreement)') && en.body.includes('Comment: The mudguard rattles') && en.body.includes('price of the other repair is to be agreed'), 'with the Other Repair, its comment and price by agreement');
+  await shotEl('price-other.png', '#co');
 
   // The legal pages: about this site, with nothing left about accounts, photos or Firebase.
   await open(new URL('privacy.html', SITE).href);

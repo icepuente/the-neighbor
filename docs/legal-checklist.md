@@ -11,8 +11,8 @@ launch**, the terms especially, and have a native speaker proofread the Danish.
 
 The owner is not ready to take on GDPR work for accounts and stored customer data. So the site keeps
 nothing: a booking is an email the customer sends from their own mail program, and the owner
-replies. What remains is what any business that takes bookings by email has: the emails themselves
-and the invoices. The privacy policy covers exactly that.
+replies. What remains is what any business that takes bookings by email has: the emails themselves,
+the payments and the accounting records. The privacy policy covers exactly that.
 
 ## 1. Business details (required on the website by law)
 
@@ -29,7 +29,10 @@ and the invoices. The privacy policy covers exactly that.
 
 - [ ] Free cancellation until how long before the visit? (draft: 24 hours)
 - [ ] Fee for later cancellation, or when the bike cannot be reached? (draft: open)
-- [ ] Payment terms (draft: invoice by email after the visit, 8 days)
+- [x] Payment: on the spot, with Vipps or by bank transfer (the owner, 2026-10-23; in the FAQ, the
+      terms section 6 and the privacy policy). Still open: the deadline for a bank transfer (draft:
+      8 days after the visit). Danish customers know the app as **MobilePay** (Vipps MobilePay since
+      the 2024 merger): check whether the site should say "MobilePay" or "Vipps / MobilePay".
 - [ ] Must customers be 18 or older? (draft: marked as a question)
 - [ ] English version: does the Danish version apply if they differ? (draft: yes)
 

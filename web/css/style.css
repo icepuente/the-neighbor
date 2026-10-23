@@ -77,6 +77,8 @@ details[open] > summary::after { content: "−"; }
 .prices a { background: var(--paper); color: var(--ink); border-radius: 18px; padding: 16px 18px; text-decoration: none; display: block; }
 .prices b { display: block; font: 400 21px 'DM Serif Display', serif; }
 .prices .price { font-size: 26px; margin: 2px 0; }
+/* "Pris efter aftale": words, not a number, so smaller. */
+.prices .price.soft { font-size: 21px; padding: 4px 0 2px; }
 .prices a > span { font-size: 15px; opacity: .8; }
 .quote { font: 400 clamp(24px, 3vw, 32px)/1.25 'DM Serif Display', serif; max-width: 30ch; margin: 0 0 12px; }
 

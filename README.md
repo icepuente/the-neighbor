@@ -8,7 +8,8 @@ placeholder address (`booking@example.com`), so they reach no one.
 
 ## How booking works
 
-1. The visitor chooses one or more repairs (puncture fix, brakes, gears, chain, diagnostics), a
+1. The visitor chooses one or more repairs (puncture fix, brakes, gears, chain, bike service, or
+   an "other repair" they describe in the comment field, priced by the owner in the reply), a
    preferred day and arrival time, and gives an address, postcode, name and phone.
 2. The site checks the request (open Monday to Saturday 08:30-15:30, at least 2 days ahead, at most
    45 minutes of work, within 18 km) and shows the price: the repairs plus travel at 2.5 DKK per km,
