@@ -1,9 +1,0 @@
-# Copy to cloudflared/config.yml on the server (created by `cloudflared tunnel create`).
-tunnel: 7535fdd6-afd8-4e55-9048-0ffd003888e7
-credentials-file: /etc/cloudflared/.cloudflared/7535fdd6-afd8-4e55-9048-0ffd003888e7.json
-no-autoupdate: true
-
-ingress:
-  - hostname: book.icepuente.com
-    service: http://app:3000
-  - service: http_status:404

@@ -1,11 +1,10 @@
 node_modules/
-data/
-backups/
 .env
 .env.*
-!.env.example
 cloudflared/
 *-debug.log
+# The old Spoke & Go app's local database (the app was removed on 2026-10-23)
+data/
 
 # Fonts copied from node_modules by scripts/vendor.js
 web/vendor/
