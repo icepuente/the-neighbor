@@ -9,7 +9,7 @@ const TUE = '2026-10-20';
 const NEAR = { distanceKm: 5 }; // a Copenhagen postcode: 13 kr. travel
 
 const okInput = (over = {}) => ({
-  date: TUE, arrival: '10:00', street: 'Jagtvej 1, 2. tv.', postcode: '2200', name: 'Test', phone: '12345678', note: '', ...over,
+  date: TUE, arrival: '10:00', street: 'Jagtvej 1, 2. tv.', postcode: '2200', name: 'Test', phone: '12345678', email: 'test@example.dk', note: '', ...over,
 });
 const ctx = (over = {}) => ({ todayDate: SAT, closedDates: [], ...over });
 
@@ -90,10 +90,20 @@ test('the booking form checks', () => {
   assert.equal(check({ arrival: '' }).arrival, 'arrival');
   assert.equal(check({ arrival: '15:00' }, R.quote(['puncture', 'brakes'], NEAR)).arrival, 'arrival', '15:00 + 35 min ends after 15:30');
   assert.equal(check({ arrival: '15:00' }).arrival, undefined, 'a 15-minute job can start at 15:00');
+  assert.equal(check({ email: '' }).email, 'email', 'an email address is required');
+  assert.equal(check({ email: ' test@example.dk ' }).email, undefined, 'spaces around it are trimmed');
   assert.equal(check({ phone: ' ' }).form, 'contact');
   assert.equal(check({ postcode: '' }).form, 'contact');
   assert.equal(check({}, R.quote(['chain'])).form, 'postcode', 'a postcode that cannot be priced');
   assert.equal(check({}, R.quote(['chain'], { distanceKm: 30 })).form, 'far', 'beyond 18 km');
+});
+
+test('email addresses: one plain address the owner can reply to', () => {
+  for (const ok of ['a@b.dk', 'soren.hansen+bike@mail.example.com', 'x_y-z@sub.domain-1.dk', "o'neil@example.ie"]) assert.ok(R.isEmail(ok), ok);
+  for (const no of ['', 'a', 'a@b', '@b.dk', 'a@.dk', 'a@b..dk', 'a..b@c.dk', '.a@b.dk', 'a.@b.dk', 'a b@c.dk', 'a@b.dk, c@d.dk', 'A <a@b.dk>',
+    '<a@b.dk>', 'a@b.dk\r\nBcc: c@d.dk', 'a@b.dk\n', 'søren@b.dk', 'a@-b.dk', 'a@b-.dk', `${'a'.repeat(65)}@b.dk`, `a@${'b'.repeat(250)}.dk`, null, 42]) {
+    assert.equal(R.isEmail(no), false, JSON.stringify(no));
+  }
 });
 
 test('travel estimate from the postcode', () => {
@@ -130,6 +140,7 @@ test('the request email and its mailto: link', () => {
   assert.ok(lines.includes('mail.services: Puncture Fix (199 kr.), Chain Service (149 kr.)'));
   assert.ok(lines.includes('mail.address: Jagtvej 1, 2. tv., 2200'));
   assert.ok(lines.includes('mail.phone: 12345678'));
+  assert.ok(lines.includes('mail.email: test@example.dk'), 'the customer\'s address, to reply to');
   assert.ok(lines.some((l) => l.startsWith('mail.price') && l.includes('"total":"361 kr."')), 'the price with travel');
   assert.ok(lines.includes('- co.acceptTerms.') && lines.includes('- co.earlyStart'), 'both ticked statements are in the email');
   assert.ok(!mail.body.includes('\n\n'), 'lines end in CRLF only');

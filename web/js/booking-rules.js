@@ -1,10 +1,11 @@
 // The Neighbor's booking rules: services, prices, opening hours and the checks on the booking form.
-// Used by the page (js/landing.js) and the tests (test/booking-rules.test.js).
+// Used by the page (js/landing.js), the booking API (api/, which re-checks every request with these
+// same rules and recomputes the price) and the tests (test/).
 //
-// The site has no backend: nothing is stored or sent by the site. A booking is a request the
-// customer emails from their own mail program (see requestEmail below), and the owner confirms the
-// time by replying. So these rules only guide the customer: they cannot know which times are
-// already taken, and the owner has the last word.
+// A booking is a request: the site's server emails it to the owner with a copy to the customer (see
+// requestEmail below), or, if that fails, the customer emails it from their own mail program. The
+// owner confirms the time by replying. Nothing is stored. So these rules only guide the customer:
+// they cannot know which times are already taken, and the owner has the last word.
 //
 // Dates are 'YYYY-MM-DD' strings in Copenhagen time, and times are 'HH:MM'.
 
@@ -57,6 +58,12 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 export const isDate = (s) => typeof s === 'string' && DATE_RE.test(s);
 export const isTime = (s) => typeof s === 'string' && TIME_RE.test(s);
+
+// An email address the owner can reply to: plain ASCII, one address, no display name, no spaces,
+// commas, angle brackets or line breaks (so it is safe as a Reply-To). Internationalised addresses
+// are refused; the visitor can still book by phone or from their own mail program.
+const EMAIL_RE = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
+export const isEmail = (s) => typeof s === 'string' && s.length <= 254 && EMAIL_RE.test(s) && !s.includes('..') && !/^\.|\.@/.test(s);
 
 const atNoon = (date) => new Date(`${date}T12:00:00Z`);
 const toIso = (d) => d.toISOString().slice(0, 10);
@@ -142,7 +149,7 @@ export function startTimes(workMin) {
 
 // ---- Checks ----
 // The booking form's checks. Errors are codes, keyed by the field they belong to; the page
-// translates them. input: { date, arrival, street, postcode, name, phone, note }.
+// translates them. input: { date, arrival, street, postcode, name, phone, email, note }.
 export function checkRequest(input, q, { todayDate, closedDates = CONFIG.closedDates }) {
   const errors = {};
   if (!q.services.length) errors.services = 'services';
@@ -152,6 +159,7 @@ export function checkRequest(input, q, { todayDate, closedDates = CONFIG.closedD
   else if (input.date < earliestDate(todayDate)) errors.date = 'lead';
   // A visit that is too long is reported on the services, so there is no start time to check.
   if (!q.tooLong && !(isTime(input.arrival) && startTimes(q.workMin).includes(input.arrival))) errors.arrival = 'arrival';
+  if (!isEmail(String(input.email || '').trim())) errors.email = 'email';
   if (q.needsNote && !String(input.note || '').trim()) errors.note = 'note';
   else if (String(input.note || '').length > CONFIG.maxNote) errors.note = 'noteLong';
   if (!String(input.street || '').trim() || !String(input.postcode || '').trim() || !String(input.name || '').trim() || !String(input.phone || '').trim()) errors.form = 'contact';
@@ -174,9 +182,11 @@ export function checkAcceptance(accept) {
 }
 
 // ---- The request email ----
-// The customer's mail program opens with this, addressed to the owner. `t` translates (the page's
-// I18N.t), `fmt` formats { dkk(n), date(d) } in the page language, and `svcName` names a service.
-// Returns { subject, body } (body lines end in CRLF, as RFC 6068 asks for in mailto: links).
+// The email the owner receives: sent by the API (api/mail.js), or, as a fallback, opened in the
+// customer's mail program as a mailto: link. `t` translates (the page's I18N.t), `fmt` formats
+// { dkk(n), date(d) } in the page language, and `svcName` names a service. Returns
+// { subject, body } (body lines end in CRLF, as RFC 6068 asks for in mailto: links).
+// The subject is made of the services, date and time only, never of anything the visitor typed.
 export function requestEmail(r, q, { t, fmt, svcName }) {
   const price = (s) => (s.price == null ? t('byAgreement') : fmt.dkk(s.price));
   const travel = { travel: fmt.dkk(q.travel), km: q.distanceKm };
@@ -192,6 +202,7 @@ export function requestEmail(r, q, { t, fmt, svcName }) {
     `${t('mail.address')}: ${fullAddress(r.street, r.postcode)}`,
     `${t('mail.name')}: ${r.name}`,
     `${t('mail.phone')}: ${r.phone}`,
+    ...(r.email ? [`${t('mail.email')}: ${r.email}`] : []),
     `${t('mail.note')}: ${r.note || '–'}`,
     '',
     // Only an Other Repair chosen: there is no price yet but the travel.

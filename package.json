@@ -2,11 +2,12 @@
   "name": "the-neighbor",
   "version": "2.0.0",
   "private": true,
-  "description": "The Neighbor: a mobile bike mechanic in Copenhagen. A static site; repairs are booked by email.",
+  "description": "The Neighbor: a mobile bike mechanic in Copenhagen. A static site and a small API that emails booking requests.",
   "type": "module",
   "scripts": {
     "vendor": "node scripts/vendor.js",
     "serve": "npm run vendor && node scripts/serve.js",
+    "api": "node api/server.js",
     "test": "node --test \"test/*.test.js\"",
     "test:browser": "node scripts/test-browser.js",
     "test:live": "node test/browser/live.js",
@@ -16,7 +17,7 @@
     "build:pages": "node scripts/build-pages.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "devDependencies": {
     "@fontsource-variable/source-serif-4": "5.3.1",
