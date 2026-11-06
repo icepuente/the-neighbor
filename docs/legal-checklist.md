@@ -16,32 +16,27 @@ the payments and the accounting records. The privacy policy covers exactly that.
 
 ## 1. Business details (required on the website by law)
 
-- [ ] Legal name of the business, and its type (e.g. enkeltmandsvirksomhed / sole proprietorship)
-- [ ] CVR number
-- [ ] Business address. The site says *Rørsangervej 45, København* as the base for travel. If that
-      is a home address, it will be public; the law requires the address where the business is
-      established.
-- [ ] Email address for booking requests (goes in `CONFIG.contact.email` in
-      `web/js/booking-rules.js`), and a phone number if it should be shown
-- [ ] Is the business VAT (moms) registered? Prices on the site are written as "incl. VAT".
+- [x] Legal name and type: The Neighbor v/ Volodymyr Taran, enkeltmandsvirksomhed (CVR register).
+- [x] CVR number: 46840291.
+- [x] Business address: Rørsangervej 45, 2400 København NV (the CVR register adds 2. tv.).
+- [x] Booking email and phone in `CONFIG.contact` (2026-11-06).
+- [x] VAT: not registered yet (the terms say so, and no VAT is added). **When turnover passes 50,000 kr a year he must register, and the prices on the site must then include
+      moms**: update terms section 2 (and the prices, if they change).
 
 ## 2. Choices for the terms
 
-- [ ] Free cancellation until how long before the visit? (draft: 24 hours)
-- [ ] Fee for later cancellation, or when the bike cannot be reached? (draft: open)
-- [x] Payment: on the spot, with Vipps or by bank transfer (the owner, 2026-10-23; in the FAQ, the
-      terms section 6 and the privacy policy). Still open: the deadline for a bank transfer (draft:
-      8 days after the visit). Danish customers know the app as **MobilePay** (Vipps MobilePay since
-      the 2024 merger): check whether the site should say "MobilePay" or "Vipps / MobilePay".
-- [ ] Must customers be 18 or older? (draft: marked as a question)
-- [ ] English version: does the Danish version apply if they differ? (draft: yes)
+- [x] Free cancellation until 24 hours before the visit.
+- [x] No fee for later cancellation, or when the bike cannot be reached (customers are asked to say so early).
+- [x] Payment: on the spot, with Vipps MobilePay (#124895) or by bank transfer, due 5 days after the
+      visit (the owner, 2026-11-06; in the FAQ, the terms section 6 and the privacy policy).
+- [x] Customers must be 18 or older.
+- [x] The Danish version applies if the two differ.
 
 ## 3. Choices for the privacy policy
 
-- [ ] How long to keep booking emails after the visit (draft: 12 months; invoices must be kept 5
-      years under the Bookkeeping Act regardless)
-- [ ] Which email provider holds the booking emails (named in the policy)
-- [ ] An accountant or bookkeeper who receives invoice data, if any
+- [x] Booking emails are deleted 12 months after the visit; accounting records are kept 5 years.
+- [x] Email provider: Google (Gmail). A consumer Gmail account has no data processing agreement; the owner plans Google Workspace later (then the policy can stay as it is).
+- [x] The owner keeps his own books: no accountant receives data.
 - [ ] Hosting at launch: the policy says the site is delivered through Cloudflare and that the
       server keeps no visitor log (true for the home server's nginx). If the site moves elsewhere,
       check that both still hold.

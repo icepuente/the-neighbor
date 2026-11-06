@@ -69,7 +69,7 @@ run(9336, async () => {
   check(await evaluate("!document.getElementById('business') && !document.querySelector('a[href*=\"account\"], a[href*=\"admin\"]')"), 'no business section, no log-in, no dashboard');
   check(!(await evaluate('document.body.innerText')).match(/Care Plus|abonnement|Firebase|Opret en konto/i), 'no subscriptions or accounts mentioned');
   check((await text('footer')).includes(TO), 'the footer gives the booking address');
-  check((await evaluate("I18N.t('faq.payA')")) === 'Du kan betale på stedet, med Vipps (#124895) eller via bankoverførsel.' && !/faktura på mail/.test(await evaluate('document.body.textContent')), 'payment: on the spot, Vipps or bank transfer');
+  check((await evaluate("I18N.t('faq.payA')")) === 'Du kan betale på stedet, med Vipps MobilePay (#124895) eller via bankoverførsel.' && !/faktura på mail/.test(await evaluate('document.body.textContent')), 'payment: on the spot, Vipps or bank transfer');
   await shot('front.png', 1600);
 
   // The puncture card starts a booking with the puncture fix chosen.
