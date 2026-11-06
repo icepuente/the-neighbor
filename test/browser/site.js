@@ -69,7 +69,7 @@ run(9336, async () => {
   check(await evaluate("!document.getElementById('business') && !document.querySelector('a[href*=\"account\"], a[href*=\"admin\"]')"), 'no business section, no log-in, no dashboard');
   check(!(await evaluate('document.body.innerText')).match(/Care Plus|abonnement|Firebase|Opret en konto/i), 'no subscriptions or accounts mentioned');
   check((await text('footer')).includes(TO), 'the footer gives the booking address');
-  check((await evaluate("I18N.t('faq.payA')")) === 'Du kan betale på stedet, med Vipps eller via bankoverførsel.' && !/faktura på mail/.test(await evaluate('document.body.textContent')), 'payment: on the spot, Vipps or bank transfer');
+  check((await evaluate("I18N.t('faq.payA')")) === 'Du kan betale på stedet, med Vipps (#124895) eller via bankoverførsel.' && !/faktura på mail/.test(await evaluate('document.body.textContent')), 'payment: on the spot, Vipps or bank transfer');
   await shot('front.png', 1600);
 
   // The puncture card starts a booking with the puncture fix chosen.
@@ -171,7 +171,7 @@ run(9336, async () => {
   // The legal pages: about this site, with nothing left about accounts, photos or Firebase.
   await open(new URL('privacy.html', SITE).href);
   const privacy = await evaluate('document.body.innerText');
-  check(privacy.includes('Privacy policy') && privacy.includes('no accounts, no cookies') && !/Firebase|Google|sign-in|Adressev/i.test(privacy), 'the privacy policy describes the email-only site');
+  check(privacy.includes('Privacy policy') && privacy.includes('no accounts, no cookies') && !/Firebase|sign-in|Adressev/i.test(privacy) && privacy.includes("Google (Gmail)") && privacy.includes("46840291"), 'the privacy policy describes the email-only site');
   await open(new URL('terms.html', SITE).href);
   check(!/Care|subscription|account/i.test(await evaluate('document.body.innerText')), 'the terms mention no subscriptions or accounts');
 

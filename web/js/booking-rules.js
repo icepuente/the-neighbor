@@ -15,7 +15,7 @@ export const CONFIG = {
   base: 'Rørsangervej 45, København',
   // Where booking requests go, and the phone shown next to it (null: no phone shown).
   // scripts/deploy.sh refuses to publish while the email is still an example.com placeholder.
-  contact: { email: 'booking@example.com', phone: null },
+  contact: { email: 't.volodymyr22@gmail.com', phone: '29 61 93 72' },
   // Shows the demo bar at the top of the page (off since the site went live on theneighbor.dk).
   demo: false,
   // Travel: 2.5 DKK per km, one way, from the base; addresses beyond 18 km are refused.

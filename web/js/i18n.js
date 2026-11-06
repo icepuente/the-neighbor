@@ -151,7 +151,7 @@
       'faq.come': 'Kommer I ud til mig?', 'faq.comeA': 'Ja. Alt arbejde foregår der, hvor cyklen står, op til 18 km fra os.',
       'faq.hours': 'Hvornår har I åbent?', 'faq.hoursA': 'Mandag til lørdag, 8.30\u201315.30. Søndag har vi lukket.',
       'faq.confirm': 'Hvornår er min tid bekræftet?', 'faq.confirmA': 'Når vi har svaret på din mail. Vi bekræfter dit ønskede tidspunkt eller foreslår et andet. Book mindst 2 dage frem.',
-      'faq.pay': 'Hvordan betaler jeg?', 'faq.payA': 'Du kan betale på stedet, med Vipps eller via bankoverførsel.',
+      'faq.pay': 'Hvordan betaler jeg?', 'faq.payA': 'Du kan betale på stedet, med Vipps (#124895) eller via bankoverførsel.',
       'faq.data': 'Gemmer siden mine oplysninger?', 'faq.dataA': 'Nej. Siden har ingen konti og gemmer intet. Din forespørgsel er en almindelig mail fra dig til os.',
     },
 
@@ -286,7 +286,7 @@
       'faq.come': 'Do you come to me?', 'faq.comeA': 'Yes. All work is done where the bike is, up to 18 km from us.',
       'faq.hours': 'When are you open?', 'faq.hoursA': 'Monday to Saturday, 08:30\u201315:30. Closed on Sundays.',
       'faq.confirm': 'When is my time confirmed?', 'faq.confirmA': 'When we have replied to your email. We confirm your preferred time or suggest another. Book at least 2 days ahead.',
-      'faq.pay': 'How do I pay?', 'faq.payA': 'You can pay on the spot, with Vipps or by bank transfer.',
+      'faq.pay': 'How do I pay?', 'faq.payA': 'You can pay on the spot, with Vipps (#124895) or by bank transfer.',
       'faq.data': 'Does the site keep my details?', 'faq.dataA': 'No. The site has no accounts and stores nothing. Your request is an ordinary email from you to us.',
     },
   };
