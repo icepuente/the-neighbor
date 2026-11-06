@@ -1,9 +1,10 @@
 // The front page (index.html): service cards and the booking form.
 //
-// The site has no backend. The form checks the request and shows the price, then the customer's own
-// mail program opens with the request written out, addressed to the owner (a mailto: link). Nothing
-// is stored or sent by the site; the owner confirms the time by replying. If no mail program opens,
-// the same text is shown to copy.
+// The form checks the request and shows the price. "Send" posts it to the site's API
+// (POST /api/request, api/), which checks it again and emails it to the owner with a copy to the
+// customer; nothing is stored. If the API cannot send it (not set up, busy, down, or the visitor
+// is offline), the page falls back to the customer's own mail program: a mailto: link with the same
+// email, and the text to copy. The owner confirms the time by replying.
 import * as R from './booking-rules.js';
 import { attachDatePicker } from './datepicker.js';
 
@@ -122,10 +123,10 @@ dateIn.addEventListener('change', renderSlots);
 let draft = null;
 let quote = null;
 let mail = null;
-const ERR = ['services', 'date', 'arrival', 'note', 'form'];
+const ERR = ['services', 'date', 'arrival', 'email', 'note', 'form'];
 const showErrors = (errors) => { for (const k of ERR) $(`e-${k}`).textContent = errors[k] ? t(`err.${errors[k]}`) : ''; };
 function show(id) {
-  for (const x of ['f', 'co', 'done']) $(x).hidden = x !== id;
+  for (const x of ['f', 'co', 'sent', 'done']) $(x).hidden = x !== id;
   $(id).scrollIntoView({ block: 'nearest' });
 }
 
@@ -141,6 +142,7 @@ $('f').addEventListener('submit', (e) => {
     postcode: v('postcode'),
     name: v('name'),
     phone: v('tel'),
+    email: v('email'),
     note: v('note'),
   };
   quote = R.quote(draft.serviceIds, { distanceKm: R.estimateKm(draft.postcode) });
@@ -185,30 +187,89 @@ function renderCheckout() {
   notes.appendChild(h('p', 'det', t('co.estimate')));
 
   mail = R.requestEmail(draft, q, { t, fmt: { dkk, date: fmtDate }, svcName });
-  $('send').href = R.mailtoLink(TO, mail);
+  $('send-mail').href = R.mailtoLink(TO, mail);
+  // A new id for each version of the request: the API sends a request with the same id only once,
+  // so a double click or a retry cannot send it twice.
+  requestId = newRequestId();
   $('e-confirm').textContent = '';
 }
 
 $('back').onclick = () => show('f');
 
-// The send button is a mailto: link, so the visitor's own click opens their mail program (also on
-// phones). It is held back until both boxes are ticked.
-$('send').addEventListener('click', (e) => {
-  const notAccepted = R.checkAcceptance({ terms: $('acc-terms').checked, earlyStart: $('acc-start').checked });
+let requestId = null;
+function newRequestId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Send: held back until both boxes are ticked, then posted to the API.
+let sending = false;
+$('send').addEventListener('click', async () => {
+  const accept = { terms: $('acc-terms').checked, earlyStart: $('acc-start').checked };
+  const notAccepted = R.checkAcceptance(accept);
   if (notAccepted) {
-    e.preventDefault();
     $('e-confirm').textContent = t(`err.accept.${notAccepted}`);
     return;
   }
   $('e-confirm').textContent = '';
-  // The mail program opens over the page; this page then says what happens next.
-  setTimeout(showDone, 400);
+  if (sending) return;
+  sending = true;
+  const btn = $('send');
+  btn.disabled = true;
+  btn.textContent = t('co.sending');
+  const { serviceIds, date, arrival, bike, street, postcode, name, phone, email, note } = draft;
+  let res = null;
+  let data = null;
+  try {
+    res = await fetch('/api/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'omit',
+      cache: 'no-store',
+      body: JSON.stringify({ id: requestId, lang: I18N.lang, serviceIds, date, arrival, bike, street, postcode, name, phone, email, note, accept, website: $('hp').value }),
+      signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(30000) : undefined,
+    });
+    data = await res.json().catch(() => null);
+  } catch {
+    res = null; // offline, or no answer in time
+  }
+  sending = false;
+  btn.disabled = false;
+  btn.textContent = t('co.send');
+
+  if (res?.ok && data?.ok) { showSent(data.copy !== false); return; }
+  // The server's own checks said no (say, the date is now too soon, on a page left open overnight):
+  // show why, where it can be fixed.
+  if (res?.status === 400 && data?.error === 'invalid' && data.errors) {
+    if (data.errors.accept) { $('e-confirm').textContent = t(`err.accept.${data.errors.accept}`); return; }
+    showErrors(data.errors);
+    show('f');
+    const first = ERR.find((k) => data.errors[k]);
+    if (first) $(`e-${first}`).scrollIntoView({ block: 'center' });
+    return;
+  }
+  // Anything else (no API key yet, too many requests, the email service down, offline): the
+  // visitor's own mail program.
+  showDone();
 });
+
+const mailText = () => `${t('done.to')}: ${TO}\n${t('done.subject')}: ${mail.subject}\n\n${mail.body.replace(/\r\n/g, '\n')}`;
+
+function showSent(copy) {
+  $('sent-msg').textContent = t('sent.msg', { email: draft.email });
+  $('sent-spam').hidden = !copy;
+  $('sent-nocopy').hidden = copy;
+  if (!copy) {
+    $('sent-nocopy-msg').textContent = t('sent.noCopy', { email: draft.email });
+    $('senttext').value = mailText();
+  }
+  show('sent');
+}
 
 function showDone() {
   $('done-msg').textContent = t('done.msg', { email: TO });
   $('done-help').textContent = t(CONFIG.contact.phone ? 'done.helpPhone' : 'done.help', { email: TO, phone: CONFIG.contact.phone });
-  $('mailtext').value = `${t('done.to')}: ${TO}\n${t('done.subject')}: ${mail.subject}\n\n${mail.body.replace(/\r\n/g, '\n')}`;
+  $('mailtext').value = mailText();
   $('copied').textContent = '';
   show('done');
 }
@@ -224,6 +285,7 @@ $('copy').onclick = async () => {
   }
 };
 $('again').onclick = () => location.reload();
+$('again2').onclick = () => location.reload();
 
 // ---- Travel rules dialog ----
 let lastFocus = null;

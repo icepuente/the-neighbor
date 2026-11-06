@@ -1,6 +1,8 @@
 // The site in a real (headless) Chrome: booking a repair as a visitor would, through to the email
-// that opens. Run with `npm run test:browser` (local, on scripts/serve.js) or `npm run test:live`
-// (against https://theneighbor.dk/). It sends nothing: the mailto: link is checked, not opened.
+// that is sent. Run with `npm run test:browser` (local, on scripts/serve.js) or `npm run test:live`
+// (against https://theneighbor.dk/). It sends nothing: the page's fetch() is replaced by a stub
+// that records the request and answers as the API would, and the mailto: fallback is checked, not
+// opened.
 import { check, evaluate, open, requests, run, shot, shotEl, waitFor } from './cdp.js';
 import * as R from '../../web/js/booking-rules.js';
 
@@ -19,15 +21,19 @@ async function pickDay(date) {
   for (let i = 0; i < 3 && !await evaluate(`!!${dayBtn(date)}`); i++) await evaluate("document.querySelector('#date-cal .cal-nav.next').click()");
   await evaluate(`${dayBtn(date)}.click()`);
 }
-// Remembers whether the page let the send link open the mail program, and stops it doing so (the
-// test sends nothing). Runs after the page's own click handler.
-const catchSend = () => evaluate(`document.addEventListener('click', (e) => {
-  if (!e.target.closest('#send')) return;
-  window.__sent = e.defaultPrevented ? 'blocked' : 'sent';
-  e.preventDefault();
-})`);
+// Replaces the page's fetch(): records each request in window.__posts and answers with `status`
+// and `body`, as the API would. Nothing reaches the server.
+const stubApi = (status, body) => evaluate(`(() => {
+  window.__posts = window.__posts || [];
+  window.fetch = async (url, init = {}) => {
+    window.__posts.push({ url: String(url), method: init.method, type: (init.headers || {})['Content-Type'], body: init.body });
+    return new Response(${JSON.stringify(JSON.stringify(body))}, { status: ${status}, headers: { 'Content-Type': 'application/json' } });
+  };
+})()`);
+const posts = () => evaluate('window.__posts || []');
+// The mailto: link of the fallback page (set as soon as the price page is shown).
 const mailParts = async () => {
-  const url = new URL(await evaluate("document.getElementById('send').href"));
+  const url = new URL(await evaluate("document.getElementById('send-mail').href"));
   return { to: url.pathname, subject: url.searchParams.get('subject'), body: url.searchParams.get('body') };
 };
 
@@ -52,6 +58,13 @@ run(9336, async () => {
     check(old.status === 301, `the old account page redirects to the front page (${old.status})`);
     const fn = await fetch(new URL('fn/bookingOptions', SITE), { method: 'POST', body: '{}' });
     check(fn.status === 403 || fn.status === 405, `the Firebase emulators are gone: POST /fn/... is refused (${fn.status})`);
+    // The API answers only POST, and an empty request is refused (400), or 503 before the key is set.
+    const api = await fetch(new URL('api/request', SITE), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    check(api.status === 400 || api.status === 503, `POST /api/request with {} is refused without sending (${api.status})`);
+    const apiGet = await fetch(new URL('api/request', SITE));
+    check(apiGet.status === 403 || apiGet.status === 405, `GET /api/request is refused (${apiGet.status})`);
+    const other = await fetch(new URL('index.html', SITE), { method: 'POST', body: '{}' });
+    check(other.status === 403 || other.status === 405, `POST anywhere else is refused (${other.status})`);
   }
 
   // A first-time visitor, in Danish.
@@ -105,6 +118,11 @@ run(9336, async () => {
   await fill('tel', '12345678');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
   check((await text('#e-form')).includes('18 km'), 'a postcode beyond 18 km is refused');
+  check((await text('#e-email')).startsWith('Skriv din e-mailadresse'), 'an email address is required');
+  await fill('email', 'test@example');
+  await evaluate("document.querySelector('#f button[type=submit]').click()");
+  check((await text('#e-email')).startsWith('Skriv din e-mailadresse'), 'and must be a whole address');
+  await fill('email', 'test.testesen@example.dk');
   await fill('postcode', '2200');
   await fill('note', 'Cyklen står i gården & bag porten?');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
@@ -116,30 +134,39 @@ run(9336, async () => {
   check((await text('#codet')).includes('Jagtvej 10, 2. tv., 2200'), 'the address is written the Danish way');
   await shotEl('price.png', '#co');
 
-  // Send: held back until both boxes are ticked.
-  await catchSend();
+  // Send: held back until both boxes are ticked. The API answers 503 (not set up), so the page
+  // falls back to the visitor's own mail program.
+  await stubApi(503, { error: 'unavailable' });
   await evaluate("document.getElementById('send').click()");
-  check(await evaluate('window.__sent') === 'blocked' && (await text('#e-confirm')).includes('handelsbetingelserne'), 'nothing opens before the terms are accepted');
+  check((await posts()).length === 0 && (await text('#e-confirm')).includes('handelsbetingelserne'), 'nothing is sent before the terms are accepted');
   await evaluate("document.getElementById('acc-terms').click()");
   await evaluate("document.getElementById('send').click()");
-  check(await evaluate('window.__sent') === 'blocked' && (await text('#e-confirm')).includes('fortrydelsesretten'), 'nor before the early start is asked for');
+  check((await posts()).length === 0 && (await text('#e-confirm')).includes('fortrydelsesretten'), 'nor before the early start is asked for');
   await evaluate("document.getElementById('acc-start').click()");
+  await evaluate("document.getElementById('send').click()");
+  await waitFor("!document.getElementById('done').hidden", 'the mail fallback page');
+  const [post] = await posts();
+  const sentReq = JSON.parse(post.body);
+  check(post.url === '/api/request' && post.method === 'POST' && post.type === 'application/json', `the request is posted to /api/request (${post.url})`);
+  check(sentReq.lang === 'da' && sentReq.email === 'test.testesen@example.dk' && sentReq.accept.terms === true && sentReq.accept.earlyStart === true && sentReq.website === '',
+    'with the language, the email address, both ticks and an empty honeypot');
+  check(/^[0-9a-f-]{32,36}$/.test(sentReq.id) && JSON.stringify(sentReq.serviceIds) === '["puncture","brakes"]', 'a request id, and the services by id');
+  check(!/total|price|travel/i.test(Object.keys(sentReq).join()), 'and no prices: the server works them out');
   const mail = await mailParts();
   check(mail.to === TO, `the email goes to ${TO}`);
   check(mail.subject.startsWith('Bookingforespørgsel: Punkteringsreparation, Bremsejustering') && mail.subject.endsWith('kl. 14:30'), `subject: "${mail.subject}"`);
   for (const line of ['Navn: Test Testesen', 'Telefon: 12345678', 'Adresse: Jagtvej 10, 2. tv., 2200', 'Kommentar: Cyklen står i gården & bag porten?',
-    'Ønsket ankomst: kl. 14:30 (besøget tager op til 35 min.)', '- Jeg accepterer handelsbetingelserne.']) {
+    'Ønsket ankomst: kl. 14:30 (besøget tager op til 35 min.)', 'E-mail: test.testesen@example.dk', '- Jeg accepterer handelsbetingelserne.']) {
     check(mail.body.split('\r\n').includes(line), `the email says "${line}"`);
   }
   check(mail.body.includes('ca. 341 kr. i alt') && mail.body.includes('fortrydelsesret ophører'), 'and gives the price and the withdrawal acknowledgement');
-  await evaluate("document.getElementById('send').click()");
-  check(await evaluate('window.__sent') === 'sent', 'with both boxes ticked, the link opens the mail program');
-  await waitFor("!document.getElementById('done').hidden", 'the "almost done" page');
-  check((await text('#done-msg')).includes(TO) && (await evaluate("document.getElementById('mailtext').value")).includes('Telefon: 12345678'), 'which shows the request, ready to copy');
+  check((await text('#done-msg')).includes('kunne ikke sende') && (await text('#done-msg')).includes(TO) && (await evaluate("document.getElementById('mailtext').value")).includes('Telefon: 12345678'),
+    'the fallback page offers the mail program, and the request ready to copy');
   await evaluate("document.getElementById('copy').click()");
   await waitFor("document.getElementById('copied').textContent", 'the copy button');
   check(true, `copy: "${await text('#copied')}"`);
   await shotEl('done.png', '#done');
+  check(await evaluate("document.getElementById('sent').hidden"), 'and does not claim it was sent');
 
   // In English, the page and the email.
   await evaluate("document.getElementById('lang-en').click()");
@@ -156,6 +183,7 @@ run(9336, async () => {
   await fill('postcode', '2200');
   await fill('name', 'Ann');
   await fill('tel', '87654321');
+  await fill('email', 'ann@example.com');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
   check((await text('#e-note')).includes('comment field') && await evaluate("document.getElementById('co').hidden"), 'an Other Repair without a comment is refused');
   await fill('note', 'The mudguard rattles');
@@ -167,6 +195,24 @@ run(9336, async () => {
   check(en.subject.startsWith('Booking request: Chain Service, Other Repair') && en.body.includes('Kind regards') && en.body.includes('- I accept the terms and conditions.'), 'the email is in English too');
   check(en.body.includes('Other Repair (Price by agreement)') && en.body.includes('Comment: The mudguard rattles') && en.body.includes('price of the other repair is to be agreed'), 'with the Other Repair, its comment and price by agreement');
   await shotEl('price-other.png', '#co');
+
+  // The server's own checks refuse it (say, the page was left open overnight): back to the form.
+  await evaluate("document.getElementById('acc-terms').click()");
+  await evaluate("document.getElementById('acc-start').click()");
+  await stubApi(400, { error: 'invalid', errors: { date: 'lead' } });
+  await evaluate("document.getElementById('send').click()");
+  await waitFor("!document.getElementById('f').hidden", 'the form again');
+  check((await text('#e-date')) === 'Please book at least 2 days ahead.', `the server's error is shown on the field: "${await text('#e-date')}"`);
+  // Sent: the page says so, and where the copy went.
+  await evaluate("document.querySelector('#f button[type=submit]').click()");
+  await waitFor("!document.getElementById('co').hidden", 'the price page again');
+  await stubApi(200, { ok: true, copy: true });
+  await evaluate("document.getElementById('send').click()");
+  await waitFor("!document.getElementById('sent').hidden", 'the "request sent" page');
+  check((await text('#sent-msg')).includes('a copy is on its way to ann@example.com') && await evaluate("document.getElementById('sent-nocopy').hidden"), `sent: "${await text('#sent-msg')}"`);
+  const ids = (await posts()).map((p) => JSON.parse(p.body).id);
+  check(ids.length === 2 && ids[0] !== ids[1], 'a changed request gets a new id');
+  await shotEl('sent.png', '#sent');
 
   // The legal pages: about this site, with nothing left about accounts, photos or Firebase.
   await open(new URL('privacy.html', SITE).href);

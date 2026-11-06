@@ -93,6 +93,12 @@
           <div><label for="name" data-i18n="f.name"></label><input type="text" id="name" autocomplete="name" maxlength="80"></div>
           <div><label for="tel" data-i18n="f.phone"></label><input type="tel" id="tel" autocomplete="tel" maxlength="30"></div>
         </div>
+        <label for="email"><span data-i18n="f.email"></span> <small data-i18n="bk.emailSub"></small></label>
+        <input type="email" id="email" autocomplete="email" inputmode="email" maxlength="254" spellcheck="false" autocapitalize="off">
+        <p class="err" id="e-email"></p>
+        <!-- A honeypot: hidden from people and screen readers, so only robots fill it in; the API
+             then sends nothing (api/validate.js). -->
+        <div class="hp" aria-hidden="true"><label for="hp" data-i18n="bk.hp"></label><input type="text" id="hp" name="hp" tabindex="-1" autocomplete="off"></div>
         <label for="note"><span data-i18n="bk.note"></span> <small data-i18n="bk.noteSub"></small></label>
         <textarea id="note" rows="3" maxlength="300" data-i18n-ph="bk.notePh"></textarea>
         <p class="err" id="e-note"></p>
@@ -105,20 +111,36 @@
         <p class="det" id="codet"></p>
         <table class="tbl" id="tbl"></table>
         <div id="notes"></div>
-        <!-- Ticked before sending: both sentences go into the request email. The early start must be
-             asked for actively (forbrugeraftaleloven § 18, stk. 2, nr. 2). -->
+        <!-- Ticked before sending: both sentences go into the request email and the customer's copy.
+             The early start must be asked for actively (forbrugeraftaleloven § 18, stk. 2, nr. 2). -->
         <label class="cb"><input type="checkbox" id="acc-terms"><span><span data-i18n="co.acceptTerms"></span> (<a href="terms.html" target="_blank" rel="noopener" data-i18n="co.readTerms"></a>)</span></label>
         <label class="cb"><input type="checkbox" id="acc-start"><span data-i18n="co.earlyStart"></span></label>
         <p class="det"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="co.privacy"></a></p>
         <p class="err" id="e-confirm" role="alert"></p>
-        <a class="pill" id="send" href="#" data-i18n="co.send"></a>
+        <!-- Sends the request through the site's server (POST /api/request); if that fails, the
+             page offers the visitor's own mail program instead (#done). -->
+        <button class="pill" id="send" type="button" data-i18n="co.send"></button>
         <p class="det center" data-i18n="co.sendSub"></p>
         <button class="alt" id="back" type="button" data-i18n="co.change"></button>
       </div>
 
+      <div class="box" id="sent" hidden>
+        <h2 data-i18n="sent.title"></h2>
+        <p class="ok" id="sent-msg" role="status"></p>
+        <p class="det" id="sent-spam" data-i18n="sent.spam"></p>
+        <div id="sent-nocopy" hidden>
+          <p class="det" id="sent-nocopy-msg"></p>
+          <label for="senttext" data-i18n="done.text"></label>
+          <textarea id="senttext" rows="12" readonly></textarea>
+        </div>
+        <div><button class="alt" id="again2" type="button" data-i18n="done.again"></button></div>
+      </div>
+
+      <!-- When the site could not send the request: the visitor's own mail program, or the text to copy. -->
       <div class="box" id="done" hidden>
         <h2 data-i18n="done.title"></h2>
-        <p class="ok" id="done-msg"></p>
+        <p class="note" id="done-msg" role="alert"></p>
+        <a class="pill" id="send-mail" href="#" data-i18n="done.openMail"></a>
         <p class="det" id="done-help"></p>
         <label for="mailtext" data-i18n="done.text"></label>
         <textarea id="mailtext" rows="12" readonly></textarea>

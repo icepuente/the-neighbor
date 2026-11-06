@@ -90,10 +90,13 @@ details[open] > summary::after { content: "−"; }
 /* Paper panels and forms */
 .box { background: var(--paper); color: var(--ink); border-radius: 24px; padding: 28px; }
 .box .pill { width: 100%; margin-top: 14px; background: var(--base); color: #fff !important; }
+.pill:disabled { opacity: .6; cursor: progress; }
+/* The honeypot field (js/landing.js): off screen, for robots only. Not display:none, which some robots skip. */
+.hp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 .box h2 { font-size: 30px; margin-bottom: 4px; }
 .box > p { font-size: 16px; margin: 0 0 6px; }
 label, .lb { display: block; font-weight: 600; font-size: 16px; margin: 16px 0 6px; padding: 0; }
-input[type=text], input[type=tel], select, textarea { width: 100%; font: 400 17px 'Source Serif 4', serif; color: var(--ink); background: #fff; border: 1.5px solid var(--field); border-radius: 12px; padding: 11px 14px; }
+input[type=text], input[type=tel], input[type=email], select, textarea { width: 100%; font: 400 17px 'Source Serif 4', serif; color: var(--ink); background: #fff; border: 1.5px solid var(--field); border-radius: 12px; padding: 11px 14px; }
 textarea[readonly] { font-size: 15px; background: #fbf8f2; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .addr-row { grid-template-columns: 2fr 1fr; }
