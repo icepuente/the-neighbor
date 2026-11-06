@@ -56,7 +56,7 @@ the customer, and a copy to the customer, Reply-To the owner. Both come from
 `The Neighbor <booking@theneighbor.dk>`. That address receives nothing (the domain has no inbound
 mail); replies go to the Reply-To address.
 
-**One-time setup** (not done yet, 2026-11-06):
+**One-time setup** (done 2026-11-06):
 
 1. **Account.** Create a Resend account for the business (the owner's address, with Alec as a team
    member, is easiest to hand over later). Accept the DPA: Resend's DPA is pre-signed and applies to
@@ -67,14 +67,14 @@ mail); replies go to the Reply-To address.
    click tracking **off** (the privacy policy says nothing about tracking; the emails are plain
    text anyway).
 3. **DNS** in Cloudflare: add exactly the records Resend shows for the domain, all **DNS only**
-   (grey cloud), then press Verify in Resend. Expect these types (the values are Resend's):
+   (grey cloud), then press Verify in Resend. Resend's values change over time, so copy them from
+   its dashboard rather than from here. As set up on 2026-11-06:
 
    | Type | Name | Content (from Resend) | Note |
    |---|---|---|---|
-   | MX | `send` | `feedback-smtp.eu-west-1.amazonses.com`, priority 10 | bounces for the sending subdomain |
-   | TXT | `send` | `v=spf1 include:amazonses.com ~all` | SPF for the sending subdomain |
+   | CNAME | `send` | `send.forge.rmta.net` | gives the sending subdomain its MX (bounces) and SPF TXT |
    | TXT | `resend._domainkey` | `p=MIGfMA0...` (a DKIM public key) | DKIM for `theneighbor.dk` |
-   | TXT | `_dmarc` | `v=DMARC1; p=none;` | optional, recommended (start with `p=none`) |
+   | TXT | `_dmarc` | `v=DMARC1; p=none;` | optional, recommended (start with `p=none`); not added yet |
 
    None of them touch the root domain's records or the two tunnel CNAMEs above.
 4. **API key.** API Keys → Create: permission **Sending access**, domain `theneighbor.dk` only.
