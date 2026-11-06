@@ -4,9 +4,12 @@
 // (POST /api/request, api/), which checks it again and emails it to the owner with a copy to the
 // customer; nothing is stored. If the API cannot send it (not set up, busy, down, or the visitor
 // is offline), the page falls back to the customer's own mail program: a mailto: link with the same
-// email, and the text to copy. The owner confirms the time by replying.
+// email, and the text to copy. The owner confirms the time by replying. While CONFIG.addressSuggest
+// is on, what is typed in the street field also goes to /api/address for suggestions (nothing else,
+// and nothing is kept).
 import * as R from './booking-rules.js';
 import { attachDatePicker } from './datepicker.js';
+import { attachAddressSuggest } from './address.js';
 
 const { $, h, A, t } = UI;
 const { CONFIG, SERVICES } = R;
@@ -119,6 +122,27 @@ function renderSlots() {
 }
 dateIn.addEventListener('change', renderSlots);
 
+// ---- Address suggestions ----
+// Picking one fills in the street and the postcode (so the travel price follows), then moves on to
+// floor and door. Free text still works, and a failed lookup simply shows no suggestions.
+if (CONFIG.addressSuggest) {
+  attachAddressSuggest($('street'), {
+    label: t('bk.suggestions'),
+    search: async (q) => {
+      const res = await fetch(`/api/address?${new URLSearchParams({ q })}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.fund || []).filter((f) => typeof f.titel === 'string').map((f) => ({ id: f.id, text: f.titel }));
+    },
+    onPick: (title) => {
+      const { street, postcode } = R.splitAddress(title);
+      $('street').value = street;
+      if (postcode) $('postcode').value = postcode;
+      $('apartment').focus();
+    },
+  });
+}
+
 // ---- Price page ----
 let draft = null;
 let quote = null;
@@ -139,6 +163,7 @@ $('f').addEventListener('submit', (e) => {
     arrival: document.querySelector('input[name=slot]:checked')?.value || '',
     bike: bikeSel.value,
     street: v('street'),
+    apartment: v('apartment'),
     postcode: v('postcode'),
     name: v('name'),
     phone: v('tel'),
@@ -160,7 +185,7 @@ $('f').addEventListener('submit', (e) => {
 
 function renderCheckout() {
   const q = quote;
-  $('codet').textContent = `${t('dateAt', { date: fmtDate(draft.date), time: draft.arrival })} · ${draft.bike} · ${R.fullAddress(draft.street, draft.postcode)}`;
+  $('codet').textContent = `${t('dateAt', { date: fmtDate(draft.date), time: draft.arrival })} · ${draft.bike} · ${R.fullAddress(draft.street, draft.postcode, draft.apartment)}`;
   const tb = $('tbl');
   tb.textContent = '';
   const add = (a, b, cls) => {
@@ -217,7 +242,7 @@ $('send').addEventListener('click', async () => {
   const btn = $('send');
   btn.disabled = true;
   btn.textContent = t('co.sending');
-  const { serviceIds, date, arrival, bike, street, postcode, name, phone, email, note } = draft;
+  const { serviceIds, date, arrival, bike, street, apartment, postcode, name, phone, email, note } = draft;
   let res = null;
   let data = null;
   try {
@@ -226,7 +251,7 @@ $('send').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'omit',
       cache: 'no-store',
-      body: JSON.stringify({ id: requestId, lang: I18N.lang, serviceIds, date, arrival, bike, street, postcode, name, phone, email, note, accept, website: $('hp').value }),
+      body: JSON.stringify({ id: requestId, lang: I18N.lang, serviceIds, date, arrival, bike, street, apartment, postcode, name, phone, email, note, accept, website: $('hp').value }),
       signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(30000) : undefined,
     });
     data = await res.json().catch(() => null);

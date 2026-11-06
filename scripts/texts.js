@@ -22,8 +22,10 @@ const I18N_FILE = join(root, 'web', 'js', 'i18n.js');
 const OUT = join(root, 'docs', 'review', 'proofreading.csv');
 const HEAD = ['Hvor', 'Nøgle', 'Status', 'Dansk', 'English', 'Rettelse', 'Kommentar'];
 const NEW = 'Ny/ændret 2026-11-06';
-// New or changed for sending requests from the site (2026-11-06), not yet proofread.
+// New or changed for sending requests from the site (2026-11-06), and for the address suggestions
+// and the floor/door field (2026-11-07), not yet proofread.
 const NEW_KEYS = new Set([
+  'bk.streetPh', 'bk.apartment', 'bk.apartmentPh', 'bk.suggestions',
   'pt.mailSub', 'bk.sub', 'f.email', 'bk.emailSub', 'bk.hp', 'err.email', 'co.confirmNote', 'co.send', 'co.sendSub', 'co.sending',
   'sent.title', 'sent.msg', 'sent.spam', 'sent.noCopy', 'done.title', 'done.msg', 'done.openMail',
   'mail.email', 'mail.copySubject', 'mail.copyIntro', 'mail.copyNext', 'mail.copyTerms', 'mail.copyHead', 'faq.confirmA', 'faq.dataA',

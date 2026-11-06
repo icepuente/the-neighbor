@@ -4,7 +4,8 @@
 # Sends web/, deploy/ and api/, then (re)starts nginx, the booking API and the tunnel. The tunnel
 # container runs once cloudflared/config.yml exists on the server.
 # The Resend API key stays on the server, in secrets/resend.env (docs/operations.md): this script
-# never sends, reads, copies or deletes anything in secrets/ (or cloudflared/).
+# never sends, reads, copies or deletes anything in secrets/ (or cloudflared/); it only makes sure
+# the empty folder secrets/nginx/ exists, for nginx's mount (deploy/compose.yaml).
 set -euo pipefail
 HOST="${1:-deploy@192.168.0.223}"
 DIR=/opt/the-neighbor-demo
@@ -16,11 +17,39 @@ if grep -q "email: '[^']*@example\.com'" web/js/booking-rules.js; then
   exit 1
 fi
 
+# Never deploy anything but what is on GitHub (2026-11-07: a deploy from a clone that had not been
+# fetched rolled theneighbor.dk back past seven commits another session had pushed and deployed).
+# 1. This clone: HEAD must be origin/main exactly (not behind, diverged, or ahead and unpushed, which
+#    the next deploy from elsewhere would roll back), with nothing uncommitted in what is sent.
+# 2. The server: the commit it runs (.deployed-commit, written below) must be in HEAD's history, so a
+#    deploy that was never pushed is not overwritten either.
+# DEPLOY_ALLOW_UNSYNCED=1 skips both, for an emergency only.
+refuse() { echo "Refusing to deploy: $1" >&2; echo "(DEPLOY_ALLOW_UNSYNCED=1 overrides, for an emergency only.)" >&2; exit 1; }
+if [ "${DEPLOY_ALLOW_UNSYNCED:-}" = 1 ]; then
+  echo "WARNING: DEPLOY_ALLOW_UNSYNCED=1: not checking this clone against GitHub or the server." >&2
+else
+  git fetch --quiet origin main || refuse "could not fetch origin/main to compare."
+  HEAD_SHA="$(git rev-parse HEAD)"
+  ORIGIN_SHA="$(git rev-parse origin/main)"
+  if [ "$HEAD_SHA" != "$ORIGIN_SHA" ]; then
+    if git merge-base --is-ancestor HEAD origin/main; then refuse "this clone is behind origin/main: git pull first."
+    elif git merge-base --is-ancestor origin/main HEAD; then refuse "this clone has commits not on GitHub: git push first."
+    else refuse "this clone and origin/main have diverged: rebase on origin/main, push, then deploy."; fi
+  fi
+  git diff --quiet HEAD -- web deploy api && [ -z "$(git ls-files --others --exclude-standard -- web deploy api)" ] \
+    || refuse "uncommitted changes in web/, deploy/ or api/: commit and push them first."
+  SERVER_SHA="$(ssh -o BatchMode=yes "$HOST" "cat $DIR/.deployed-commit 2>/dev/null || true")"
+  if [ -n "$SERVER_SHA" ] && ! git merge-base --is-ancestor "$SERVER_SHA" HEAD 2>/dev/null; then
+    refuse "the server runs ${SERVER_SHA:0:7}, which is not in this clone's history (deployed from elsewhere, not pushed?)."
+  fi
+fi
+
 npm run --silent vendor
 
 # A new asset path for every deploy (see deploy/nginx/default.conf): the commit, plus a timestamp
 # when there are uncommitted changes.
 VERSION="$(git rev-parse --short HEAD)"
+DEPLOY_SHA="$(git rev-parse HEAD)"
 git diff --quiet HEAD -- web || VERSION="$VERSION-$(date +%s)"
 
 # Only these three folders are sent, and never an env file, wherever one might be.
@@ -35,6 +64,9 @@ tar -czf - --exclude='.env' --exclude='.env.*' --exclude='*.env' web deploy api 
       # api/ and web/js/ are mounted into the api container the same way.
       for d in web deploy api; do mkdir -p \$d; find \$d -mindepth 1 ! -type d -delete; done
       tar -xzf - --no-same-owner
+      # nginx mounts secrets/nginx/ (the address token, if any; see deploy/compose.yaml). Made here,
+      # so Docker does not create it as root; nothing in it is ever sent from here.
+      mkdir -p secrets/nginx
       # Pages load scripts, styles and fonts from r/$VERSION/ (relative paths inside follow).
       sed -i -E 's#(src|href)=\"(js|css)/#\1=\"r/$VERSION/\2/#g' web/*.html
       grep -q 'r/$VERSION/js/' web/index.html
@@ -65,6 +97,14 @@ tar -czf - --exclude='.env' --exclude='.env.*' --exclude='*.env' web deploy api 
       else
         echo 'api: email configured'
       fi
+      # Address suggestions through nginx (a warning only: the register being down is not this deploy).
+      if docker compose exec -T nginx wget -qO- 'http://127.0.0.1/api/address?q=Jagtvej+10' 2>/dev/null | grep -q '\"status\":\"ok\"'; then
+        echo 'address suggestions: ok'
+      else
+        echo 'WARNING: /api/address did not answer ok (the register, or the token in secrets/nginx/?)'
+      fi
+      # What the server now runs, for the next deploy's check (see the top of this script).
+      echo '$DEPLOY_SHA' > .deployed-commit
       docker image prune -f >/dev/null
       docker compose \$profile ps --format '{{.Service}}: {{.Status}}'
       echo 'deployed version $VERSION'"

@@ -17,6 +17,12 @@ services:
     volumes:
       - ./web:/usr/share/nginx/html:ro
       - ./deploy/nginx:/etc/nginx/conf.d:ro
+      # The Adressevaelger token (address-token.inc), outside deploy/
+      # so a deploy never removes it. Only secrets/nginx/: the API's
+      # key (secrets/resend.env) stays out of this container.
+      # scripts/deploy.sh creates the folder; empty, nginx uses the
+      # public sample token.
+      - ./secrets/nginx:/etc/nginx/secrets:ro
     # Local access only, for checks; the public comes through cloudflared.
     ports:
       - "127.0.0.1:8088:80"

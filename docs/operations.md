@@ -4,7 +4,8 @@ The site is static, with one small backend: nginx on Alec's home server serves `
 `POST /api/request` to the booking API (`api/`, a Node container), which emails each request through
 Resend. A Cloudflare Tunnel makes it public at **theneighbor.dk** (www redirects to it). There is no
 database, and nothing to back up on the server but the Resend key in `secrets/` (the repo is the
-source of truth for everything else). Moving the static site to Cloudflare Pages is a few steps,
+source of truth for everything else). nginx also answers `GET /api/address` for the address
+suggestions (below), passing the typed text on to the Danish address register. Moving the static site to Cloudflare Pages is a few steps,
 below (the API would not move with it).
 
 | What | Where |
@@ -18,7 +19,8 @@ below (the API would not move with it).
 | Email | [Resend](https://resend.com), from `booking@theneighbor.dk`, domain region Ireland (`eu-west-1`); see [Booking emails](#booking-emails-resend) |
 | Secret | `/opt/the-neighbor-demo/secrets/resend.env` (`RESEND_API_KEY=...`), mode 600, owned by `deploy`; never in git, never touched by the deploy |
 | Tunnel | the existing tunnel `bike-booking` (id `7535fdd6-…`); config in [`deploy/cloudflared-config.yml`](../deploy/cloudflared-config.yml), credentials in `cloudflared/` on the server only |
-| nginx | [`deploy/nginx/default.conf`](../deploy/nginx/default.conf) (GET only except `POST /api/request`, no access log, www redirect) and [`headers.inc`](../deploy/nginx/headers.inc) (the security headers, shared with the local server and the Pages build) |
+| nginx | [`deploy/nginx/default.conf`](../deploy/nginx/default.conf) (GET only except `POST /api/request`; `GET /api/address` for the address suggestions; no access log, www redirect) and [`headers.inc`](../deploy/nginx/headers.inc) (the security headers, shared with the local server and the Pages build) |
+| Address token | `/opt/the-neighbor-demo/secrets/nginx/address-token.inc`, the only file nginx sees from `secrets/` (not in git, not touched by a deploy) |
 
 ## Deploy
 
@@ -111,6 +113,35 @@ leaked key in Resend as well.
 `errors` (the server's own checks failed: the page shows them on the form); anything else (400
 `bad`/`rejected`, 413, 429 busy, 502 Resend failed, 503 no key, no answer) → the mail fallback.
 
+## Address suggestions
+
+While `CONFIG.addressSuggest` is on (`web/js/booking-rules.js`), the street field suggests Danish
+addresses as the visitor types. The page asks `/api/address?q=...` on this site; nginx passes only
+the typed text on to Klimadatastyrelsen's **Adressevælger** (`adressevaelger.dk/husnumre/soeg`, which
+replaced DAWA on 2026-10-01), with the token added on the server, and returns its JSON. No visitor
+headers (IP, cookies) go with it, and the register's own headers are not passed back. Nothing is
+logged: this route's error log is set to `crit`, because rate-limit and upstream-error lines would
+quote the typed address. Each visitor is limited to about 5 lookups a second (then 429). If the register is down,
+the field simply shows no suggestions. `npm run serve` has the same route (`scripts/serve.js`, token from `ADDRESS_TOKEN`).
+
+**The token.** Without one, nginx uses the public sample token from Adressevælger's documentation
+(`adressevaelger123`). The business should have its own (free, from a Dataforsyningen account). Put
+it on the server in `secrets/nginx/` (the only part of `secrets/` nginx can see; the Resend key
+stays out of its container), outside `deploy/` so deploys leave it alone, then reload nginx:
+
+```bash
+ssh deploy@192.168.0.223 'cd /opt/the-neighbor-demo && mkdir -p secrets/nginx &&
+  printf "set \$address_token \"%s\";\n" "THE-TOKEN" > secrets/nginx/address-token.inc && chmod 600 secrets/nginx/address-token.inc &&
+  docker compose exec -T nginx nginx -t -q && docker compose exec -T nginx nginx -s reload'
+```
+
+(nginx reads the file as root, so `600` owned by `deploy` is enough.) To check:
+`curl -s 'https://theneighbor.dk/api/address?q=Jagtvej+10'` should answer `"status":"ok"`.
+
+**Turning it off:** set `CONFIG.addressSuggest` to `false` and deploy. The form then works as plain
+fields, the privacy policy's sentences about Adressevælger disappear by themselves (`js/privacy.js`),
+and `/api/address` can stay in nginx unused.
+
 ## DNS (Cloudflare)
 
 | Type | Name | Target | Proxy |
@@ -142,11 +173,15 @@ policy promises it.
 
 ## Moving to Cloudflare Pages
 
-The static site does not depend on the home server, but the booking API does: on Pages,
+The static site does not depend on the home server, but two routes do: on Pages,
 `POST /api/request` gets 405, so every request falls back to the visitor's mail program (which
-works, as before 2026-11-06). Keeping server-side sending there means porting `api/` to a Pages
-Function (not done), and updating the privacy policy. To move:
+works, as before 2026-11-06), and there is no `/api/address` for the address suggestions.
+Keeping server-side sending there means porting `api/` to a Pages Function (not done), and
+updating the privacy policy. To move:
 
+0. Set `CONFIG.addressSuggest` to `false` (see "Address suggestions"). `npm run build:pages`
+   refuses to build until you do. (To keep the suggestions on Pages, the route would have to
+   become a Pages Function; it does not exist yet.)
 1. `npm run build:pages` makes `dist/`: `web/` with the fonts, plus `_headers` (from
    `deploy/nginx/headers.inc`) and `_redirects` (the old account/admin pages).
 2. Create a Pages project (direct upload) and upload it: `npx wrangler pages deploy dist

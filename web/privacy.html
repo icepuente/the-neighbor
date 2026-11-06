@@ -26,7 +26,7 @@
 <main class="wrap">
 <article class="box legal" lang="da" id="privacy-da">
   <h1>Privatlivspolitik</h1>
-  <p class="meta">Senest opdateret: 6. november 2026</p>
+  <p class="meta">Senest opdateret: 7. november 2026</p>
   <p data-proofread="new">Kort fortalt: hjemmesiden gemmer ingen oplysninger om dig. Når du sender en forespørgsel, sender siden den som en mail til os, med en kopi til dig, og vi bruger kun det, du skriver, til at aftale og udføre reparationen.</p>
 
   <h2>1. Hvem er ansvarlig?</h2>
@@ -38,6 +38,7 @@
 
   <h2>2. Hjemmesiden</h2>
   <p data-proofread="new">Hjemmesiden har ingen konti, ingen cookies, ingen statistik og intet indhold fra andre tjenester. Det, du skriver i bookingformularen, bliver i din egen browser, indtil du trykker på »Send forespørgsel«. Så sender siden det til vores server, som med det samme sender det videre som to mails: én til os og en kopi til dig (se afsnit 4 om Resend, der sender mailene for os). Serveren gemmer ikke din forespørgsel.</p>
+  <p data-if="addressSuggest" data-proofread="new" hidden>Desuden: mens du skriver gadenavnet, sender siden teksten via vores server til Klimadatastyrelsens Adressevælger (Danmarks officielle adresseregister) for at vise adresseforslag. Der sendes kun adresseteksten – ikke dit navn, din IP-adresse eller andet – og vi gemmer den ikke.</p>
   <p data-proofread="new">For at forhindre misbrug, fx at nogen sender hundredvis af forespørgsler, tæller serveren, hvor mange forespørgsler der kommer fra den samme IP-adresse. Adressen holdes kun i serverens hukommelse, i en form der ikke kan læses tilbage (en hash), og glemmes igen senest efter en time. Det sker for at beskytte siden og vores indbakke, som er vores legitime interesse (databeskyttelsesforordningens artikel 6, stk. 1, litra f).</p>
   <p data-proofread="new">Kan siden ikke sende forespørgslen, tilbyder den i stedet at åbne dit eget mailprogram med teksten. Så bestemmer du selv, om du vil sende den.</p>
   <p>Siden gemmer kun dit valg af sprog (dansk eller engelsk) i din egen browser.</p>
@@ -51,6 +52,7 @@
   <ul>
     <li data-proofread="new"><strong>Resend</strong> (Plus Five Five, Inc., USA) sender mailene fra hjemmesiden for os, som vores databehandler efter en databehandleraftale. Mailene sendes fra Resends servere i Irland, men Resend opbevarer dem og deres leveringslog i USA i 30 dage. Overførslen til USA sker efter EU-U.S. Data Privacy Framework, som Resend er certificeret under, og EU-Kommissionens standardkontraktbestemmelser i databehandleraftalen.</li>
     <li><strong>Google (Gmail)</strong> opbevarer vores mails.</li>
+    <li data-if="addressSuggest" data-proofread="new" hidden><strong>Klimadatastyrelsen (Adressevælger)</strong> modtager den adressetekst, du skriver, for at finde adresseforslag (se afsnit 2).</li>
     <li><strong>Betaling:</strong> betaler du med Vipps MobilePay eller via bankoverførsel, behandler Vipps MobilePay eller din bank betalingen som selvstændig dataansvarlig, og vi ser dit navn og beløbet.</li>
     <li><strong>Regnskab:</strong> vi fører selv regnskabet, så ingen andre får oplysningerne på regnskabsbilagene.</li>
   </ul>
@@ -73,7 +75,7 @@
 
 <article class="box legal" lang="en" id="privacy-en">
   <h1>Privacy policy</h1>
-  <p class="meta">Last updated: 6 November 2026</p>
+  <p class="meta">Last updated: 7 November 2026</p>
   <p>In short: the website keeps no information about you. When you send a request, the site sends it to us as an email, with a copy to you, and we use only what you write to arrange and carry out the repair.</p>
 
   <h2>1. Who is responsible?</h2>
@@ -85,6 +87,7 @@
 
   <h2>2. The website</h2>
   <p>The website has no accounts, no cookies, no statistics and no content from other services. What you type in the booking form stays in your own browser until you press "Send request". The site then sends it to our server, which straight away passes it on as two emails: one to us and a copy to you (see section 4 on Resend, which sends the emails for us). The server does not keep your request.</p>
+  <p data-if="addressSuggest" data-proofread="new" hidden>Also: while you type the street, the site sends that text through our server to Klimadatastyrelsen's Adressevælger (Denmark's official address register) to show address suggestions. Only the address text is sent – not your name, your IP address or anything else – and we do not keep it.</p>
   <p>To prevent misuse, such as someone sending hundreds of requests, the server counts how many requests come from the same IP address. The address is held only in the server's memory, in a form that cannot be read back (a hash), and is forgotten within an hour. This protects the site and our inbox, which is our legitimate interest (Article 6(1)(f) of the General Data Protection Regulation).</p>
   <p>If the site cannot send the request, it offers to open your own mail program with the text instead. You then decide whether to send it.</p>
   <p>The site only keeps your choice of language (Danish or English), in your own browser.</p>
@@ -98,6 +101,7 @@
   <ul>
     <li><strong>Resend</strong> (Plus Five Five, Inc., USA) sends the emails from the website for us, as our processor under a data processing agreement. The emails are sent from Resend's servers in Ireland, but Resend stores them and their delivery log in the United States for 30 days. The transfer to the US is made under the EU-U.S. Data Privacy Framework, under which Resend is certified, and the European Commission's standard contractual clauses in the data processing agreement.</li>
     <li><strong>Google (Gmail)</strong> stores our email.</li>
+    <li data-if="addressSuggest" data-proofread="new" hidden><strong>Klimadatastyrelsen (Adressevælger)</strong> receives the address text you type, to find address suggestions (see section 2).</li>
     <li><strong>Payment:</strong> if you pay with Vipps MobilePay or by bank transfer, Vipps MobilePay or your bank processes the payment as an independent controller, and we see your name and the amount.</li>
     <li><strong>Accounts:</strong> we keep our own books, so no one else receives the information in the accounting records.</li>
   </ul>
@@ -126,5 +130,6 @@
 
 <script src="js/i18n.js"></script>
 <script src="js/ui.js"></script>
+<script type="module" src="js/privacy.js"></script>
 </body>
 </html>

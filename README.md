@@ -31,7 +31,10 @@ The site stores nothing: no accounts, no database, no cookies, no third-party re
 browser (the fonts are self-hosted). The API keeps nothing either: it passes each request to Resend
 and forgets it; its log has only status lines, and its abuse limits live in memory. The only thing
 the browser keeps is the visitor's language choice. Resend keeps the sent emails for 30 days (see
-the privacy policy).
+the privacy policy). Address
+suggestions (`CONFIG.addressSuggest`) are the one other thing that leaves the browser: what is typed
+in the street field goes to this site's `/api/address`, which nginx passes on, alone, to the Danish
+address register, and nothing of it is kept (see docs/operations.md, "Address suggestions").
 
 ## Running it
 

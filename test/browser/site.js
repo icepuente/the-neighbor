@@ -2,8 +2,8 @@
 // that is sent. Run with `npm run test:browser` (local, on scripts/serve.js) or `npm run test:live`
 // (against https://theneighbor.dk/). It sends nothing: the page's fetch() is replaced by a stub
 // that records the request and answers as the API would, and the mailto: fallback is checked, not
-// opened.
-import { check, evaluate, open, requests, run, shot, shotEl, waitFor } from './cdp.js';
+// opened. Locally, /api/address (the address register) is answered by the test too (cdp.js mock).
+import { check, evaluate, mock, open, requests, run, shot, shotEl, waitFor } from './cdp.js';
 import * as R from '../../web/js/booking-rules.js';
 
 const SITE = process.env.SITE || 'http://127.0.0.1:5000/';
@@ -21,11 +21,14 @@ async function pickDay(date) {
   for (let i = 0; i < 3 && !await evaluate(`!!${dayBtn(date)}`); i++) await evaluate("document.querySelector('#date-cal .cal-nav.next').click()");
   await evaluate(`${dayBtn(date)}.click()`);
 }
-// Replaces the page's fetch(): records each request in window.__posts and answers with `status`
-// and `body`, as the API would. Nothing reaches the server.
+// Replaces the page's fetch() for the booking API: records each request to /api/request in
+// window.__posts and answers with `status` and `body`, as the API would. Nothing reaches the server.
+// Other requests (the address suggestions' /api/address) go on as usual.
 const stubApi = (status, body) => evaluate(`(() => {
   window.__posts = window.__posts || [];
+  const real = window.__realFetch || (window.__realFetch = window.fetch.bind(window));
   window.fetch = async (url, init = {}) => {
+    if (!String(url).includes('/api/request')) return real(url, init);
     window.__posts.push({ url: String(url), method: init.method, type: (init.headers || {})['Content-Type'], body: init.body });
     return new Response(${JSON.stringify(JSON.stringify(body))}, { status: ${status}, headers: { 'Content-Type': 'application/json' } });
   };
@@ -66,6 +69,12 @@ run(9336, async () => {
     const other = await fetch(new URL('index.html', SITE), { method: 'POST', body: '{}' });
     check(other.status === 403 || other.status === 405, `POST anywhere else is refused (${other.status})`);
   }
+
+  // Locally the address register is played by the test (live, nginx asks the real one).
+  const addressAsked = live ? null : await mock('/api/address', () => ({ status: 'ok', beskrivelse: '', fund: [
+    { type: 'husnummer', id: 'a', titel: 'Jagtvej 10, 2680 Solrød Strand' },
+    { type: 'husnummer', id: 'b', titel: 'Jagtvej 100, 2200 København N' },
+  ] }));
 
   // A first-time visitor, in Danish.
   await open(SITE);
@@ -112,7 +121,29 @@ run(9336, async () => {
   // The form's checks.
   await evaluate("document.querySelector('#f button[type=submit]').click()");
   check((await text('#e-form')) === 'Udfyld adresse, postnummer, navn og telefon.', 'address, postcode, name and phone are required');
-  await fill('street', 'Jagtvej 10, 2. tv.');
+
+  // Address suggestions while typing the street; picking one fills in the postcode too.
+  if (R.CONFIG.addressSuggest) {
+    await evaluate("document.getElementById('street').focus()");
+    await fill('street', 'Jagtvej 10');
+    await waitFor("document.querySelectorAll('#street-suggest li').length > 0", 'address suggestions');
+    const offered = await evaluate("[...document.querySelectorAll('#street-suggest li')].map((li) => li.textContent)");
+    check(offered.includes('Jagtvej 100, 2200 København N'), `suggestions under the street: ${offered.join(' | ')}`);
+    check(await evaluate("document.getElementById('street').getAttribute('aria-expanded')") === 'true', 'the street field says its list is open (ARIA combobox)');
+    await evaluate("[...document.querySelectorAll('#street-suggest li')].find((li) => li.textContent.startsWith('Jagtvej 100, 2200')).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))");
+    check(await evaluate("document.getElementById('street').value") === 'Jagtvej 100' && await evaluate("document.getElementById('postcode').value") === '2200', 'picking one fills in street and postcode');
+    check(await evaluate("document.activeElement.id") === 'apartment' && await evaluate("document.getElementById('street-suggest').hidden"), 'then the list closes and floor and door are next');
+    if (addressAsked) {
+      const asked = new URL(addressAsked.at(-1));
+      check(asked.origin === origin && [...asked.searchParams.keys()].join() === 'q' && asked.searchParams.get('q') === 'Jagtvej 10', `only the typed text is sent, to this site (${asked.pathname}${asked.search})`);
+    }
+    await shotEl('address.png', '.addr-row');
+  } else {
+    check(!await evaluate("!!document.getElementById('street-suggest')"), 'address suggestions are off');
+  }
+  await evaluate("document.getElementById('name').focus()");
+  await fill('street', 'Jagtvej 10');
+  await fill('apartment', '2. tv.');
   await fill('postcode', '4000');
   await fill('name', 'Test Testesen');
   await fill('tel', '12345678');
@@ -152,6 +183,7 @@ run(9336, async () => {
     'with the language, the email address, both ticks and an empty honeypot');
   check(/^[0-9a-f-]{32,36}$/.test(sentReq.id) && JSON.stringify(sentReq.serviceIds) === '["puncture","brakes"]', 'a request id, and the services by id');
   check(!/total|price|travel/i.test(Object.keys(sentReq).join()), 'and no prices: the server works them out');
+  check(sentReq.street === 'Jagtvej 10' && sentReq.apartment === '2. tv.' && sentReq.postcode === '2200', 'street, floor and door, and postcode, as typed');
   const mail = await mailParts();
   check(mail.to === TO, `the email goes to ${TO}`);
   check(mail.subject.startsWith('Bookingforespørgsel: Punkteringsreparation, Bremsejustering') && mail.subject.endsWith('kl. 14:30'), `subject: "${mail.subject}"`);
@@ -217,8 +249,11 @@ run(9336, async () => {
   // The legal pages: about this site, with nothing left about accounts, photos or Firebase.
   await open(new URL('privacy.html', SITE).href);
   const privacy = await evaluate('document.body.innerText');
-  check(privacy.includes('Privacy policy') && privacy.includes('no accounts, no cookies') && !/Firebase|sign-in|Adressev/i.test(privacy) && privacy.includes("Google (Gmail)") && privacy.includes("46840291"), 'the privacy policy describes the email-only site');
+  check(privacy.includes('Privacy policy') && privacy.includes('no accounts, no cookies') && !/Firebase|sign-in/i.test(privacy) && privacy.includes("Google (Gmail)") && privacy.includes("46840291"), 'the privacy policy describes the email-only site');
   check(privacy.includes('Resend') && privacy.includes('30 days') && privacy.includes('Data Privacy Framework') && !privacy.includes('the site does not send it anywhere'), 'and that the site sends the request through Resend');
+  // Its sentences about the address register show only while the suggestions are on.
+  const mentions = (privacy.match(/Adressevælger/g) || []).length;
+  check(R.CONFIG.addressSuggest ? mentions === 2 : mentions === 0, `the privacy policy names Adressevælger ${mentions} times (suggestions ${R.CONFIG.addressSuggest ? 'on' : 'off'})`);
   await open(new URL('terms.html', SITE).href);
   check(!/Care|subscription|account/i.test(await evaluate('document.body.innerText')), 'the terms mention no subscriptions or accounts');
 

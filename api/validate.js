@@ -6,7 +6,7 @@
 import * as R from '../web/js/booking-rules.js';
 
 // The longest value of each text field (the form's maxlength, or the rules' limit).
-export const LIMITS = { date: 10, arrival: 5, bike: 40, street: 120, postcode: 4, name: 80, phone: 30, email: 254, note: R.CONFIG.maxNote };
+export const LIMITS = { date: 10, arrival: 5, bike: 40, street: 120, apartment: 20, postcode: 4, name: 80, phone: 30, email: 254, note: R.CONFIG.maxNote };
 const FIELDS = new Set(['id', 'lang', 'serviceIds', 'accept', 'website', ...Object.keys(LIMITS)]);
 // The browser's request id (crypto.randomUUID()), used as the idempotency key.
 const ID_RE = /^[A-Za-z0-9_-]{16,64}$/;

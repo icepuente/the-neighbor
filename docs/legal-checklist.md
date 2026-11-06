@@ -48,6 +48,17 @@ days. The mail program stays as the fallback. Section 4 lists what this needs.
 - [ ] Hosting at launch: the policy says the site is delivered through Cloudflare and that the
       server keeps no visitor log (true for the home server's nginx, and for the API, which logs
       status lines only). If the site moves elsewhere, check that both still hold.
+- [ ] Address suggestions (2026-11-07, `CONFIG.addressSuggest`): while the visitor types the street,
+      the typed text goes through our server to Klimadatastyrelsen's Adressevælger, the official
+      address register. The policy says so in section 2 and names Klimadatastyrelsen in section 4;
+      both sentences show only while the suggestions are on. Only the address text is sent (nginx
+      passes on none of the visitor's headers, so not the IP) and we keep nothing (no log). The policy
+      deliberately says nothing about what Klimadatastyrelsen keeps: we have not checked. For the
+      legal review: is Klimadatastyrelsen a recipient here (a public authority answering a lookup)
+      rather than our data processor, as the wording assumes?
+- [ ] Before relying on the suggestions, create a free Dataforsyningen account and token for the
+      business and put it on the server (`docs/operations.md`, "Address suggestions"). Until then
+      the public sample token from Adressevælger's documentation is used.
 
 ## 4. Before the API sends anything (Resend, 2026-11-06)
 

@@ -119,6 +119,15 @@ test('the address written the Danish way', () => {
   assert.equal(R.fullAddress('Jagtvej 10, 2. tv.', '2200'), 'Jagtvej 10, 2. tv., 2200');
   assert.equal(R.fullAddress('Jagtvej 10,', '2200'), 'Jagtvej 10, 2200');
   assert.equal(R.fullAddress('Jagtvej 10', ''), 'Jagtvej 10');
+  // Floor and door from their own field go between the street and the postcode.
+  assert.equal(R.fullAddress('Jagtvej 10', '2200', '2. tv.'), 'Jagtvej 10, 2. tv., 2200');
+  assert.equal(R.fullAddress('Jagtvej 10', '2200', '  '), 'Jagtvej 10, 2200');
+});
+
+test('an address suggestion split into street and postcode', () => {
+  assert.deepEqual(R.splitAddress('Jagtvej 100, 2200 København N'), { street: 'Jagtvej 100', postcode: '2200' });
+  assert.deepEqual(R.splitAddress('Jægersborg Alle 1A, 2920 Charlottenlund'), { street: 'Jægersborg Alle 1A', postcode: '2920' });
+  assert.deepEqual(R.splitAddress('Jagtvej 100'), { street: 'Jagtvej 100', postcode: '' });
 });
 
 test('accepting the terms and the early start of work', () => {
@@ -176,7 +185,7 @@ test('a long request still fits in a mailto: link', () => {
   return import('../web/js/i18n.js').then(() => {
     const { I18N } = globalThis.window;
     const words = 'Bagbremsen hviner, og gearet hopper på de små tandhjul. Cyklen står i gården bag porten. ';
-    const r = { ...okInput(), bike: I18N.t('bike.cargo'), name: 'Søren Ødegård-Æbelø', street: 'Frederikssundsvej 120, 3. th.', note: words.repeat(10).slice(0, R.CONFIG.maxNote) };
+    const r = { ...okInput(), bike: I18N.t('bike.cargo'), name: 'Søren Ødegård-Æbelø', street: 'Frederikssundsvej 120', apartment: '3. th. (bagbygning)', note: words.repeat(10).slice(0, R.CONFIG.maxNote) };
     const mail = R.requestEmail(r, R.quote(['brakes', 'gears', 'chain'], NEAR), { t: I18N.t, fmt: { dkk: I18N.dkk, date: I18N.date }, svcName: I18N.svc });
     const len = R.mailtoLink('booking@the-neighbor.dk', mail).length;
     assert.ok(len < 2000, `link of ${len} characters`);

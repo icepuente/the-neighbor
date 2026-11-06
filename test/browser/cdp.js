@@ -25,6 +25,28 @@ export const errors = [];
 export const requests = [];
 let chrome; let ws; let msgId = 0; let n = 0; let profile;
 const pending = new Map();
+// Requests answered by the test instead of the network: { part, answer(url) -> JSON value, urls }.
+const mocks = [];
+
+// Answers every request whose URL contains `part` with answer(url), as JSON. Returns the list of
+// URLs it answered, so a test can check what the page asked for.
+export async function mock(part, answer) {
+  const m = { part, answer, urls: [] };
+  mocks.push(m);
+  await send('Fetch.enable', { patterns: mocks.map((x) => ({ urlPattern: `*${x.part}*` })) });
+  return m.urls;
+}
+function answerPaused({ requestId, request }) {
+  const m = mocks.find((x) => request.url.includes(x.part));
+  if (!m) { send('Fetch.continueRequest', { requestId }); return; }
+  m.urls.push(request.url);
+  send('Fetch.fulfillRequest', {
+    requestId,
+    responseCode: 200,
+    responseHeaders: [{ name: 'Content-Type', value: 'application/json; charset=utf-8' }],
+    body: Buffer.from(JSON.stringify(m.answer(request.url))).toString('base64'),
+  });
+}
 
 export function send(method, params = {}) {
   return new Promise((resolve) => {
@@ -94,6 +116,7 @@ async function start(port) {
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description || 'exception');
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errors.push(m.params.args.map((a) => a.value).join(' '));
     if (m.method === 'Network.requestWillBeSent') requests.push(m.params.request.url);
+    if (m.method === 'Fetch.requestPaused') answerPaused(m.params);
     // The browser's own errors: Content-Security-Policy violations, failed loads (404s) and so on.
     if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error') errors.push(`${m.params.entry.source}: ${m.params.entry.text} ${m.params.entry.url || ''}`.trim());
   };

@@ -99,7 +99,12 @@ label, .lb { display: block; font-weight: 600; font-size: 16px; margin: 16px 0 6
 input[type=text], input[type=tel], input[type=email], select, textarea { width: 100%; font: 400 17px 'Source Serif 4', serif; color: var(--ink); background: #fff; border: 1.5px solid var(--field); border-radius: 12px; padding: 11px 14px; }
 textarea[readonly] { font-size: 15px; background: #fbf8f2; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.addr-row { grid-template-columns: 2fr 1fr; }
+/* Address: the street is wide, floor/door and postcode narrow; suggestions open under the street. */
+.addr-row { grid-template-columns: 2fr 1fr 1fr; }
+.suggest-wrap { position: relative; }
+.suggest { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 10; margin: 0; padding: 4px; list-style: none; background: #fff; border: 1.5px solid var(--field); border-radius: 12px; box-shadow: 0 12px 32px rgba(5, 20, 22, .22); max-height: 300px; overflow-y: auto; }
+.suggest-item { padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 16px; color: var(--ink); }
+.suggest-item:hover, .suggest-item[aria-selected=true] { background: var(--paper); }
 .err { color: var(--err); font-size: 15px; min-height: 20px; margin: 4px 0 0; }
 .ok { background: #e3f1e7; border-left: 5px solid #2e8b57; border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 16px; }
 .note { background: #fff; border-left: 5px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 16px; }

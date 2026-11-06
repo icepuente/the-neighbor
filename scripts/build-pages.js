@@ -8,9 +8,19 @@ import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { siteHeaders } from './headers.js';
+import { CONFIG } from '../web/js/booking-rules.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(root, 'dist');
+
+// Address suggestions need nginx's /api/address, which Pages does not have: turning them off is a
+// deliberate step (see docs/operations.md, "Moving to Cloudflare Pages").
+if (CONFIG.addressSuggest) {
+  console.error('Refusing to build for Pages: CONFIG.addressSuggest is on in web/js/booking-rules.js.');
+  console.error('Pages has no /api/address (it is an nginx route), so the suggestions would fail. Set it to false;');
+  console.error('the privacy policy then hides its sentence about Adressevaelger by itself.');
+  process.exit(1);
+}
 
 if (spawnSync(process.execPath, [join(root, 'scripts', 'vendor.js')], { stdio: 'inherit' }).status) process.exit(1);
 rmSync(dist, { recursive: true, force: true });

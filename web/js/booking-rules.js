@@ -19,6 +19,12 @@ export const CONFIG = {
   contact: { email: 't.volodymyr22@gmail.com', phone: '29 61 93 72' },
   // Shows the demo bar at the top of the page (off since the site went live on theneighbor.dk).
   demo: false,
+  // Danish address suggestions under the street field (js/address.js). They come from /api/address,
+  // which nginx passes on to Klimadatastyrelsen's Adressevælger (deploy/nginx/default.conf), so
+  // this only works on the home server: turn it off before moving to Cloudflare Pages
+  // (scripts/build-pages.js refuses to build while it is on). The privacy policy's sentence about
+  // it shows only while it is on.
+  addressSuggest: true,
   // Travel: 2.5 DKK per km, one way, from the base; addresses beyond 18 km are refused.
   kmRate: 2.5,
   maxKm: 18,
@@ -111,9 +117,18 @@ export function estimateKm(postcode) {
 }
 export const travelFee = (distanceKm) => (distanceKm == null ? null : Math.round(distanceKm * CONFIG.kmRate));
 
-// The address written the Danish way: 'Jagtvej 10, 2. tv.' + '2200' -> 'Jagtvej 10, 2. tv., 2200'.
-export function fullAddress(street, postcode) {
-  return [String(street || '').trim().replace(/,+$/, ''), String(postcode || '').trim()].filter(Boolean).join(', ');
+// The address written the Danish way: 'Jagtvej 10' + '2200' + '2. tv.' -> 'Jagtvej 10, 2. tv., 2200'.
+// Floor and door are optional (and may also have been typed into the street field).
+export function fullAddress(street, postcode, apartment = '') {
+  const part = (s) => String(s || '').trim().replace(/,+$/, '');
+  return [part(street), part(apartment), part(postcode)].filter(Boolean).join(', ');
+}
+
+// An address suggestion's title split for the form: 'Jagtvej 100, 2200 København N' ->
+// { street: 'Jagtvej 100', postcode: '2200' }. Titles without a postcode keep it empty.
+export function splitAddress(title) {
+  const m = String(title || '').trim().match(/^(.*?),\s*(\d{4})(?:\s.*)?$/);
+  return m ? { street: m[1].trim(), postcode: m[2] } : { street: String(title || '').trim(), postcode: '' };
 }
 
 // ---- Price ----
@@ -149,7 +164,7 @@ export function startTimes(workMin) {
 
 // ---- Checks ----
 // The booking form's checks. Errors are codes, keyed by the field they belong to; the page
-// translates them. input: { date, arrival, street, postcode, name, phone, email, note }.
+// translates them. input: { date, arrival, street, apartment, postcode, name, phone, email, note }.
 export function checkRequest(input, q, { todayDate, closedDates = CONFIG.closedDates }) {
   const errors = {};
   if (!q.services.length) errors.services = 'services';
@@ -199,7 +214,7 @@ export function requestEmail(r, q, { t, fmt, svcName }) {
     `${t('mail.date')}: ${fmt.date(r.date)}`,
     `${t('mail.time')}: ${t('mail.timeVal', { time: r.arrival, min: q.workMin })}`,
     `${t('mail.bike')}: ${r.bike}`,
-    `${t('mail.address')}: ${fullAddress(r.street, r.postcode)}`,
+    `${t('mail.address')}: ${fullAddress(r.street, r.postcode, r.apartment)}`,
     `${t('mail.name')}: ${r.name}`,
     `${t('mail.phone')}: ${r.phone}`,
     ...(r.email ? [`${t('mail.email')}: ${r.email}`] : []),

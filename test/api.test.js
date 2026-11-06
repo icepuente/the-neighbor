@@ -115,6 +115,14 @@ test('a good request: one email to the owner, one copy to the customer', async (
   await api.close();
 });
 
+test('floor and door, from their own field, are in the owner\'s email', async () => {
+  const api = await start();
+  const res = await api.post(good({ street: 'Jagtvej 10', apartment: '2. tv.' }));
+  assert.equal(res.status, 200);
+  assert.ok(api.sent[0].email.text.split('\r\n').includes('Adresse: Jagtvej 10, 2. tv., 2200'));
+  await api.close();
+});
+
 test('in English, both emails are in English', async () => {
   const api = await start();
   const res = await api.post(good({ lang: 'en', bike: TEXTS.en.bikes[1], serviceIds: ['other'], note: 'Loose mudguard' }));
@@ -189,6 +197,8 @@ test('anything the page would not send is refused, prices included', async () =>
   await bad(good({ bike: TEXTS.en.bikes[0] }), 'a bike type in the other language');
   await bad(good({ name: 'x'.repeat(81) }), 'a name over 80 characters');
   await bad(good({ street: 'x'.repeat(121) }), 'an address over 120 characters');
+  await bad(good({ apartment: 'x'.repeat(21) }), 'floor and door over 20 characters');
+  await bad(good({ apartment: 3 }), 'a number for floor and door');
   await bad(good({ phone: 'x'.repeat(31) }), 'a phone over 30 characters');
   await bad(good({ postcode: '22000' }), 'a 5-digit postcode');
   await bad(good({ note: 'x'.repeat(601) }), 'a comment far over the limit');
@@ -353,7 +363,7 @@ test('size, type, method and path', async () => {
 });
 
 test('the logs hold no personal data, only status and outcome', async () => {
-  const api = await start({ transport: fakeTransport((e, k, i) => (i === 2 ? { ok: false, status: 422, name: 'validation_error' } : { ok: true, status: 200 })) });
+  const api = await start({ transport: fakeTransport((_e, _k, i) => (i === 2 ? { ok: false, status: 422, name: 'validation_error' } : { ok: true, status: 200 })) });
   const body = good({ name: 'Unique Name Xq', phone: '99887766', street: 'Hemmeligvej 7', email: 'private.person@example.dk', note: 'secret note' });
   await api.post(body, { ip: '203.0.113.77' });
   await api.post(body, { ip: '203.0.113.77' });
