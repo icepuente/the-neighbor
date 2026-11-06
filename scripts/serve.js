@@ -1,20 +1,18 @@
 // A small static server for working on the site locally: serves web/ on http://127.0.0.1:5000/
-// (PORT to change it) with the same Content-Security-Policy as nginx in production, read from
-// deploy/nginx/default.conf, so a page that breaks the policy breaks here too.
+// (PORT to change it) with the same headers as nginx in production (deploy/nginx/headers.inc), so a
+// page that breaks the Content-Security-Policy breaks here too.
 //   npm run serve
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
 import { dirname, extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { siteHeaders } from './headers.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WEB = join(root, 'web');
 const PORT = Number(process.env.PORT || 5000);
 
-const conf = readFileSync(join(root, 'deploy', 'nginx', 'default.conf'), 'utf8');
-const csp = conf.match(/add_header Content-Security-Policy "([^"]+)"/)?.[1];
-if (!csp) throw new Error('no Content-Security-Policy in deploy/nginx/default.conf');
+const SITE_HEADERS = siteHeaders();
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -22,7 +20,7 @@ const TYPES = {
 };
 
 createServer(async (req, res) => {
-  const headers = { 'Content-Security-Policy': csp, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-cache' };
+  const headers = { ...SITE_HEADERS, 'Cache-Control': 'no-cache' };
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, headers).end(); return; }
   let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   if (path.endsWith('/')) path += 'index.html';

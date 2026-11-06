@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 # Deploys the site to the home server: Proxmox LXC 114, /opt/the-neighbor-demo, served as
-# book.icepuente.com through Cloudflare Tunnel. Usage: scripts/deploy.sh [user@host]
+# theneighbor.dk through Cloudflare Tunnel. Usage: scripts/deploy.sh [user@host]
 # Sends web/ and deploy/, then (re)starts nginx and the tunnel. The tunnel container runs once
 # cloudflared/config.yml exists on the server.
 set -euo pipefail
 HOST="${1:-deploy@192.168.0.223}"
 DIR=/opt/the-neighbor-demo
 cd "$(dirname "$0")/.."
+
+# Customers' requests must reach the owner: no deploy with the example.com placeholder address.
+if grep -q "email: '[^']*@example\.com'" web/js/booking-rules.js; then
+  echo "Refusing to deploy: CONFIG.contact.email in web/js/booking-rules.js is still a placeholder." >&2
+  exit 1
+fi
 
 npm run --silent vendor
 

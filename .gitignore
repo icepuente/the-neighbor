@@ -11,3 +11,6 @@ web/vendor/
 
 # Browser test screenshots
 test/browser/shots/
+
+# Cloudflare Pages build (scripts/build-pages.js)
+dist/

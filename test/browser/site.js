@@ -1,6 +1,6 @@
 // The site in a real (headless) Chrome: booking a repair as a visitor would, through to the email
 // that opens. Run with `npm run test:browser` (local, on scripts/serve.js) or `npm run test:live`
-// (against https://book.icepuente.com/). It sends nothing: the mailto: link is checked, not opened.
+// (against https://theneighbor.dk/). It sends nothing: the mailto: link is checked, not opened.
 import { check, evaluate, open, requests, run, shot, shotEl, waitFor } from './cdp.js';
 import * as R from '../../web/js/booking-rules.js';
 
@@ -41,7 +41,13 @@ run(9336, async () => {
     const res = await fetch(SITE);
     const csp = res.headers.get('content-security-policy') || '';
     check(res.status === 200 && csp.includes("default-src 'self'") && csp.includes("script-src 'self'"), `${SITE} answers, with the Content-Security-Policy`);
-    check((res.headers.get('x-robots-tag') || '').includes('noindex'), 'the demo asks search engines to stay away');
+    check(!(res.headers.get('x-robots-tag') || '').includes('noindex'), 'search engines are welcome (no noindex)');
+    const robots = await (await fetch(new URL('robots.txt', SITE))).text();
+    check(robots.includes('Allow: /') && !robots.includes('Disallow: /'), 'robots.txt allows the whole site');
+    if (new URL(SITE).hostname === 'theneighbor.dk') {
+      const www = await fetch('https://www.theneighbor.dk/terms.html', { redirect: 'manual' });
+      check(www.status === 301 && www.headers.get('location') === 'https://theneighbor.dk/terms.html', `www redirects to the bare domain (${www.status})`);
+    }
     const old = await fetch(new URL('account.html', SITE), { redirect: 'manual' });
     check(old.status === 301, `the old account page redirects to the front page (${old.status})`);
     const fn = await fetch(new URL('fn/bookingOptions', SITE), { method: 'POST', body: '{}' });
@@ -53,7 +59,8 @@ run(9336, async () => {
   await evaluate('localStorage.clear()');
   await open(SITE);
   await waitFor("document.querySelectorAll('#svc-cards a').length > 0", 'the service cards');
-  check(await evaluate("!document.getElementById('demo-bar').hidden") && (await text('#demo-bar')).includes(TO), `the demo bar says requests go to ${TO}`);
+  if (R.CONFIG.demo) check(await evaluate("!document.getElementById('demo-bar').hidden") && (await text('#demo-bar')).includes(TO), `the demo bar says requests go to ${TO}`);
+  else check(await evaluate("document.getElementById('demo-bar').hidden"), 'no demo bar');
   check(await evaluate("document.querySelectorAll('#svc-cards a').length") === 6, 'six cards: five repairs and Anden reparation');
   check((await text('#svc-cards a .price')) === '199 kr.', 'prices in Danish: 199 kr.');
   const cards = await evaluate("[...document.querySelectorAll('#svc-cards a')].map((a) => a.innerText.replace(/\\s+/g, ' '))");

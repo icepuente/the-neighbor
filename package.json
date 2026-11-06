@@ -12,7 +12,8 @@
     "test:live": "node test/browser/live.js",
     "deploy": "bash scripts/deploy.sh",
     "export-texts": "node scripts/texts.js export",
-    "import-texts": "node scripts/texts.js import"
+    "import-texts": "node scripts/texts.js import",
+    "build:pages": "node scripts/build-pages.js"
   },
   "engines": {
     "node": ">=20"

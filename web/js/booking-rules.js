@@ -14,11 +14,10 @@ export const CONFIG = {
   businessName: 'The Neighbor',
   base: 'Rørsangervej 45, København',
   // Where booking requests go, and the phone shown next to it (null: no phone shown).
-  // DEMO: a placeholder address (example.com is reserved and reaches no one). Put the owner's real
-  // booking address here, and set demo to false, before the site is used by customers.
+  // scripts/deploy.sh refuses to publish while the email is still an example.com placeholder.
   contact: { email: 'booking@example.com', phone: null },
-  // Shows the demo bar at the top of the page.
-  demo: true,
+  // Shows the demo bar at the top of the page (off since the site went live on theneighbor.dk).
+  demo: false,
   // Travel: 2.5 DKK per km, one way, from the base; addresses beyond 18 km are refused.
   kmRate: 2.5,
   maxKm: 18,

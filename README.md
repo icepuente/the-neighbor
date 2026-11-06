@@ -3,8 +3,9 @@
 **The Neighbor** is a mobile bike mechanic in Copenhagen who repairs bikes where they stand. This
 repo is the website: a static site in [`web/`](web/), in Danish with English, with no backend.
 
-**Demo:** [book.icepuente.com](https://book.icepuente.com). Booking requests from the demo go to a
-placeholder address (`booking@example.com`), so they reach no one.
+**Live:** [theneighbor.dk](https://theneighbor.dk), served from Alec's home server through a
+Cloudflare Tunnel ([`docs/operations.md`](docs/operations.md), which also covers moving to
+Cloudflare Pages).
 
 ## How booking works
 
@@ -32,8 +33,9 @@ npm install
 npm run serve          # http://127.0.0.1:5000 (copies the fonts first)
 npm test               # the booking rules
 npm run test:browser   # the whole booking in headless Chrome, on a local server
-npm run deploy         # to the home server (book.icepuente.com)
-npm run test:live      # the browser test against book.icepuente.com
+npm run deploy         # to the home server (theneighbor.dk)
+npm run test:live      # the browser test against theneighbor.dk
+npm run build:pages    # dist/ for Cloudflare Pages, if the site moves
 ```
 
 Chrome is needed for the browser tests (set `CHROME_PATH` if it is not in the usual place).
@@ -54,15 +56,11 @@ scripts/                  serve.js, deploy.sh, vendor.js (fonts), texts.js (proo
 docs/                     operations.md (the server), legal-checklist.md, review/ (proofreading)
 ```
 
-## Before real customers use it
+## Still to do (2026-11-06)
 
-- In `web/js/booking-rules.js`: put the owner's booking email (and phone, if wanted) in
-  `CONFIG.contact`, and set `CONFIG.demo` to `false`.
-- Fill in the business details marked in yellow on the site (legal name, address, CVR) and go
-  through [`docs/legal-checklist.md`](docs/legal-checklist.md).
+- Fill in the business details marked in yellow on the site (legal name, address, CVR; the law
+  requires them) and go through [`docs/legal-checklist.md`](docs/legal-checklist.md).
 - Have the Danish proofread: [`docs/review/`](docs/review/README.md).
-- On its own domain: remove the `noindex` header and `robots.txt` from
-  [`deploy/nginx/default.conf`](deploy/nginx/default.conf).
 
 ## History
 
@@ -72,5 +70,7 @@ docs/                     operations.md (the server), legal-checklist.md, review
   plan is in git history: `git show 437650b:docs/firebase-plan.md`.
 - 2026-10-23: the owner chose to start smaller: repairs for private customers only, no accounts or
   subscriptions, and no personal data kept by the site. The site became the static, email-based
-  version above, and the Firebase project was deleted. The earlier versions can be recovered from
-  git history (commit `437650b` is the last Firebase version).
+  version above, and the Firebase project was deleted.
+  The earlier versions can be recovered from git history (commit `437650b` is the last Firebase
+  version).
+- 2026-11: live on theneighbor.dk; book.icepuente.com taken down.
