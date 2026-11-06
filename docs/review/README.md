@@ -20,11 +20,11 @@ Try it on your phone as well as a computer: customers will mostly book on a phon
 1. On the front page, tap **Jeg er punkteret** (or pick repairs further down).
 2. In the form, choose a day in the calendar and an arrival time, enter an address, postcode, name
    and phone, and tap **Se pris**.
-3. On the price page, check the price, tick both boxes, and tap **Send forespørgsel på mail**. Your
-   mail program opens with the request written out: this is exactly what you would receive. (Don't
-   send it; it would go to the test address.)
-4. The page then shows the same text to copy, for visitors whose phone or computer has no mail
-   program set up.
+3. On the price page, check the price, tick both boxes, and tap **Send forespørgsel**. The site
+   sends the request to you and a copy to the address typed in the form (since 2026-11-06, once
+   the Resend key is set up; see `docs/operations.md`).
+4. If the site cannot send it, the page offers to open the visitor's mail program with the request
+   written out (exactly what you would receive), and shows the same text to copy.
 5. Switch to **EN** at the top and look at the English version.
 
 **What to look for:** prices, services, opening hours and travel that are wrong; anything a customer
@@ -34,9 +34,11 @@ and anything missing.
 ## 2. Proofreading the Danish
 
 [`proofreading.csv`](proofreading.csv) opens in Excel. It has one row per text: the site's
-buttons and messages, the request email the customer sends (the `mail.*` rows), and the privacy
+buttons and messages, the request email and the customer's copy (the `mail.*` rows), and the privacy
 policy and terms paragraph by paragraph.
 
+- **Status** says *Ny/ændret 2026-11-06* for texts that are new or changed since the last review
+  (sending from the site): read those first.
 - **Dansk** is the text now; **English** is there for context. For the terms, the English column
   may be empty where the two versions are not split into the same paragraphs; the English page is
   `/terms.html`, further down.

@@ -11,7 +11,10 @@
 <body>
 <!-- Filled in with the owner's details and choices (2026-11-06). Written by an AI assistant, not a
      lawyer; the Danish is still to be proofread. Mark anything the owner must still decide with
-     <mark class="todo">. See docs/legal-checklist.md. -->
+     <mark class="todo">. See docs/legal-checklist.md.
+     Updated for sending requests from the site through Resend (branch server-email, 2026-11-06):
+     paragraphs marked data-proofread="new" are new or changed Danish text, flagged in the
+     proofreading sheet (scripts/texts.js); remove the attribute once proofread. -->
 <header><div class="wrap">
   <a class="logo" href="index.html">The<br>Neighbor</a>
   <nav>
@@ -24,7 +27,7 @@
 <article class="box legal" lang="da" id="privacy-da">
   <h1>Privatlivspolitik</h1>
   <p class="meta">Senest opdateret: 6. november 2026</p>
-  <p>Kort fortalt: hjemmesiden gemmer ingen oplysninger om dig. Du booker ved at sende os en almindelig mail, og vi bruger kun det, du skriver, til at aftale og udføre reparationen.</p>
+  <p data-proofread="new">Kort fortalt: hjemmesiden gemmer ingen oplysninger om dig. Når du sender en forespørgsel, sender siden den som en mail til os, med en kopi til dig, og vi bruger kun det, du skriver, til at aftale og udføre reparationen.</p>
 
   <h2>1. Hvem er ansvarlig?</h2>
   <p>Dataansvarlig er:<br>
@@ -34,16 +37,19 @@
     E-mail: <a href="mailto:t.volodymyr22@gmail.com">t.volodymyr22@gmail.com</a> · Telefon: 29 61 93 72</p>
 
   <h2>2. Hjemmesiden</h2>
-  <p>Hjemmesiden har ingen konti, ingen cookies, ingen statistik og intet indhold fra andre tjenester. Det, du skriver i bookingformularen, bliver i din egen browser; siden sender det ikke nogen steder hen. Når du trykker på knappen for at sende, åbner dit eget mailprogram med teksten, og du bestemmer selv, om du vil sende den.</p>
+  <p data-proofread="new">Hjemmesiden har ingen konti, ingen cookies, ingen statistik og intet indhold fra andre tjenester. Det, du skriver i bookingformularen, bliver i din egen browser, indtil du trykker på »Send forespørgsel«. Så sender siden det til vores server, som med det samme sender det videre som to mails: én til os og en kopi til dig (se afsnit 4 om Resend, der sender mailene for os). Serveren gemmer ikke din forespørgsel.</p>
+  <p data-proofread="new">For at forhindre misbrug, fx at nogen sender hundredvis af forespørgsler, tæller serveren, hvor mange forespørgsler der kommer fra den samme IP-adresse. Adressen holdes kun i serverens hukommelse, i en form der ikke kan læses tilbage (en hash), og glemmes igen senest efter en time. Det sker for at beskytte siden og vores indbakke, som er vores legitime interesse (databeskyttelsesforordningens artikel 6, stk. 1, litra f).</p>
+  <p data-proofread="new">Kan siden ikke sende forespørgslen, tilbyder den i stedet at åbne dit eget mailprogram med teksten. Så bestemmer du selv, om du vil sende den.</p>
   <p>Siden gemmer kun dit valg af sprog (dansk eller engelsk) i din egen browser.</p>
   <p>Siden leveres gennem Cloudflare, som behandler tekniske oplysninger som din IP-adresse for at vise siden og beskytte den mod angreb. Vores egen server fører ikke log over besøgende.</p>
 
   <h2>3. Når du sender os en forespørgsel</h2>
-  <p>Vi modtager det, der står i din mail: dit navn, din adresse, dit telefonnummer, den e-mailadresse, du skriver fra, de reparationer og det tidspunkt, du ønsker, din cykeltype, din kommentar og eventuelle billeder, du selv vedhæfter. Vi bruger oplysningerne til at svare dig, udføre reparationen og tage imod din betaling.</p>
+  <p data-proofread="new">Vi modtager det, du skriver i formularen: dit navn, din adresse, dit telefonnummer, din e-mailadresse, de reparationer og det tidspunkt, du ønsker, din cykeltype, din kommentar og de to punkter, du har sat flueben ved. Sender du forespørgslen fra dit eget mailprogram, eller skriver du til os senere, modtager vi også det, der står i din mail, fx billeder, du selv vedhæfter. Vi bruger oplysningerne til at svare dig, udføre reparationen og tage imod din betaling. Kopien til dig viser, hvad du har bedt om og accepteret.</p>
   <p><em>Retsgrundlag:</em> Behandlingen er nødvendig for at indgå og opfylde aftalen med dig (databeskyttelsesforordningens artikel 6, stk. 1, litra b). Regnskabsbilag (fx kvitteringer og fakturaer) gemmer vi, fordi bogføringsloven kræver det (artikel 6, stk. 1, litra c).</p>
 
   <h2>4. Hvem får oplysningerne?</h2>
   <ul>
+    <li data-proofread="new"><strong>Resend</strong> (Plus Five Five, Inc., USA) sender mailene fra hjemmesiden for os, som vores databehandler efter en databehandleraftale. Mailene sendes fra Resends servere i Irland, men Resend opbevarer dem og deres leveringslog i USA i 30 dage. Overførslen til USA sker efter EU-U.S. Data Privacy Framework, som Resend er certificeret under, og EU-Kommissionens standardkontraktbestemmelser i databehandleraftalen.</li>
     <li><strong>Google (Gmail)</strong> opbevarer vores mails.</li>
     <li><strong>Betaling:</strong> betaler du med Vipps MobilePay eller via bankoverførsel, behandler Vipps MobilePay eller din bank betalingen som selvstændig dataansvarlig, og vi ser dit navn og beløbet.</li>
     <li><strong>Regnskab:</strong> vi fører selv regnskabet, så ingen andre får oplysningerne på regnskabsbilagene.</li>
@@ -53,6 +59,7 @@
   <h2>5. Hvor længe gemmer vi dem?</h2>
   <ul>
     <li><strong>Mails om en booking:</strong> sletter vi 12 måneder efter besøget.</li>
+    <li data-proofread="new"><strong>Hos Resend</strong> slettes mailene fra hjemmesiden automatisk efter 30 dage.</li>
     <li><strong>Regnskabsbilag</strong> (fx kvitteringer og fakturaer): 5 år fra udgangen af det regnskabsår, de vedrører, som bogføringsloven kræver.</li>
   </ul>
 
@@ -67,7 +74,7 @@
 <article class="box legal" lang="en" id="privacy-en">
   <h1>Privacy policy</h1>
   <p class="meta">Last updated: 6 November 2026</p>
-  <p>In short: the website keeps no information about you. You book by sending us an ordinary email, and we use only what you write to arrange and carry out the repair.</p>
+  <p>In short: the website keeps no information about you. When you send a request, the site sends it to us as an email, with a copy to you, and we use only what you write to arrange and carry out the repair.</p>
 
   <h2>1. Who is responsible?</h2>
   <p>The data controller is:<br>
@@ -77,16 +84,19 @@
     Email: <a href="mailto:t.volodymyr22@gmail.com">t.volodymyr22@gmail.com</a> · Phone: 29 61 93 72</p>
 
   <h2>2. The website</h2>
-  <p>The website has no accounts, no cookies, no statistics and no content from other services. What you type in the booking form stays in your own browser; the site does not send it anywhere. When you press the button to send, your own mail program opens with the text, and you decide whether to send it.</p>
+  <p>The website has no accounts, no cookies, no statistics and no content from other services. What you type in the booking form stays in your own browser until you press "Send request". The site then sends it to our server, which straight away passes it on as two emails: one to us and a copy to you (see section 4 on Resend, which sends the emails for us). The server does not keep your request.</p>
+  <p>To prevent misuse, such as someone sending hundreds of requests, the server counts how many requests come from the same IP address. The address is held only in the server's memory, in a form that cannot be read back (a hash), and is forgotten within an hour. This protects the site and our inbox, which is our legitimate interest (Article 6(1)(f) of the General Data Protection Regulation).</p>
+  <p>If the site cannot send the request, it offers to open your own mail program with the text instead. You then decide whether to send it.</p>
   <p>The site only keeps your choice of language (Danish or English), in your own browser.</p>
   <p>The site is delivered through Cloudflare, which processes technical information such as your IP address to show the site and protect it from attacks. Our own server keeps no log of visitors.</p>
 
   <h2>3. When you send us a request</h2>
-  <p>We receive what is in your email: your name, address and phone number, the email address you write from, the repairs and time you would like, your type of bike, your comment and any photos you attach yourself. We use this to reply to you, carry out the repair and take your payment.</p>
+  <p>We receive what you write in the form: your name, address, phone number and email address, the repairs and time you would like, your type of bike, your comment and the two points you ticked. If you send the request from your own mail program, or write to us later, we also receive what is in your email, such as photos you attach yourself. We use this to reply to you, carry out the repair and take your payment. The copy sent to you shows what you asked for and accepted.</p>
   <p><em>Legal basis:</em> processing is necessary to enter into and perform our agreement with you (Article 6(1)(b) of the General Data Protection Regulation). We keep accounting records (such as receipts and invoices) because the Danish Bookkeeping Act requires it (Article 6(1)(c)).</p>
 
   <h2>4. Who receives the information?</h2>
   <ul>
+    <li><strong>Resend</strong> (Plus Five Five, Inc., USA) sends the emails from the website for us, as our processor under a data processing agreement. The emails are sent from Resend's servers in Ireland, but Resend stores them and their delivery log in the United States for 30 days. The transfer to the US is made under the EU-U.S. Data Privacy Framework, under which Resend is certified, and the European Commission's standard contractual clauses in the data processing agreement.</li>
     <li><strong>Google (Gmail)</strong> stores our email.</li>
     <li><strong>Payment:</strong> if you pay with Vipps MobilePay or by bank transfer, Vipps MobilePay or your bank processes the payment as an independent controller, and we see your name and the amount.</li>
     <li><strong>Accounts:</strong> we keep our own books, so no one else receives the information in the accounting records.</li>
@@ -96,6 +106,7 @@
   <h2>5. How long do we keep it?</h2>
   <ul>
     <li><strong>Emails about a booking:</strong> deleted 12 months after the visit.</li>
+    <li><strong>At Resend</strong>, the emails from the website are deleted automatically after 30 days.</li>
     <li><strong>Accounting records</strong> (such as receipts and invoices): 5 years from the end of the financial year they relate to, as the Bookkeeping Act requires.</li>
   </ul>
 

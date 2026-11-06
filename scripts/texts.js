@@ -5,9 +5,13 @@
 //   npm run import-texts -- <file.csv>   applies the "Rettelse" (correction) column for site texts to
 //                                         web/js/i18n.js, and lists the legal rows to apply by hand
 //
-// Site texts come from web/js/i18n.js (including the request email the customer sends, the mail.*
-// keys), and the privacy policy and terms from web/privacy.html and web/terms.html, paragraph by
-// paragraph.
+// Site texts come from web/js/i18n.js (including the request email and the customer's copy, the
+// mail.* keys), and the privacy policy and terms from web/privacy.html and web/terms.html, paragraph
+// by paragraph.
+//
+// The "Status" column flags Danish text that is new or changed since the last proofreading: the
+// site texts listed in NEW_KEYS below, and legal paragraphs marked data-proofread="new" in the HTML.
+// Once the proofreader has been through them, empty NEW_KEYS and remove the attributes.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +20,14 @@ import vm from 'node:vm';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const I18N_FILE = join(root, 'web', 'js', 'i18n.js');
 const OUT = join(root, 'docs', 'review', 'proofreading.csv');
-const HEAD = ['Hvor', 'Nøgle', 'Dansk', 'English', 'Rettelse', 'Kommentar'];
+const HEAD = ['Hvor', 'Nøgle', 'Status', 'Dansk', 'English', 'Rettelse', 'Kommentar'];
+const NEW = 'Ny/ændret 2026-11-06';
+// New or changed for sending requests from the site (2026-11-06), not yet proofread.
+const NEW_KEYS = new Set([
+  'pt.mailSub', 'bk.sub', 'f.email', 'bk.emailSub', 'bk.hp', 'err.email', 'co.confirmNote', 'co.send', 'co.sendSub', 'co.sending',
+  'sent.title', 'sent.msg', 'sent.spam', 'sent.noCopy', 'done.title', 'done.msg', 'done.openMail',
+  'mail.email', 'mail.copySubject', 'mail.copyIntro', 'mail.copyNext', 'mail.copyTerms', 'mail.copyHead', 'faq.confirmA', 'faq.dataA',
+]);
 
 // ---- Sources ----
 function siteTexts() {
@@ -24,15 +35,16 @@ function siteTexts() {
   vm.runInNewContext(readFileSync(I18N_FILE, 'utf8'), sandbox);
   const { da, en } = sandbox.window.I18N.dict;
   // The demo bar goes at launch; empty texts have nothing to read.
-  return Object.keys(da).filter((k) => !k.startsWith('demo.') && da[k]).map((k) => ['Hjemmeside', k, da[k], en[k] ?? '']);
+  return Object.keys(da).filter((k) => !k.startsWith('demo.') && da[k]).map((k) => ['Hjemmeside', k, NEW_KEYS.has(k) ? NEW : '', da[k], en[k] ?? '']);
 }
 
-// The text of each heading, paragraph and list item in an <article lang="..">, tags removed.
+// The text of each heading, paragraph and list item in an <article lang="..">, tags removed, and
+// whether it is marked data-proofread="new": [{ text, isNew }].
 function blocks(html, lang) {
   const article = html.match(new RegExp(`<article[^>]*lang="${lang}"[^>]*>([\\s\\S]*?)</article>`))?.[1] || '';
-  return [...article.matchAll(/<(h1|h2|h3|p|li)[^>]*>([\s\S]*?)<\/\1>/g)]
-    .map((m) => m[2].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
+  return [...article.matchAll(/<(h1|h2|h3|p|li)([^>]*)>([\s\S]*?)<\/\1>/g)]
+    .map((m) => ({ isNew: /data-proofread="new"/.test(m[2]), text: m[3].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim() }))
+    .filter((b) => b.text);
 }
 function legalTexts() {
   return [['privacy.html', 'Privatlivspolitik'], ['terms.html', 'Handelsbetingelser']].flatMap(([file, label]) => {
@@ -41,7 +53,7 @@ function legalTexts() {
     const en = blocks(html, 'en');
     // The two versions are written section for section, so their paragraphs usually line up.
     const paired = da.length === en.length;
-    return da.map((text, i) => [label, `${file}#${i + 1}`, text, paired ? en[i] : '']);
+    return da.map((b, i) => [label, `${file}#${i + 1}`, b.isNew ? NEW : '', b.text, paired ? en[i].text : '']);
   });
 }
 
@@ -84,7 +96,7 @@ function applySiteText(source, key, value) {
 
 const [cmd, file] = process.argv.slice(2);
 if (cmd === 'export') {
-  const rows = [HEAD, ...siteTexts(), ...legalTexts()].map((r) => (r.length < 6 ? [...r, '', ''] : r));
+  const rows = [HEAD, ...siteTexts(), ...legalTexts()].map((r) => (r.length < HEAD.length ? [...r, '', ''] : r));
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, toCsv(rows));
   console.log(`${rows.length - 1} texts -> ${OUT.slice(root.length + 1)}`);

@@ -218,6 +218,7 @@ run(9336, async () => {
   await open(new URL('privacy.html', SITE).href);
   const privacy = await evaluate('document.body.innerText');
   check(privacy.includes('Privacy policy') && privacy.includes('no accounts, no cookies') && !/Firebase|sign-in|Adressev/i.test(privacy) && privacy.includes("Google (Gmail)") && privacy.includes("46840291"), 'the privacy policy describes the email-only site');
+  check(privacy.includes('Resend') && privacy.includes('30 days') && privacy.includes('Data Privacy Framework') && !privacy.includes('the site does not send it anywhere'), 'and that the site sends the request through Resend');
   await open(new URL('terms.html', SITE).href);
   check(!/Care|subscription|account/i.test(await evaluate('document.body.innerText')), 'the terms mention no subscriptions or accounts');
 
