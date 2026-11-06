@@ -7,7 +7,8 @@ name: the-neighbor-demo
 
 services:
   nginx:
-    image: nginx:1.27-alpine
+    # 1.30 is the current stable branch (security fixes); 1.27 stopped getting them in April 2025.
+    image: nginx:1.30-alpine
     restart: unless-stopped
     mem_limit: 128m
     # Whole folders, not single files: a deploy replaces the files inside
@@ -20,7 +21,8 @@ services:
       - "127.0.0.1:8088:80"
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    # Pinned, so an update is a deliberate change here, not a surprise on a restart.
+    image: cloudflare/cloudflared:2026.10.7
     restart: unless-stopped
     # Matches the owner of ./cloudflared (the deploy user) so it can read
     # the credentials.
