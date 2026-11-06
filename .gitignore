@@ -2,6 +2,8 @@ node_modules/
 .env
 .env.*
 cloudflared/
+# The Resend API key on the server (secrets/resend.env): never in git, never deployed.
+secrets/
 *-debug.log
 # The old Spoke & Go app's local database (the app was removed on 2026-10-23)
 data/

@@ -1,8 +1,9 @@
 ---
 # The Neighbor on the home server (Proxmox LXC 114,
-# /opt/the-neighbor-demo), serving book.icepuente.com through the
-# existing Cloudflare Tunnel. A static site: nginx and the tunnel,
-# nothing else. Deployed by scripts/deploy.sh.
+# /opt/the-neighbor-demo), serving theneighbor.dk through the
+# existing Cloudflare Tunnel: nginx (the static site), the booking
+# API (emails booking requests through Resend) and the tunnel.
+# Deployed by scripts/deploy.sh.
 name: the-neighbor-demo
 
 services:
@@ -19,6 +20,51 @@ services:
     # Local access only, for checks; the public comes through cloudflared.
     ports:
       - "127.0.0.1:8088:80"
+
+  api:
+    # The booking API (api/): POST /api/request, through nginx only.
+    # Node 22 LTS, pinned, so an update is a deliberate change here.
+    # No npm packages: the code is mounted as it is in the repo.
+    image: node:22.23.4-alpine3.24
+    restart: unless-stopped
+    # The image's unprivileged `node` user; the code is read-only.
+    user: "1000:1000"
+    working_dir: /app/api
+    command: ["node", "server.js"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 96m
+    pids_limit: 64
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+    # RESEND_API_KEY=... (and optionally MAIL_FROM, IP_LIMIT_PER_HOUR,
+    # DAILY_CAP; see api/server.js). On the server only: mode 600,
+    # owned by deploy, read by docker compose itself; the deploy never
+    # copies or touches secrets/. Without the file the API answers 503
+    # and the site falls back to the visitor's mail program.
+    env_file:
+      - path: ./secrets/resend.env
+        required: false
+    # Whole folders, as for nginx. The API needs the booking rules and
+    # the texts from web/js (the same files the page uses).
+    volumes:
+      - ./api:/app/api:ro
+      - ./web/js:/app/web/js:ro
+    # No ports: nginx reaches it on the compose network as api:8080.
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    # Its log is one status line per request, no personal data; kept small.
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "3"
 
   cloudflared:
     # Pinned, so an update is a deliberate change here, not a surprise on a restart.
