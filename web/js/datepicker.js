@@ -161,6 +161,13 @@ export function attachDatePicker(input, opts) {
     panel.hidden = false;
     button.setAttribute('aria-expanded', 'true');
     render()?.focus();
+    // On a phone the last weeks opened below the screen. Instant, not the page's smooth scroll, so the
+    // days do not slide under a finger that is already tapping one.
+    const html = document.documentElement;
+    const was = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    panel.scrollIntoView({ block: 'nearest' });
+    html.style.scrollBehavior = was;
   }
   function close() {
     panel.hidden = true;
@@ -197,11 +204,14 @@ export function attachDatePicker(input, opts) {
   // the month buttons (which re-draw the calendar) still count as inside.
   // The listener removes itself once the field has left the page (pages that re-draw, like the
   // dashboard, make new fields).
+  // pointerup as well as click: iOS Safari sends no click for a tap on plain text or background (only
+  // on elements it counts as clickable), so a tap beside the calendar did not close it. A finger that
+  // scrolls the page ends in pointercancel, not pointerup, so scrolling leaves it open.
   const outside = (e) => {
-    if (!wrap.isConnected) { document.removeEventListener('click', outside); return; }
+    if (!wrap.isConnected) { for (const t of ['click', 'pointerup']) document.removeEventListener(t, outside); return; }
     if (!panel.hidden && !e.composedPath().includes(wrap)) close();
   };
-  document.addEventListener('click', outside);
+  for (const t of ['click', 'pointerup']) document.addEventListener(t, outside);
   // Dates set by other code (a reset, a test) show in the button too.
   input.addEventListener('change', showValue);
 

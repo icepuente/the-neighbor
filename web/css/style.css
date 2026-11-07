@@ -83,12 +83,15 @@ details[open] > summary::after { content: "−"; }
 .quote { font: 400 clamp(24px, 3vw, 32px)/1.25 'DM Serif Display', serif; max-width: 30ch; margin: 0 0 12px; }
 
 /* Language switch */
-.lang { display: inline-flex; border: 1.5px solid rgba(255, 255, 255, .6); border-radius: 99px; overflow: hidden; }
+/* flex: none: in the header's row it must not shrink (it did on phones, cutting "EN" off). */
+.lang { display: inline-flex; flex: none; border: 1.5px solid rgba(255, 255, 255, .6); border-radius: 99px; overflow: hidden; }
 .lang button { background: transparent; color: #fff; border: 0; padding: 6px 11px; font: 600 14px 'Source Serif 4', serif; cursor: pointer; }
 .lang button[aria-pressed=true] { background: #fff; color: var(--base); }
 
 /* Paper panels and forms */
-.box { background: var(--paper); color: var(--ink); border-radius: 24px; padding: 28px; }
+/* color-scheme: light: the page is dark (:root), but native controls inside the light panels
+   (checkboxes, selects) must be drawn light, or an unchecked box shows as a filled dark square. */
+.box { background: var(--paper); color: var(--ink); border-radius: 24px; padding: 28px; color-scheme: light; }
 .box .pill { width: 100%; margin-top: 14px; background: var(--base); color: #fff !important; }
 .pill:disabled { opacity: .6; cursor: progress; }
 /* The honeypot field (js/landing.js): off screen, for robots only. Not display:none, which some robots skip. */
@@ -97,7 +100,8 @@ details[open] > summary::after { content: "−"; }
 .box > p { font-size: 16px; margin: 0 0 6px; }
 label, .lb { display: block; font-weight: 600; font-size: 16px; margin: 16px 0 6px; padding: 0; }
 input[type=text], input[type=tel], input[type=email], select, textarea { width: 100%; font: 400 17px 'Source Serif 4', serif; color: var(--ink); background: #fff; border: 1.5px solid var(--field); border-radius: 12px; padding: 11px 14px; }
-textarea[readonly] { font-size: 15px; background: #fbf8f2; }
+/* 16px: iOS zooms in on any field with smaller text when it is tapped. */
+textarea[readonly] { font-size: 16px; background: #fbf8f2; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 /* Address: the street is wide, floor/door and postcode narrow; suggestions open under the street. */
 .addr-row { grid-template-columns: 2fr 1fr 1fr; }
@@ -153,7 +157,12 @@ textarea[readonly] { font-size: 15px; background: #fbf8f2; }
 .cb input { width: 22px; height: 22px; margin: 3px 0 0; flex: none; accent-color: #102f33; }
 .tbl { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 17px; }
 .tbl td { padding: 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-.tbl td:last-child { text-align: right; white-space: nowrap; }
+/* The amounts may wrap (js/landing.js keeps "199 kr." and "5 km" together): on a phone the Danish
+   travel line did not fit next to "Punkteringsreparation" and pushed every price off screen. */
+.tbl td:first-child { padding-right: 12px; }
+.tbl td:last-child { text-align: right; }
+/* The terms link under the first tick box, lined up with its sentence (22px box + 12px gap). */
+.box > .terms-link { margin: -8px 0 14px 34px; }
 .tbl .tot td { font-weight: 600; font-size: 20px; border-bottom: 0; padding-top: 12px; }
 
 /* Dialogs */
@@ -186,5 +195,20 @@ mark.todo { background: #f2c14e; color: #102f33; padding: 0 4px; border-radius: 
   .logo { font-size: 26px; }
   .slots { grid-template-columns: repeat(3, 1fr); }
 }
-@media (max-width: 560px) { .addr-row { grid-template-columns: 1fr; } .legal { padding: 24px 20px; } }
+@media (max-width: 560px) {
+  .addr-row { grid-template-columns: 1fr; }
+  .legal { padding: 24px 20px; }
+  /* The calendar is centred on the field (which is centred on the screen) and never wider than the
+     screen: at its left edge it ran up to 14px past the right of most phones. */
+  .cal { left: 50%; transform: translateX(-50%); width: min(340px, calc(100vw - 24px)); max-width: none; }
+}
+/* Small phones: less padding, a more compact header (at 320px it ran off the screen). */
+@media (max-width: 400px) {
+  .wrap { padding: 0 16px; }
+  .box { padding: 22px 18px; }
+  header .wrap { gap: 10px; }
+  nav { gap: 10px; }
+  .logo { font-size: 22px; }
+  nav .pill { padding: 10px 14px; font-size: 13px; }
+}
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .acc::after { transition: none; } }

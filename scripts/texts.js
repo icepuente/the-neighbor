@@ -25,7 +25,7 @@ const NEW = 'Ny/ændret 2026-11-06';
 // New or changed for sending requests from the site (2026-11-06), and for the address suggestions
 // and the floor/door field (2026-11-07), not yet proofread.
 const NEW_KEYS = new Set([
-  'bk.streetPh', 'bk.apartment', 'bk.apartmentPh', 'bk.suggestions',
+  'bk.streetPh', 'bk.apartment', 'bk.apartmentPh', 'bk.suggestions', 'co.readTerms',
   'pt.mailSub', 'bk.sub', 'f.email', 'bk.emailSub', 'bk.hp', 'err.email', 'co.confirmNote', 'co.send', 'co.sendSub', 'co.sending',
   'sent.title', 'sent.msg', 'sent.spam', 'sent.noCopy', 'done.title', 'done.msg', 'done.openMail',
   'mail.email', 'mail.copySubject', 'mail.copyIntro', 'mail.copyNext', 'mail.copyTerms', 'mail.copyHead', 'faq.confirmA', 'faq.dataA',

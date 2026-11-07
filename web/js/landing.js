@@ -151,7 +151,9 @@ const ERR = ['services', 'date', 'arrival', 'email', 'note', 'form'];
 const showErrors = (errors) => { for (const k of ERR) $(`e-${k}`).textContent = errors[k] ? t(`err.${errors[k]}`) : ''; };
 function show(id) {
   for (const x of ['f', 'co', 'sent', 'done']) $(x).hidden = x !== id;
-  $(id).scrollIntoView({ block: 'nearest' });
+  // 'start', under the sticky header (scroll-padding-top): on a phone each panel is taller than the
+  // screen, and 'nearest' left the visitor half-way down it, past the price.
+  $(id).scrollIntoView({ block: 'start' });
 }
 
 $('f').addEventListener('submit', (e) => {
@@ -188,11 +190,13 @@ function renderCheckout() {
   $('codet').textContent = `${t('dateAt', { date: fmtDate(draft.date), time: draft.arrival })} · ${draft.bike} · ${R.fullAddress(draft.street, draft.postcode, draft.apartment)}`;
   const tb = $('tbl');
   tb.textContent = '';
+  // The amounts may wrap on a phone, but never inside "199 kr." or "5 km".
+  const keep = (s) => s.replace(/(\d) (?=kr\.|DKK|km)/g, '$1 ');
   const add = (a, b, cls) => {
     const r = tb.insertRow();
     if (cls) r.className = cls;
     r.insertCell().textContent = a;
-    r.insertCell().textContent = b;
+    r.insertCell().textContent = keep(b);
   };
   for (const s of q.services) add(svcName(s), priceText(s));
   const rulesBtn = h('button', 'lnk', t('co.travel'));
@@ -200,7 +204,7 @@ function renderCheckout() {
   rulesBtn.onclick = openRules;
   const tr = tb.insertRow();
   tr.insertCell().appendChild(rulesBtn);
-  tr.insertCell().textContent = t('co.travelVal', { amount: dkk(q.travel), km: q.distanceKm });
+  tr.insertCell().textContent = keep(t('co.travelVal', { amount: dkk(q.travel), km: q.distanceKm }));
   // An Other Repair is priced later, so the total is "341 kr. + anden reparation".
   add(t('co.total'), q.byAgreement ? t('co.totalPlus', { total: dkk(q.total) }) : dkk(q.total), 'tot');
 

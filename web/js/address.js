@@ -29,7 +29,34 @@ export function attachAddressSuggest(field, { search, onPick, label }) {
   let request = 0;
   let timer;
 
+  // On a phone the keyboard covers the lower half of the screen, where the list opens (no suggestion
+  // was visible on a 375px phone). So there the field moves up under the sticky header
+  // (scroll-padding-top) as soon as it is focused, before the keyboard and the list appear, and the
+  // list is never taller than the space left above the keyboard. The move is instant, not smooth:
+  // nothing may slide under the visitor's finger while they tap a suggestion.
+  const phone = matchMedia('(pointer: coarse), (max-width: 560px)');
+  const vv = window.visualViewport;
+  function toTop() {
+    const html = document.documentElement;
+    const was = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    field.scrollIntoView({ block: 'start' });
+    html.style.scrollBehavior = was;
+  }
+  field.addEventListener('focus', () => { if (phone.matches) toTop(); });
+  function room() {
+    const visibleBottom = vv ? vv.offsetTop + vv.height : innerHeight;
+    return visibleBottom - field.getBoundingClientRect().bottom - 12;
+  }
+  function fit() {
+    if (list.hidden) return;
+    list.style.maxHeight = `${Math.round(Math.max(120, Math.min(300, room())))}px`;
+  }
+  addEventListener('scroll', fit, { passive: true });
+  vv?.addEventListener('resize', fit);
+
   function show(found) {
+    const wasOpen = !list.hidden;
     items = found;
     active = -1;
     list.textContent = '';
@@ -47,6 +74,10 @@ export function attachAddressSuggest(field, { search, onPick, label }) {
     list.hidden = !found.length;
     field.setAttribute('aria-expanded', String(!list.hidden));
     field.removeAttribute('aria-activedescendant');
+    if (list.hidden) return;
+    // The visitor scrolled the field down again after focusing it: make room once, as it opens.
+    if (!wasOpen && phone.matches && room() < 120) toTop();
+    fit();
   }
   const close = () => show([]);
 

@@ -115,7 +115,10 @@
         <div id="notes"></div>
         <!-- Ticked before sending: both sentences go into the request email and the customer's copy.
              The early start must be asked for actively (forbrugeraftaleloven § 18, stk. 2, nr. 2). -->
-        <label class="cb"><input type="checkbox" id="acc-terms"><span><span data-i18n="co.acceptTerms"></span> (<a href="terms.html" target="_blank" rel="noopener" data-i18n="co.readTerms"></a>)</span></label>
+        <label class="cb"><input type="checkbox" id="acc-terms"><span data-i18n="co.acceptTerms"></span></label>
+        <!-- The terms link sits under the sentence, not in it: on a phone the sentence wraps and a tap
+             meant for the box opened the terms instead. -->
+        <p class="det terms-link"><a href="terms.html" target="_blank" rel="noopener" data-i18n="co.readTerms"></a></p>
         <label class="cb"><input type="checkbox" id="acc-start"><span data-i18n="co.earlyStart"></span></label>
         <p class="det"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="co.privacy"></a></p>
         <p class="err" id="e-confirm" role="alert"></p>

@@ -3,7 +3,7 @@
 // (against https://theneighbor.dk/). It sends nothing: the page's fetch() is replaced by a stub
 // that records the request and answers as the API would, and the mailto: fallback is checked, not
 // opened. Locally, /api/address (the address register) is answered by the test too (cdp.js mock).
-import { check, evaluate, mock, open, requests, run, shot, shotEl, waitFor } from './cdp.js';
+import { check, evaluate, mock, open, requests, run, send, shot, shotEl, sleep, waitFor } from './cdp.js';
 import * as R from '../../web/js/booking-rules.js';
 
 const SITE = process.env.SITE || 'http://127.0.0.1:5000/';
@@ -12,7 +12,8 @@ const live = origin.startsWith('https:');
 const TO = R.CONFIG.contact.email;
 
 const fill = (id, v) => evaluate(`(()=>{const e=document.getElementById('${id}');e.value=${JSON.stringify(v)};e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
-const text = (sel) => evaluate(`document.querySelector(${JSON.stringify(sel)})?.textContent || ''`);
+// As a person reads it: the price table keeps "199 kr." together with non-breaking spaces.
+const text = async (sel) => (await evaluate(`document.querySelector(${JSON.stringify(sel)})?.textContent || ''`)).replace(/ /g, ' ');
 const tick = (id) => evaluate(`document.querySelector('input[name=svc][value="${id}"]').click()`);
 const dayBtn = (d) => `document.querySelector('#date-cal [data-date="${d}"]')`;
 // Opens the calendar on the month of `date` and clicks that day.
@@ -256,6 +257,37 @@ run(9336, async () => {
   check(R.CONFIG.addressSuggest ? mentions === 2 : mentions === 0, `the privacy policy names Adressevælger ${mentions} times (suggestions ${R.CONFIG.addressSuggest ? 'on' : 'off'})`);
   await open(new URL('terms.html', SITE).href);
   check(!/Care|subscription|account/i.test(await evaluate('document.body.innerText')), 'the terms mention no subscriptions or accounts');
+
+  // On a phone (375 x 667, touch, Danish): what was broken there on 2026-11-07 stays fixed. Nothing
+  // may make the page wider than the phone (mobile Chrome then zooms out, Safari scrolls sideways).
+  const PW = 375;
+  await send('Emulation.setDeviceMetricsOverride', { width: PW, height: 667, deviceScaleFactor: 2, mobile: true });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  await open(SITE);
+  await evaluate("localStorage.setItem('neighbor-lang', 'da')");
+  await open(SITE);
+  await waitFor("document.querySelectorAll('input[name=svc]').length > 0", 'the form, on a phone');
+  const pageWidth = () => evaluate('document.documentElement.scrollWidth');
+  check(await pageWidth() <= PW && await evaluate("document.getElementById('lang-en').getBoundingClientRect().right <= document.querySelector('.lang').getBoundingClientRect().right + 0.5"), `phone: the header fits, EN included (page ${await pageWidth()}px)`);
+  await tick('puncture');
+  await tick('brakes');
+  await evaluate("document.getElementById('date-btn').click()");
+  const cal = await evaluate("(() => { const r = document.getElementById('date-cal').getBoundingClientRect(); return { left: r.left, right: r.right }; })()");
+  check(cal.left >= 0 && cal.right <= PW && await pageWidth() <= PW, `phone: the open calendar fits on the screen (${Math.round(cal.left)}..${Math.round(cal.right)})`);
+  await evaluate("document.getElementById('date-btn').click()");
+  await pickDay(D1);
+  await evaluate("document.querySelector('#slots input[value=\"10:00\"]').click()");
+  for (const [id, v] of [['street', 'Jagtvej 10'], ['postcode', '2200'], ['name', 'Test Testesen'], ['tel', '12345678'], ['email', 'test.testesen@example.dk']]) await fill(id, v);
+  await evaluate("document.querySelector('#f button[type=submit]').click()");
+  await waitFor("!document.getElementById('co').hidden", 'the price page, on a phone');
+  await sleep(1000); // the smooth scroll to it
+  const co = await evaluate("[document.getElementById('co').getBoundingClientRect().top, document.querySelector('header').getBoundingClientRect().bottom]");
+  check(co[0] >= co[1] - 2 && co[0] <= co[1] + 40, `phone: "Se pris" lands at the top of the price page (${Math.round(co[0])}px, header ends ${Math.round(co[1])}px)`);
+  const amounts = await evaluate("[...document.querySelectorAll('#tbl td:last-child')].map((td) => td.getBoundingClientRect().right)");
+  check(amounts.length === 4 && amounts.every((r) => r <= PW) && await pageWidth() <= PW, `phone: every amount in the price table is on screen (right edges ${amounts.map(Math.round).join(', ')})`);
+  check(await evaluate("!document.querySelector('label.cb a') && !!document.querySelector('.terms-link a[href=\"terms.html\"]')"), 'phone: the terms link is under the tick box, not inside its sentence');
+  await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  await send('Emulation.clearDeviceMetricsOverride');
 
   const outside = requests.filter((u) => !u.startsWith(origin) && !u.startsWith('data:') && !u.startsWith('mailto:') && u !== 'about:blank');
   check(outside.length === 0, `every request stays on ${origin}${outside.length ? `: ${outside.join(', ')}` : ''}`);
