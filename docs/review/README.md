@@ -92,35 +92,50 @@ Godt at vide:
 - **Links og fed skrift** i privatlivspolitikken og handelsbetingelserne: ret gerne ordene, men
   ikke selve link-teksten sammen med ordene omkring den i én ændring. Står der noget i **Hjælp**,
   så læs det først.
+- **Slette en tekst**: skriv `SLET` i cellen. `SLET` i **Dansk** fjerner den danske tekst, i
+  **English** den engelske, i begge fjerner den sætningen fra begge sider. En tom celle ændrer
+  ingenting. Vil du have teksten tilbage, så skriv den igen over `SLET`.
+- Nogle tekster **kan ikke slettes**, fordi bookingen har brug for dem (knapper, felter,
+  fejlbeskeder, mailen, priser og navne på reparationer). Der står "Kan ikke slettes" i **Hjælp**.
+  Skriver du `SLET` der, bliver den række ikke brugt (resten gør), og Alec får besked.
+- Sletter du et afsnit i privatlivspolitikken eller handelsbetingelserne, får Alec en særlig
+  besked, så I kan tjekke, at siden stadig siger det, loven kræver.
 - Tilføj eller slet ikke rækker, og ret ikke i **Nøgle**. Mangler der en tekst, så skriv til Alec.
 - Kan en ændring ikke bruges (fx en pris med bogstaver), sker der ingenting på hjemmesiden, og
   Alec får besked. Ret cellen, så kommer resten med ved næste kørsel.
 
 In plain English: find the text, type the new words straight into the Dansk or English cell, and
 the site follows within about a quarter of an hour. Prices are whole numbers in the Dansk column
-only; keep anything in {curly braces}; don't add, delete or rename rows. A cell that cannot be
-used stops that update (nothing half-done reaches the site) and Alec is told.
+only; keep anything in {curly braces}; don't add, delete or rename rows. `SLET` in a cell deletes
+that language's text (in both cells: from both sites); an empty cell changes nothing; typing text
+over `SLET` brings it back. Texts marked "Kan ikke slettes" refuse `SLET` (that row is skipped,
+the rest applies, Alec is told). A deleted privacy/terms paragraph, or a text deleted in one
+language only, is flagged to Alec. Any other cell that cannot be used stops that update (nothing
+half-done reaches the site) and Alec is told.
 
 ### Making the sheet (once)
 
-1. `npm run sheet-export` writes [`sheet.csv`](sheet.csv) (and adds any new texts to
-   `sheet-state.json`; commit both).
-2. In Google Sheets: **File → Import → Upload** `sheet.csv`, "Replace spreadsheet", separator
-   **comma**. Freeze the first row; narrow **Nøgle**, widen **Dansk** and **English**, and turn on
-   text wrapping. Protecting the Hvor, Nøgle and Hjælp columns is a good idea.
-3. **Share**: the owner as **Editor**; **General access: Anyone with the link → Viewer** (the job
-   downloads the CSV without signing in).
-4. Put the sheet's address where the job reads it (`~/.config/the-neighbor/sheet-url` on the
-   machine that runs it).
+The sheet is private: only the owner (editor) and the job's Google account see it.
+
+1. Put the Google OAuth credentials in `~/.config/the-neighbor/google-oauth.json` on the machine
+   that runs the job (see [docs/operations.md](../operations.md#the-private-sheet-google-api)).
+2. `npm run sheet-create -- <the owner's email>` makes "The Neighbor – tekster" from the texts in
+   the code, formatted and with Hvor/Nøgle/Hjælp protected (a warning), saves its ID in
+   `~/.config/the-neighbor/sheet-id`, prints its address, and shares it with the owner as editor.
 
 The sheet does not change when texts are changed in the code; those rows keep the old text, which
-the job ignores (see docs/operations.md). To bring the sheet up to date, export again and paste
-the new Dansk/English values over the old rows, or make a fresh sheet.
+the job ignores (see docs/operations.md). To bring the sheet up to date, run
+`npm run sheet-populate` (it refuses while the owner has edits the job has not taken yet).
+
+Fallback, without the API: `npm run sheet-export` writes [`sheet.csv`](sheet.csv); import it in
+Google Sheets (File → Import → Upload, Replace spreadsheet, comma), share it "Anyone with the link →
+Viewer", and put its address in `~/.config/the-neighbor/sheet-url`.
 
 ### What the sheet cannot change
 
 Opening hours, travel price per km, distances, closed days, the booking address and phone
 (`CONFIG` in `web/js/booking-rules.js`), the repairs' durations, adding or removing a repair, adding
-or removing paragraphs on the legal pages, links' addresses, and the footer's address and CVR line in
+paragraphs to the legal pages (removing one works: `SLET`), deleting the texts the booking needs,
+links' addresses, and the footer's address and CVR line in
 `web/index.html`. Those still need a developer.
 

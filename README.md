@@ -49,7 +49,9 @@ npm run deploy         # to the home server (theneighbor.dk)
 npm run test:live      # the browser test against theneighbor.dk
 npm run build:pages    # dist/ for Cloudflare Pages, if the site moves
 npm run sheet-export   # docs/review/sheet.csv, to make the owner's Google Sheet from
-npm run sheet-sync     # the Google Sheet -> commit, push, deploy (SHEET_URL=...; docs/operations.md)
+npm run sheet-sync     # the Google Sheet -> commit, push, deploy (private sheet via the API; docs/operations.md)
+npm run sheet-create   # makes the private Google Sheet through the API (-- <editor email>)
+npm run sheet-populate # refreshes it from the code (refuses over unsynced edits; --force)
 ```
 
 Chrome is needed for the browser tests (set `CHROME_PATH` if it is not in the usual place). The
