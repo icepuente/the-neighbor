@@ -179,7 +179,7 @@ test('CSV: Google Sheets (comma, UTF-8, no BOM), Excel (semicolon, BOM, or Windo
 });
 
 // ---- scripts/sheet-sync.sh, in a throwaway clone with a local "GitHub" ----
-const SYNC_FILES = ['package.json', 'scripts/texts.js', 'scripts/texts-lib.js', 'scripts/sheet-sync.sh', 'docs/review/sheet-state.json', ...Object.values(T.FILES)];
+const SYNC_FILES = ['package.json', 'scripts/texts.js', 'scripts/texts-lib.js', 'scripts/sheet-sync.sh', 'scripts/sheet-google.js', 'docs/review/sheet-state.json', ...Object.values(T.FILES)];
 function setup() {
   const dir = mkdtempSync(join(tmpdir(), 'sheet-sync-'));
   const git = (cwd, ...a) => execFileSync('git', a, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -276,4 +276,102 @@ test('sheet-sync: a conflict is reported (exit 3) but does not block the other c
     assert.deepEqual([dict.da['hero.title'], dict.da['hero.lead']], ['Fra koden', 'Ny lead']);
     assert.equal(s.deploys(), 1);
   } finally { s.done(); }
+});
+
+test('sheet-sync: deletions are flagged on "!!" lines; SLET on a protected text is reported (exit 3) and the rest still goes out', () => {
+  const s = setup();
+  try {
+    const p = T.collect(FILES).find((e) => e.kind === 'legal' && e.key.startsWith('privacy') && (e.da ?? '').startsWith('Kan siden ikke sende'));
+    writeSheet(s.csv, sheet(FILES, { [p.key]: { da: 'SLET' }, 'hero.lead': { en: 'slet' }, 'co.send': { da: 'SLET' } }));
+    const r = s.run();
+    assert.equal(r.status, 3, r.stderr);
+    const lines = r.stdout.split('\n');
+    assert.match(lines[0], /^!! LEGAL: a paragraph of the privacy policy was deleted/);
+    assert.ok(lines.some((l) => /^!! ONE LANGUAGE: hero\.lead: deleted in English, still there in Danish/.test(l)));
+    assert.ok(lines.some((l) => /^!! ONE LANGUAGE: privacy\.html#\S+ deleted in Danish/.test(l)));
+    assert.match(r.stdout, /Rows not applied \(SLET on a text that cannot be deleted\):\n- row \d+: co\.send/);
+    assert.equal(s.originLog().split('\n')[0], 'Texts from the sheet: 2 changes');
+    assert.match(s.git(s.sync, 'log', '-1', '--format=%B'), /!! LEGAL/, 'the flags are in the commit message too');
+    assert.equal(s.deploys(), 1);
+    assert.equal(T.readI18n(readFileSync(join(s.sync, 'web/js/i18n.js'), 'utf8')).en['hero.lead'], null);
+    // The same sheet again: only the rejected row is still worth a word.
+    const again = s.run();
+    assert.equal(again.status, 3);
+    assert.doesNotMatch(again.stdout, /!!/);
+    assert.match(again.stdout, /co\.send/);
+    assert.equal(s.deploys(), 1);
+  } finally { s.done(); }
+});
+
+// ---- sheet-sync through the Google API, against a local fake Google ----
+import { createServer } from 'node:http';
+import { spawn } from 'node:child_process';
+const runAsync = (cmd, args, opts) => new Promise((resolve) => {
+  const p = spawn(cmd, args, opts);
+  let stdout = '';
+  let stderr = '';
+  p.stdout.on('data', (d) => { stdout += d; });
+  p.stderr.on('data', (d) => { stderr += d; });
+  p.on('close', (status) => resolve({ status, stdout, stderr }));
+});
+async function fakeGoogleServer(state) {
+  const seen = [];
+  const server = createServer((req, res) => {
+    let body = '';
+    req.on('data', (d) => { body += d; });
+    req.on('end', () => {
+      const u = new URL(req.url, 'http://x');
+      seen.push({ method: req.method, path: decodeURIComponent(u.pathname), auth: req.headers.authorization, body });
+      const send = (code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
+      if (u.pathname === '/token') {
+        const f = new URLSearchParams(body);
+        if (state.tokenError || f.get('refresh_token') !== 'REFRESH-abc' || f.get('client_secret') !== 'SECRET-xyz') return send(400, { error: 'invalid_grant', error_description: 'Bad Request' });
+        return send(200, { access_token: 'ya29.TOKEN', expires_in: 3599 });
+      }
+      if (req.headers.authorization !== 'Bearer ya29.TOKEN') return send(401, { error: { code: 401, message: 'unauthenticated' } });
+      if (u.pathname === `/sheets/v4/spreadsheets/${state.id}`) return send(200, { sheets: [{ properties: { sheetId: 0, title: 'Tekster', index: 0 } }] });
+      if (decodeURIComponent(u.pathname) === `/sheets/v4/spreadsheets/${state.id}/values/'Tekster'`) return send(200, { values: state.rows });
+      return send(404, { error: { code: 404, message: 'Requested entity was not found.' } });
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  return { url: `http://127.0.0.1:${server.address().port}`, seen, close: () => new Promise((r) => server.close(r)) };
+}
+
+test('sheet-sync: a private sheet through the Google API (token from the refresh token); no secret in any output', async () => {
+  const s = setup();
+  const state = { id: '1SheetIdForTheTestsOnly_abcdefghij', rows: sheet(FILES, { 'hero.title': { da: 'Fra det private ark' } }) };
+  const g = await fakeGoogleServer(state);
+  try {
+    const conf = join(s.dir, '.config', 'the-neighbor');
+    mkdirSync(conf, { recursive: true });
+    writeFileSync(join(conf, 'google-oauth.json'), JSON.stringify({ client_id: 'cid', client_secret: 'SECRET-xyz', refresh_token: 'REFRESH-abc' }));
+    writeFileSync(join(conf, 'sheet-id'), `${state.id}\n`);
+    const env = { ...process.env, HOME: s.dir, NEIGHBOR_GOOGLE_API: g.url, SHEET_SYNC_TEST_CMD: 'true', SHEET_SYNC_DEPLOY_CMD: `echo deployed >> '${join(s.dir, 'deploys')}'`, SHEET_URL: '' };
+    // A local fake Google: never through a proxy from the environment.
+    for (const k of ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'NODE_USE_ENV_PROXY']) delete env[k];
+    delete env.XDG_CONFIG_HOME;
+    delete env.NEIGHBOR_SHEET_ID;
+    delete env.NEIGHBOR_SHEET_OAUTH;
+    let r = await runAsync('bash', ['scripts/sheet-sync.sh'], { cwd: s.sync, env });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /Applied 1 change/);
+    assert.equal(T.readI18n(readFileSync(join(s.sync, 'web/js/i18n.js'), 'utf8')).da['hero.title'], 'Fra det private ark');
+    assert.ok(g.seen.some((x) => x.path === '/token') && g.seen.some((x) => x.path.endsWith("/values/'Tekster'")));
+    for (const out of [r.stdout, r.stderr, s.git(s.sync, 'log', '--format=%B')]) for (const secret of ['SECRET-xyz', 'REFRESH-abc', 'ya29.TOKEN']) assert.ok(!out.includes(secret), secret);
+    // Google refuses the refresh token: exit 1, Google's reason, nothing changed, no secrets.
+    state.tokenError = true;
+    state.rows = sheet(FILES, { 'hero.title': { da: 'Igen' } });
+    r = await runAsync('bash', ['scripts/sheet-sync.sh'], { cwd: s.sync, env });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /invalid_grant/);
+    assert.match(r.stderr, /could not read the sheet through the Google API/);
+    for (const secret of ['SECRET-xyz', 'REFRESH-abc']) assert.ok(!r.stderr.includes(secret) && !r.stdout.includes(secret));
+    assert.equal(s.git(s.sync, 'status', '--porcelain'), '');
+    // An ID configured but no credentials: it says so, and does not fall back to a public link.
+    rmSync(join(conf, 'google-oauth.json'));
+    r = await runAsync('bash', ['scripts/sheet-sync.sh'], { cwd: s.sync, env: { ...env, SHEET_URL: `file://${s.csv}` } });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /google-oauth\.json is missing/);
+  } finally { await g.close(); s.done(); }
 });

@@ -17,6 +17,8 @@
     "sheet-export": "node scripts/texts.js sheet-export",
     "sheet-import": "node scripts/texts.js sheet-import",
     "sheet-sync": "bash scripts/sheet-sync.sh",
+    "sheet-create": "node scripts/sheet-google.js create",
+    "sheet-populate": "node scripts/sheet-google.js populate",
     "build:pages": "node scripts/build-pages.js"
   },
   "engines": {
