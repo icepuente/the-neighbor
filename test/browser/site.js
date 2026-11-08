@@ -5,11 +5,19 @@
 // opened. Locally, /api/address (the address register) is answered by the test too (cdp.js mock).
 import { check, evaluate, mock, open, requests, run, send, shot, shotEl, sleep, waitFor } from './cdp.js';
 import * as R from '../../web/js/booking-rules.js';
+import { loadLanguage } from '../../api/texts.js';
 
 const SITE = process.env.SITE || 'http://127.0.0.1:5000/';
 const origin = new URL(SITE).origin;
 const live = origin.startsWith('https:');
 const TO = R.CONFIG.contact.email;
+// Texts and prices from the files (web/js/i18n.js, web/js/booking-rules.js), not written out here:
+// the owner changes them in the Google Sheet, and the test must still pass after that. Locally the
+// files are what is served; live, they are what was deployed from this checkout.
+const DA = loadLanguage('da');
+const EN = loadLanguage('en');
+const svc = (id) => R.service(id);
+const nb = (s) => s.replace(/\u00a0/g, ' ');
 
 const fill = (id, v) => evaluate(`(()=>{const e=document.getElementById('${id}');e.value=${JSON.stringify(v)};e.dispatchEvent(new Event('input',{bubbles:true}))})()`);
 // As a person reads it: the price table keeps "199 kr." together with non-breaking spaces.
@@ -85,19 +93,19 @@ run(9336, async () => {
   if (R.CONFIG.demo) check(await evaluate("!document.getElementById('demo-bar').hidden") && (await text('#demo-bar')).includes(TO), `the demo bar says requests go to ${TO}`);
   else check(await evaluate("document.getElementById('demo-bar').hidden"), 'no demo bar');
   check(await evaluate("document.querySelectorAll('#svc-cards a').length") === 6, 'six cards: five repairs and Anden reparation');
-  check((await text('#svc-cards a .price')) === '199 kr.', 'prices in Danish: 199 kr.');
+  check((await text('#svc-cards a .price')) === nb(DA.fmt.dkk(R.SERVICES[0].price)), `prices in Danish: ${DA.fmt.dkk(R.SERVICES[0].price)}`);
   const cards = await evaluate("[...document.querySelectorAll('#svc-cards a')].map((a) => a.innerText.replace(/\\s+/g, ' '))");
-  check(cards[4].startsWith('Eftersyn 299 kr.') && !/Fejlfinding|diagnos/i.test(cards.join()), `Diagnostics is now Eftersyn: "${cards[4]}"`);
-  check(cards[5].startsWith('Anden reparation Pris efter aftale') && cards[5].includes('kommentarfeltet'), `Anden reparation: "${cards[5]}"`);
+  check(R.SERVICES.every((s, i) => nb(cards[i]).startsWith(`${DA.svcName(s)} ${s.price == null ? DA.t('byAgreement') : nb(DA.fmt.dkk(s.price))}`)) && !/Fejlfinding|diagnos/i.test(cards.join()), `each card: name and price, as in booking-rules.js ("${cards[4]}")`);
+  check(!DA.t('svc.other.what') || cards[5].includes(DA.t('svc.other.what')), `Anden reparation: "${cards[5]}"`);
   check(await evaluate("!document.getElementById('business') && !document.querySelector('a[href*=\"account\"], a[href*=\"admin\"]')"), 'no business section, no log-in, no dashboard');
   check(!(await evaluate('document.body.innerText')).match(/Care Plus|abonnement|Firebase|Opret en konto/i), 'no subscriptions or accounts mentioned');
   check((await text('footer')).includes(TO), 'the footer gives the booking address');
-  check((await evaluate("I18N.t('faq.payA')")) === 'Du kan betale på stedet, med Vipps MobilePay (#124895) eller via bankoverførsel.' && !/faktura på mail/.test(await evaluate('document.body.textContent')), 'payment: on the spot, Vipps or bank transfer');
+  check((await evaluate("I18N.t('faq.payA')")) === DA.t('faq.payA') && !/faktura på mail/.test(await evaluate('document.body.textContent')), 'the page has the texts of i18n.js (payment: no invoice by mail)');
   await shot('front.png', 1600);
 
   // The puncture card starts a booking with the puncture fix chosen.
   await evaluate("document.querySelector('.choose a[data-pre=puncture]').click()");
-  check(await evaluate("document.querySelector('input[name=svc][value=puncture]').checked") && (await text('#saccv')) === 'Punkteringsreparation', '"Jeg er punkteret" chooses the puncture fix');
+  check(await evaluate("document.querySelector('input[name=svc][value=puncture]').checked") &&  (await text('#saccv')) === DA.svcName(svc('puncture')), '"Jeg er punkteret" chooses the puncture fix');
 
   // The date: 2 days ahead at the earliest, never on a Sunday.
   check(await evaluate("document.getElementById('times').hidden"), 'no times before a date is chosen');
@@ -115,13 +123,13 @@ run(9336, async () => {
   // Too much for one visit.
   await tick('service');
   await tick('brakes');
-  check((await text('#e-services')).includes('45'), 'more than 45 minutes is refused at once');
+  check((await text('#e-services')) === DA.t('err.tooLong'), 'more than 45 minutes is refused at once');
   await tick('service');
   await evaluate("document.querySelector('#slots input[value=\"14:30\"]').click()");
 
   // The form's checks.
   await evaluate("document.querySelector('#f button[type=submit]').click()");
-  check((await text('#e-form')) === 'Udfyld adresse, postnummer, navn og telefon.', 'address, postcode, name and phone are required');
+  check((await text('#e-form')) === DA.t('err.contact'), 'address, postcode, name and phone are required');
 
   // Address suggestions while typing the street; picking one fills in the postcode too.
   if (R.CONFIG.addressSuggest) {
@@ -149,20 +157,21 @@ run(9336, async () => {
   await fill('name', 'Test Testesen');
   await fill('tel', '12345678');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
-  check((await text('#e-form')).includes('18 km'), 'a postcode beyond 18 km is refused');
-  check((await text('#e-email')).startsWith('Skriv din e-mailadresse'), 'an email address is required');
+  check((await text('#e-form')) === DA.t('err.far'), 'a postcode beyond 18 km is refused');
+  check((await text('#e-email')) === DA.t('err.email'), 'an email address is required');
   await fill('email', 'test@example');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
-  check((await text('#e-email')).startsWith('Skriv din e-mailadresse'), 'and must be a whole address');
+  check((await text('#e-email')) === DA.t('err.email'), 'and must be a whole address');
   await fill('email', 'test.testesen@example.dk');
   await fill('postcode', '2200');
   await fill('note', 'Cyklen står i gården & bag porten?');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
   await waitFor("!document.getElementById('co').hidden", 'the price page');
 
-  // The price: 199 + 129 for the repairs, 13 for travel from a 2200 postcode.
-  check((await text('#tbl .tot')).includes('341 kr.'), `the total with travel: ${await text('#tbl .tot')}`);
-  check((await text('#tbl')).includes('13 kr. (ca. 5 km, én vej)'), 'travel is shown with the distance');
+  // The price: the puncture fix and the brakes, plus travel from a 2200 postcode.
+  const q1 = R.quote(['puncture', 'brakes'], { distanceKm: R.estimateKm('2200') });
+  check((await text('#tbl .tot')).includes(nb(DA.fmt.dkk(q1.total))), `the total with travel: ${await text('#tbl .tot')}`);
+  check((await text('#tbl')).includes(nb(DA.t('co.travelVal', { amount: DA.fmt.dkk(q1.travel), km: q1.distanceKm }))), 'travel is shown with the distance');
   check((await text('#codet')).includes('Jagtvej 10, 2. tv., 2200'), 'the address is written the Danish way');
   await shotEl('price.png', '#co');
 
@@ -170,10 +179,10 @@ run(9336, async () => {
   // falls back to the visitor's own mail program.
   await stubApi(503, { error: 'unavailable' });
   await evaluate("document.getElementById('send').click()");
-  check((await posts()).length === 0 && (await text('#e-confirm')).includes('handelsbetingelserne'), 'nothing is sent before the terms are accepted');
+  check((await posts()).length === 0 && (await text('#e-confirm')) === DA.t('err.accept.terms'), 'nothing is sent before the terms are accepted');
   await evaluate("document.getElementById('acc-terms').click()");
   await evaluate("document.getElementById('send').click()");
-  check((await posts()).length === 0 && (await text('#e-confirm')).includes('fortrydelsesretten'), 'nor before the early start is asked for');
+  check((await posts()).length === 0 && (await text('#e-confirm')) === DA.t('err.accept.earlyStart'), 'nor before the early start is asked for');
   await evaluate("document.getElementById('acc-start').click()");
   await evaluate("document.getElementById('send').click()");
   await waitFor("!document.getElementById('done').hidden", 'the mail fallback page');
@@ -187,13 +196,13 @@ run(9336, async () => {
   check(sentReq.street === 'Jagtvej 10' && sentReq.apartment === '2. tv.' && sentReq.postcode === '2200', 'street, floor and door, and postcode, as typed');
   const mail = await mailParts();
   check(mail.to === TO, `the email goes to ${TO}`);
-  check(mail.subject.startsWith('Bookingforespørgsel: Punkteringsreparation, Bremsejustering') && mail.subject.endsWith('kl. 14:30'), `subject: "${mail.subject}"`);
-  for (const line of ['Navn: Test Testesen', 'Telefon: 12345678', 'Adresse: Jagtvej 10, 2. tv., 2200', 'Kommentar: Cyklen står i gården & bag porten?',
-    'Ønsket ankomst: kl. 14:30 (besøget tager op til 35 min.)', 'E-mail: test.testesen@example.dk', '- Jeg accepterer handelsbetingelserne.']) {
+  check(nb(mail.subject) === nb(DA.t('mail.subject', { services: ['puncture', 'brakes'].map((id) => DA.svcName(svc(id))).join(', '), date: DA.fmt.date(D1), time: '14:30' })), `subject: "${mail.subject}"`);
+  for (const line of [`${DA.t('mail.name')}: Test Testesen`, `${DA.t('mail.phone')}: 12345678`, `${DA.t('mail.address')}: Jagtvej 10, 2. tv., 2200`, `${DA.t('mail.note')}: Cyklen står i gården & bag porten?`,
+    `${DA.t('mail.time')}: ${DA.t('mail.timeVal', { time: '14:30', min: q1.workMin })}`, `${DA.t('mail.email')}: test.testesen@example.dk`, `- ${DA.t('co.acceptTerms')}.`, `- ${DA.t('co.earlyStart')}`]) {
     check(mail.body.split('\r\n').includes(line), `the email says "${line}"`);
   }
-  check(mail.body.includes('ca. 341 kr. i alt') && mail.body.includes('fortrydelsesret ophører'), 'and gives the price and the withdrawal acknowledgement');
-  check((await text('#done-msg')).includes('kunne ikke sende') && (await text('#done-msg')).includes(TO) && (await evaluate("document.getElementById('mailtext').value")).includes('Telefon: 12345678'),
+  check(nb(mail.body).includes(nb(DA.fmt.dkk(q1.total))), 'and gives the price');
+  check((await text('#done-msg')) === nb(DA.t('done.msg', { email: TO })) && (await evaluate("document.getElementById('mailtext').value")).includes(`${DA.t('mail.phone')}: 12345678`),
     'the fallback page offers the mail program, and the request ready to copy');
   await evaluate("document.getElementById('copy').click()");
   await waitFor("document.getElementById('copied').textContent", 'the copy button');
@@ -204,8 +213,8 @@ run(9336, async () => {
   // In English, the page and the email.
   await evaluate("document.getElementById('lang-en').click()");
   await waitFor("document.documentElement.lang === 'en' && document.querySelectorAll('#svc-cards a').length === 6", 'the English page');
-  check((await text('#svc-cards a .price')) === '199 DKK' && (await text('h1')) === 'Flat tyre? We come to you.', 'English: 199 DKK');
-  check(await evaluate("[...document.querySelectorAll('#svc-cards b')].map((b) => b.textContent).join()") === 'Puncture Fix,Brake Adjustment,Gear Adjustment,Chain Service,Bike Service,Other Repair', 'English: Bike Service and Other Repair');
+  check((await text('#svc-cards a .price')) === nb(EN.fmt.dkk(R.SERVICES[0].price)) && (await text('h1')) === EN.t('hero.title'), `English: ${EN.fmt.dkk(R.SERVICES[0].price)}`);
+  check(await evaluate("[...document.querySelectorAll('#svc-cards b')].map((b) => b.textContent).join()") === R.SERVICES.map(EN.svcName).join(), 'English: the repairs\' English names');
   // A chain service and an Other Repair, which must be described in the comment.
   await tick('chain');
   await evaluate("document.querySelector('#svc-cards a[data-pre=other]').click()");
@@ -218,15 +227,16 @@ run(9336, async () => {
   await fill('tel', '87654321');
   await fill('email', 'ann@example.com');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
-  check((await text('#e-note')).includes('comment field') && await evaluate("document.getElementById('co').hidden"), 'an Other Repair without a comment is refused');
+  check((await text('#e-note')) === EN.t('err.note') && await evaluate("document.getElementById('co').hidden"), 'an Other Repair without a comment is refused');
   await fill('note', 'The mudguard rattles');
   await evaluate("document.querySelector('#f button[type=submit]').click()");
   await waitFor("!document.getElementById('co').hidden", 'the English price page');
-  check((await text('#tbl')).includes('Price by agreement') && (await text('#tbl .tot')).includes('162 DKK + other repair'), `the price page: ${await text('#tbl .tot')}`);
-  check((await text('#notes')).includes('we agree the price and time'), 'and says its price is agreed later');
+  const q2 = R.quote(['chain', 'other'], { distanceKm: R.estimateKm('2200') });
+  check((await text('#tbl')).includes(EN.t('byAgreement')) && (await text('#tbl .tot')).includes(nb(EN.t('co.totalPlus', { total: EN.fmt.dkk(q2.total) }))), `the price page: ${await text('#tbl .tot')}`);
+  check((await text('#notes')).includes(EN.t('co.noteOther')), 'and says its price is agreed later');
   const en = await mailParts();
-  check(en.subject.startsWith('Booking request: Chain Service, Other Repair') && en.body.includes('Kind regards') && en.body.includes('- I accept the terms and conditions.'), 'the email is in English too');
-  check(en.body.includes('Other Repair (Price by agreement)') && en.body.includes('Comment: The mudguard rattles') && en.body.includes('price of the other repair is to be agreed'), 'with the Other Repair, its comment and price by agreement');
+  check(en.subject.startsWith(EN.t('mail.subject').split('{')[0] + ['chain', 'other'].map((id) => EN.svcName(svc(id))).join(', ')) && en.body.includes(EN.t('mail.bye')) && en.body.includes(`- ${EN.t('co.acceptTerms')}.`), 'the email is in English too');
+  check(en.body.includes(`${EN.svcName(svc('other'))} (${EN.t('byAgreement')})`) && en.body.includes(`${EN.t('mail.note')}: The mudguard rattles`) && en.body.includes(EN.t('mail.other')), 'with the Other Repair, its comment and price by agreement');
   await shotEl('price-other.png', '#co');
 
   // The server's own checks refuse it (say, the page was left open overnight): back to the form.
@@ -235,14 +245,14 @@ run(9336, async () => {
   await stubApi(400, { error: 'invalid', errors: { date: 'lead' } });
   await evaluate("document.getElementById('send').click()");
   await waitFor("!document.getElementById('f').hidden", 'the form again');
-  check((await text('#e-date')) === 'Please book at least 2 days ahead.', `the server's error is shown on the field: "${await text('#e-date')}"`);
+  check((await text('#e-date')) === EN.t('err.lead'), `the server's error is shown on the field: "${await text('#e-date')}"`);
   // Sent: the page says so, and where the copy went.
   await evaluate("document.querySelector('#f button[type=submit]').click()");
   await waitFor("!document.getElementById('co').hidden", 'the price page again');
   await stubApi(200, { ok: true, copy: true });
   await evaluate("document.getElementById('send').click()");
   await waitFor("!document.getElementById('sent').hidden", 'the "request sent" page');
-  check((await text('#sent-msg')).includes('a copy is on its way to ann@example.com') && await evaluate("document.getElementById('sent-nocopy').hidden"), `sent: "${await text('#sent-msg')}"`);
+  check((await text('#sent-msg')) === EN.t('sent.msg', { email: 'ann@example.com' }) && await evaluate("document.getElementById('sent-nocopy').hidden"), `sent: "${await text('#sent-msg')}"`);
   const ids = (await posts()).map((p) => JSON.parse(p.body).id);
   check(ids.length === 2 && ids[0] !== ids[1], 'a changed request gets a new id');
   await shotEl('sent.png', '#sent');
@@ -257,6 +267,31 @@ run(9336, async () => {
   check(R.CONFIG.addressSuggest ? mentions === 2 : mentions === 0, `the privacy policy names Adressevælger ${mentions} times (suggestions ${R.CONFIG.addressSuggest ? 'on' : 'off'})`);
   await open(new URL('terms.html', SITE).href);
   check(!/Care|subscription|account/i.test(await evaluate('document.body.innerText')), 'the terms mention no subscriptions or accounts');
+
+  // Texts deleted in the owner's sheet (null in i18n.js; data-deleted on the legal pages): their
+  // elements are hidden and leave no gap. Simulated in the page, on the texts as served.
+  await evaluate("localStorage.setItem('neighbor-lang', 'da')");
+  await open(SITE);
+  await waitFor("document.documentElement.lang === 'da' && document.querySelectorAll('#svc-cards a').length > 0", 'the front page again, in Danish');
+  await evaluate(`(() => {
+    for (const k of ['hero.title', 'hero.lead', 'how.1', 'how.2', 'how.3', 'how.4', 'faq.parts', 'pt.come', 'pt.comeSub', 'about.title', 'about.quote', 'about.sub']) I18N.dict.da[k] = null;
+    I18N.apply();
+  })()`);
+  const box = (sel) => evaluate(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return { h: r.height, w: r.width, shown: getComputedStyle(e).display !== 'none' }; })()`);
+  check(!(await box('.hero h1')).shown && !(await box('.hero > div')).shown && (await evaluate("getComputedStyle(document.querySelector('.hero')).gridTemplateColumns.split(' ').length")) === 1, `deleted: the hero text goes, and its column with it (${JSON.stringify([await box('.choose'), await box('.hero')])})`);
+  check(!(await box('.flow')).shown, 'deleted: all four steps, and the list with them');
+  check(!(await box('details.card')).shown && (await evaluate("document.querySelectorAll('details.card:not([hidden])').length")) === 5, 'deleted: a question takes its card with it');
+  check(await evaluate("document.querySelectorAll('.points li:not([hidden])').length") === 3, 'deleted: a selling point goes when both its texts do');
+  check(!(await box('#faq .split > div')).shown && (await evaluate("getComputedStyle(document.querySelector('#faq .split')).gridTemplateColumns.split(' ').length")) === 1, 'deleted: the About block, and its column with it');
+  check(await evaluate("I18N.t('hero.title')") === '', 'a deleted Danish text is not replaced by the English one');
+  await open(new URL('privacy.html', SITE).href);
+  await evaluate(`(() => {
+    const ul = document.querySelector('article[lang="da"] ul');
+    for (const li of ul.querySelectorAll('li')) { li.textContent = ''; li.setAttribute('hidden', ''); li.setAttribute('data-deleted', ''); }
+    const p = document.querySelector('article[lang="da"] p:not([hidden])');
+    p.textContent = ''; p.setAttribute('hidden', ''); p.setAttribute('data-deleted', '');
+  })()`);
+  check(await evaluate("getComputedStyle(document.querySelector('article[lang=\\'da\\'] ul')).display") === 'none', 'deleted: a legal list with every item gone takes no room');
 
   // On a phone (375 x 667, touch, Danish): what was broken there on 2026-11-07 stays fixed. Nothing
   // may make the page wider than the phone (mobile Chrome then zooms out, Safari scrolls sideways).
