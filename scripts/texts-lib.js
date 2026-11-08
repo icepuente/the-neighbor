@@ -11,6 +11,12 @@
 //                                                         each heading, paragraph and list item of
 //                                                         the DA and EN articles; the numbers are its
 //                                                         position in each language (#3 = both 3rd)
+//
+// Deleting: the owner writes SLET (any case) in a cell. A deleted site text is `null` in
+// web/js/i18n.js (the page hides its element); a deleted legal paragraph stays in the HTML as an
+// empty `<p hidden data-deleted></p>`, so the paragraphs after it keep their keys and it can be
+// written back. Texts the booking needs cannot be deleted (DELETABLE below). Deleted texts are
+// shown as SLET in the sheet, so typing words over SLET brings a text back.
 import vm from 'node:vm';
 
 export const FILES = { i18n: 'web/js/i18n.js', rules: 'web/js/booking-rules.js', privacy: 'web/privacy.html', terms: 'web/terms.html' };
@@ -18,6 +24,44 @@ export const LANGS = ['da', 'en'];
 const LEGAL = [['privacy', 'privacy.html', 'Privatlivspolitik'], ['terms', 'terms.html', 'Handelsbetingelser']];
 export const MAX_PRICE = 5000;
 export const BY_AGREEMENT = 'aftale';
+// What the owner writes in a cell to delete that language's text, and how a deleted text is shown.
+export const DELETED = 'SLET';
+
+// The site texts that may be deleted. Everything else is protected: the buttons, labels,
+// placeholders and headings of the booking form, every error message, the price page, the sent and
+// fallback screens, the request email and the customer's copy (mail.*: every line is either
+// something the owner needs to plan the visit or something the customer is owed), the links to the
+// terms and the privacy policy, any text with {placeholders} (the code fills those in), and the
+// repairs' names and prices (the booking and the email need them). The language switcher (DA/EN)
+// is not in the sheet at all. This is an allowlist on purpose: a text added to the site later is
+// protected until someone has checked that the page hides its element cleanly when it is empty.
+// Each pattern is a key, or a prefix ending in '*'.
+export const DELETABLE = [
+  'nav.repairs', 'nav.faq',                  // header links (hidden; the booking button stays)
+  'hero.title', 'hero.lead',                 // front page heading and lead
+  'pt.*',                                    // the four selling points (a point goes when both its texts do)
+  'rep.title', 'rep.sub',                    // repairs section heading
+  'svc.tubeIncl', 'svc.*.what',              // details on the service cards
+  'how.*',                                   // the "how it works" steps
+  'bk.sub', 'bk.whatSub', 'bk.hours', 'bk.arrivalSub', 'bk.emailSub', 'bk.noteSub', // explanations in the form
+  'about.*',                                 // the About block
+  'faq.*',                                   // questions and answers (a card goes when either is deleted)
+];
+const matches = (pattern, key) => {
+  if (!pattern.includes('*')) return pattern === key;
+  return new RegExp(`^${pattern.split('*').map(reEscape).join('[\\w-]+')}$`).test(key);
+};
+// Why a text cannot be deleted, or null if it can.
+export function protectedReason(entry) {
+  if (entry.kind === 'name') return 'a repair needs a name (the booking form and the email use it)';
+  if (entry.kind === 'price') return `a repair needs a price (or "${BY_AGREEMENT}")`;
+  if (entry.kind === 'legal') return null;
+  if (placeholders(entry.da ?? '') || placeholders(entry.en ?? '')) return 'the site fills in its {placeholders}; it is part of the booking';
+  if (DELETABLE.some((p) => matches(p, entry.key))) return null;
+  if (entry.key.startsWith('err.')) return 'an error message the booking form needs';
+  if (entry.key.startsWith('mail.')) return 'part of the request email or the customer\'s copy';
+  return 'the booking form, the price page or the links to the terms need it';
+}
 
 // One line, single spaces: how legal paragraphs and service names are compared and shown.
 const oneLine = (s) => String(s ?? '').replace(/[ \t\r\n]+/g, ' ').trim();
@@ -46,9 +90,10 @@ const jsString = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replac
 export function setSiteText(source, lang, key, value) {
   const [start, end] = langBlock(source, lang);
   const block = source.slice(start, end);
-  const re = new RegExp(`('${reEscape(key)}':\\s*)(?:'(?:[^'\\\\\\n]|\\\\.)*'|"(?:[^"\\\\\\n]|\\\\.)*")`);
+  const re = new RegExp(`('${reEscape(key)}':\\s*)(?:null|'(?:[^'\\\\\\n]|\\\\.)*'|"(?:[^"\\\\\\n]|\\\\.)*")`);
   if (!re.test(block)) fail(`${key}: not found in the ${lang} texts of web/js/i18n.js`);
-  const out = source.slice(0, start) + block.replace(re, (m, k) => k + jsString(value)) + source.slice(end);
+  // null: deleted (the page hides the element).
+  const out = source.slice(0, start) + block.replace(re, (m, k) => k + (value === null ? 'null' : jsString(value))) + source.slice(end);
   if (readI18n(out)[lang][key] !== value) fail(`${key}: could not be written to web/js/i18n.js`);
   return out;
 }
@@ -101,14 +146,18 @@ function articleRange(html, lang) {
   const start = m.index + m[0].length;
   return [start, html.indexOf('</article>', start)];
 }
-function legalBlocks(html, lang) {
+// Blocks without text are left out, except deleted ones (data-deleted), which keep their place.
+export function legalBlocks(html, lang) {
   const r = articleRange(html, lang);
   if (!r) return [];
   const article = html.slice(r[0], r[1]);
   return [...article.matchAll(BLOCK_RE)].map((m) => {
-    const innerStart = r[0] + m.index + m[0].indexOf('>') + 1;
-    return { tag: m[1], inner: m[3], innerStart, innerEnd: innerStart + m[3].length, text: tokens(m[3]).text };
-  }).filter((b) => b.text);
+    const start = r[0] + m.index;
+    const innerStart = start + m[0].indexOf('>') + 1;
+    const attrs = m[2] || '';
+    const deleted = /\sdata-deleted\b/.test(attrs);
+    return { tag: m[1], attrs, start, attrsEnd: innerStart - 1, inner: m[3], innerStart, innerEnd: innerStart + m[3].length, deleted, text: deleted ? '' : tokens(m[3]).text };
+  }).filter((b) => b.text || b.deleted);
 }
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' };
 const decode = (s) => s.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (m, e) => (e[0] === '#' ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : ENTITIES[e.toLowerCase()] ?? m));
@@ -226,7 +275,19 @@ function parseLegalKey(key) {
 function setLegal(html, lang, index, value, key) {
   const b = legalBlocks(html, lang)[index];
   if (!b) fail(`${key}: the page has no such ${lang === 'da' ? 'Danish' : 'English'} paragraph any more`);
-  if (!oneLine(value)) fail(`${key}: empty; to remove a paragraph, ask Alec`);
+  // Deleted: emptied and hidden (the attribute hidden, plus data-deleted to know it was deleted, not
+  // hidden for another reason such as data-if). Its links or bold go with it.
+  if (value === DELETED) {
+    const attrs = `${b.attrs}${/\shidden\b/.test(b.attrs) ? '' : ' hidden'} data-deleted`;
+    return `${html.slice(0, b.start)}<${b.tag}${attrs}></${b.tag}>${html.slice(b.innerEnd + `</${b.tag}>`.length)}`;
+  }
+  if (!oneLine(value)) fail(`${key}: empty; to remove a paragraph, write ${DELETED}`);
+  // Written back after a deletion: plain text (escaped), shown again (hidden stays on a data-if block).
+  if (b.deleted) {
+    let attrs = b.attrs.replace(/\sdata-deleted\b(="[^"]*")?/, '');
+    if (!/\sdata-if=/.test(attrs)) attrs = attrs.replace(/\shidden\b(="[^"]*")?/, '');
+    return `${html.slice(0, b.start)}<${b.tag}${attrs}>${escapeHtml(oneLine(value))}${html.slice(b.innerEnd)}`;
+  }
   let inner;
   try { inner = editBlock(b.inner, value); } catch (e) { fail(`${key} (${lang === 'da' ? 'Dansk' : 'English'}): ${e.message}`); }
   return html.slice(0, b.innerStart) + inner + html.slice(b.innerEnd);
@@ -238,11 +299,15 @@ function setLegal(html, lang, index, value, key) {
 export function collect(files) {
   const out = [];
   const dict = readI18n(files.i18n);
-  // The demo bar goes at launch; empty texts have nothing to read.
+  // The demo bar goes at launch; empty texts have nothing to read. A deleted text (null) is SLET.
+  const shown = (v) => (v === null ? DELETED : v ?? null);
   for (const key of Object.keys(dict.da)) {
-    if (key.startsWith('demo.') || !dict.da[key]) continue;
-    const vars = placeholders(dict.da[key]);
-    out.push({ kind: 'site', key, where: 'Hjemmeside', da: dict.da[key], en: dict.en[key] ?? null, help: vars ? `Behold ${vars.split(',').map((v) => `{${v}}`).join(' ')} som de er` : '' });
+    if (key.startsWith('demo.') || dict.da[key] === '') continue;
+    const vars = placeholders(dict.da[key] ?? dict.en[key] ?? '');
+    const entry = { kind: 'site', key, where: 'Hjemmeside', da: shown(dict.da[key]), en: key in dict.en ? shown(dict.en[key]) : null };
+    const locked = protectedReason(entry);
+    entry.help = [vars ? `Behold ${vars.split(',').map((v) => `{${v}}`).join(' ')} som de er` : '', locked ? 'Kan ikke slettes' : ''].filter(Boolean).join('. ');
+    out.push(entry);
   }
   for (const s of readServices(files.rules)) {
     out.push({ kind: 'name', key: `service.${s.id}.name`, where: 'Reparation: navn', da: s.da, en: s.name, help: 'Navnet på reparationen' });
@@ -255,7 +320,8 @@ export function collect(files) {
     const en = legalBlocks(html, 'en');
     for (const [d, e] of align(da, en)) {
       const tagged = (b) => b && /<(?!br\b)\w/i.test(b.inner);
-      out.push({ kind: 'legal', key: legalKey(file, d, e), where: label, da: d == null ? null : da[d].text, en: e == null ? null : en[e].text,
+      const text = (b) => (b.deleted ? DELETED : b.text);
+      out.push({ kind: 'legal', key: legalKey(file, d, e), where: label, da: d == null ? null : text(da[d]), en: e == null ? null : text(en[e]),
         help: [d == null ? 'Kun på engelsk' : e == null ? 'Kun på dansk' : '', tagged(da[d]) || tagged(en[e]) ? 'Har link eller fed skrift: ret kun ordene, ikke selve linket' : ''].filter(Boolean).join('. ') });
     }
   }
@@ -264,6 +330,7 @@ export function collect(files) {
 // Values compared the way the sheet shows them.
 export function norm(kind, v) {
   if (v == null) return '';
+  if (oneLine(v).toUpperCase() === DELETED) return DELETED;
   if (kind === 'price') return normPrice(v);
   if (kind === 'site') return trimText(v);
   return oneLine(v);
@@ -274,7 +341,12 @@ export function setText(files, entry, lang, value) {
   const { key, kind } = entry;
   const v = norm(kind, value);
   if (entry[lang] == null) fail(`${key}: has no ${lang === 'da' ? 'Danish' : 'English'} text to change${kind === 'price' ? ' (the price goes in the Dansk column)' : ''}`);
+  if (v === DELETED) {
+    const why = protectedReason(entry);
+    if (why) fail(`${key}: cannot be deleted: ${why}`);
+  }
   if (kind === 'site') {
+    if (v === DELETED) return { ...files, i18n: setSiteText(files.i18n, lang, key, null) };
     if (!v) fail(`${key} (${lang}): empty; every text on the site needs words`);
     if (v.length > 2000) fail(`${key} (${lang}): over 2000 characters`);
     if (placeholders(v) !== placeholders(entry[lang])) fail(`${key} (${lang}): keep the words in curly braces exactly as they were (${placeholders(entry[lang]).split(',').filter(Boolean).map((x) => `{${x}}`).join(' ') || 'none'}); the site fills them in`);
@@ -308,7 +380,13 @@ export function setText(files, entry, lang, value) {
 //   otherwise                 a conflict (both changed): skipped and reported; resolved once the
 //                             sheet or the code is made to agree
 // Any refused value stops the whole import (nothing is written), so a bad cell can never half-apply.
-// Returns { files, state, changes: [{ key, lang, from, to }], conflicts: [..], warnings: [..], stateChanged }.
+// The one exception: SLET on a text that cannot be deleted (protectedReason) rejects only that row
+// (both its cells), which is reported, and the other rows still apply. An empty cell is never a
+// deletion: it is left as it is and reported (a price's empty cell still means "aftale").
+// Returns { files, state, changes: [{ key, kind, lang, from, to }], conflicts: [..], warnings: [..],
+// rejected: [..], legalDeletions: [..], oneLanguage: [..], stateChanged }. legalDeletions are
+// deleted privacy/terms paragraphs; oneLanguage are texts this import left deleted in one language
+// but not the other.
 export function importSheet(files, rows, state) {
   const head = rows[0].map((h) => h.trim());
   const col = (name) => head.indexOf(name);
@@ -318,9 +396,11 @@ export function importSheet(files, rows, state) {
   const changes = [];
   const conflicts = [];
   const warnings = [];
+  const rejected = [];
   const errors = [];
   let out = files;
   const seen = new Set();
+  const langName = (lang) => (lang === 'da' ? 'Danish' : 'English');
   for (const [n, r] of rows.slice(1).entries()) {
     const key = (r[col('Nøgle')] || '').trim();
     if (!key) continue;
@@ -330,27 +410,37 @@ export function importSheet(files, rows, state) {
     // Look the entry up in the files as changed so far (legal texts move as paragraphs change).
     const entry = entries.get(key);
     if (!entry) { warnings.push(`${line}: ${key} is no longer on the site; row ignored`); continue; }
+    // Each cell: what the sheet, the state and the code hold.
+    const cells = [];
     for (const lang of LANGS) {
       const cell = r[col(lang === 'da' ? 'Dansk' : 'English')];
       if (cell == null) continue;
       // A cell with no text behind it (the English of a price, a paragraph only one language has)
       // must stay empty.
       if (entry[lang] == null) {
-        if (cell.trim()) errors.push(`${line}: ${key} has no ${lang === 'da' ? 'Danish' : 'English'} text; leave that cell empty${entry.kind === 'price' ? ' (the price goes in the Dansk column)' : ''}`);
+        if (cell.trim()) errors.push(`${line}: ${key} has no ${langName(lang)} text; leave that cell empty${entry.kind === 'price' ? ' (the price goes in the Dansk column)' : ''}`);
         continue;
       }
-      const sheet = norm(entry.kind, cell);
-      const known = state?.[key] && lang in state[key];
-      const last = norm(entry.kind, state?.[key]?.[lang]);
-      const code = norm(entry.kind, entry[lang]);
+      const known = Boolean(state?.[key] && lang in state[key]);
+      cells.push({ lang, sheet: norm(entry.kind, cell), known, last: norm(entry.kind, state?.[key]?.[lang]), code: norm(entry.kind, entry[lang]) });
+    }
+    // SLET typed (as an edit) on a text that must stay: the whole row is left out.
+    const why = protectedReason(entry);
+    const locked = why && cells.filter((c) => c.sheet === DELETED && c.code !== DELETED && !(c.known && c.last === DELETED));
+    if (locked?.length) {
+      rejected.push(`${line}: ${key}: ${DELETED} in ${locked.map((c) => (c.lang === 'da' ? 'Dansk' : 'English')).join(' and ')}, but it cannot be deleted (${why}); the row was not applied. Put the text back in the sheet.`);
+      continue;
+    }
+    for (const { lang, sheet, known, last, code } of cells) {
       if (known && sheet === last) continue;
       if (sheet === code) { (nextState[key] ||= {})[lang] = sheet; continue; }
       if (!known) { warnings.push(`${line}: ${key} (${lang}) was not in the sheet when it was made; not applied`); continue; }
       if (code !== last) { conflicts.push(`${key} (${lang}): changed both in the sheet and on the site since the last sync; not applied. Sheet: "${sheet}"  Site: "${code}"`); continue; }
+      if (sheet === '' && entry.kind !== 'price') { warnings.push(`${line}: ${key} (${lang}): the cell is empty, so the text was left as it is; to delete it, write ${DELETED}`); continue; }
       try {
         const fresh = new Map(collect(out).map((e) => [e.key, e])).get(key) || entry;
         out = setText(out, fresh, lang, sheet);
-        changes.push({ key, lang, from: code, to: sheet });
+        changes.push({ key, kind: entry.kind, lang, from: code, to: sheet });
         (nextState[key] ||= {})[lang] = sheet;
       } catch (e) {
         if (!(e instanceof TextError)) throw e;
@@ -359,8 +449,17 @@ export function importSheet(files, rows, state) {
     }
   }
   if (errors.length) fail(`The sheet has ${errors.length} problem(s); nothing was changed:\n${errors.map((x) => `- ${x}`).join('\n')}`);
+  const legalDeletions = changes.filter((c) => c.kind === 'legal' && c.to === DELETED);
+  const final = new Map(collect(out).map((e) => [e.key, e]));
+  const oneLanguage = [];
+  for (const key of new Set(changes.filter((c) => c.to === DELETED || c.from === DELETED).map((c) => c.key))) {
+    const e = final.get(key);
+    if (!e || e.da == null || e.en == null || (e.da === DELETED) === (e.en === DELETED)) continue;
+    const [gone, kept] = e.da === DELETED ? ['Danish', 'English'] : ['English', 'Danish'];
+    oneLanguage.push({ key, text: `${key}: deleted in ${gone}, still there in ${kept} ("${e.da === DELETED ? e.en : e.da}")` });
+  }
   const stateChanged = JSON.stringify(sortState(nextState)) !== JSON.stringify(sortState(state || {}));
-  return { files: out, state: sortState(nextState), changes, conflicts, warnings, stateChanged };
+  return { files: out, state: sortState(nextState), changes, conflicts, warnings, rejected, legalDeletions, oneLanguage: oneLanguage.map((x) => x.text), stateChanged };
 }
 // The state for a fresh sheet: every text as exported.
 export function stateFrom(entries) {

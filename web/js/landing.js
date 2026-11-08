@@ -30,7 +30,7 @@ if (CONFIG.contact.phone) $('foot-mail').append(` · ${CONFIG.contact.phone}`);
 
 // ---- Hero and service cards ----
 const puncture = R.service('puncture');
-$('hero-puncture-sub').textContent = `${dkk(puncture.price)} · ${t('svc.tubeIncl')}`;
+$('hero-puncture-sub').textContent = [dkk(puncture.price), t('svc.tubeIncl')].filter(Boolean).join(' · ');
 const fixedPrices = SERVICES.filter((s) => s.price != null).map((s) => s.price);
 $('hero-repairs-sub').textContent = t('hero.repairsSub', { price: dkk(Math.min(...fixedPrices)) });
 

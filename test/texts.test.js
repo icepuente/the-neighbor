@@ -58,7 +58,10 @@ test('site texts: Danish and English are edited in place; the braces must stay',
   const q = T.importSheet(FILES, sheet(FILES, { 'about.quote': { en: 'You need a neighbour who knows bikes.' } }), fresh());
   assert.equal(T.readI18n(q.files.i18n).en['about.quote'], 'You need a neighbour who knows bikes.');
   assert.throws(() => T.importSheet(FILES, sheet(FILES, { 'mail.subject': { da: 'Booking: {services} den {date}' } }), fresh()), /curly braces/);
-  assert.throws(() => T.importSheet(FILES, sheet(FILES, { 'hero.title': { en: '  ' } }), fresh()), /empty/);
+  // An empty cell is never a deletion: left as it is, and reported.
+  const empty = T.importSheet(FILES, sheet(FILES, { 'hero.title': { en: '  ' }, 'hero.lead': { da: 'Ny lead.' } }), fresh());
+  assert.deepEqual(empty.changes.map((c) => c.key), ['hero.lead'], 'the other edits still apply');
+  assert.match(empty.warnings.join(), /hero\.title \(en\): the cell is empty.*write SLET/);
   // Code cannot be smuggled in: the text is a JS string, nothing more.
   const evil = "x'; alert(1); '";
   const e = T.importSheet(FILES, sheet(FILES, { 'hero.title': { da: evil } }), fresh());
@@ -76,7 +79,8 @@ test('services: names in both languages, prices as whole kroner', () => {
   assert.throws(() => T.importSheet(FILES, sheet(FILES, { 'service.other.price': { da: '300' } }), fresh()), /always priced by agreement/);
   assert.equal(T.importSheet(FILES, sheet(FILES, { 'service.other.price': { da: '' } }), fresh()).changes.length, 0, 'empty is "aftale" too');
   assert.throws(() => T.importSheet(FILES, sheet(FILES, { 'service.chain.price': { en: '159' } }), fresh()), /Dansk column/);
-  assert.throws(() => T.importSheet(FILES, sheet(FILES, { 'service.chain.name': { en: '' } }), fresh()), /needs a name/);
+  assert.match(T.importSheet(FILES, sheet(FILES, { 'service.chain.name': { en: '' } }), fresh()).warnings.join(), /empty/);
+  assert.throws(() => T.setText(FILES, get(FILES, 'service.chain.name'), 'en', ''), /needs a name/);
 });
 
 test('legal paragraphs: plain text replaced and escaped; links and bold stay as they are', () => {
@@ -97,7 +101,9 @@ test('legal paragraphs: plain text replaced and escaped; links and bold stay as 
   // The English article is edited separately.
   const en = T.importSheet(FILES, sheet(FILES, { [bold.key]: { en: bold.en.replace('stores', 'keeps') } }), fresh());
   assert.ok(en.changes.length === 1 && en.changes[0].lang === 'en');
-  assert.throws(() => T.importSheet(FILES, sheet(FILES, { [bold.key]: { da: '' } }), fresh()), /empty/);
+  const empty = T.importSheet(FILES, sheet(FILES, { [bold.key]: { da: '' } }), fresh());
+  assert.deepEqual([empty.changes, empty.files], [[], FILES]);
+  assert.match(empty.warnings.join(), /empty/);
 });
 
 test('a block edit inside the HTML, piece by piece', () => {

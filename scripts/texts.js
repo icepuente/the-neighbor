@@ -27,7 +27,7 @@ const PROOF_OUT = join(root, 'docs', 'review', 'proofreading.csv');
 const SHEET_OUT = join(root, 'docs', 'review', 'sheet.csv');
 export const STATE_FILE = join(root, 'docs', 'review', 'sheet-state.json');
 const PROOF_HEAD = ['Hvor', 'Nøgle', 'Status', 'Dansk', 'English', 'Rettelse', 'Kommentar'];
-const SHEET_HEAD = ['Hvor', 'Nøgle', 'Dansk', 'English', 'Hjælp', 'Kommentar'];
+export const SHEET_HEAD = ['Hvor', 'Nøgle', 'Dansk', 'English', 'Hjælp', 'Kommentar'];
 const NEW = 'Ny/ændret 2026-11-06';
 // New or changed for sending requests from the site (2026-11-06), and for the address suggestions
 // and the floor/door field (2026-11-07), not yet proofread.
@@ -38,11 +38,11 @@ const NEW_KEYS = new Set([
   'mail.email', 'mail.copySubject', 'mail.copyIntro', 'mail.copyNext', 'mail.copyTerms', 'mail.copyHead', 'faq.confirmA', 'faq.dataA',
 ]);
 
-const readFiles = () => Object.fromEntries(Object.entries(T.FILES).map(([k, f]) => [k, readFileSync(join(root, f), 'utf8')]));
+export const readFiles = () => Object.fromEntries(Object.entries(T.FILES).map(([k, f]) => [k, readFileSync(join(root, f), 'utf8')]));
 const writeFiles = (before, after) => {
   for (const [k, f] of Object.entries(T.FILES)) if (after[k] !== before[k]) writeFileSync(join(root, f), after[k]);
 };
-const readState = () => (existsSync(STATE_FILE) ? JSON.parse(readFileSync(STATE_FILE, 'utf8')).texts : {});
+export const readState = () => (existsSync(STATE_FILE) ? JSON.parse(readFileSync(STATE_FILE, 'utf8')).texts : {});
 const writeState = (texts) => writeFileSync(STATE_FILE, `${JSON.stringify({
   about: 'What the Google Sheet held at the last sync, per text: scripts/texts.js sheet-import only applies cells that differ from this. Written by the sheet export and import; do not edit by hand.',
   texts,
@@ -52,11 +52,29 @@ const isNewLegal = (files, e) => {
   // A legal paragraph is flagged when its Danish block carries data-proofread="new".
   const m = e.key.match(/^(privacy|terms)\.html#(?:(\d+)|d(\d+))/);
   if (!m) return false;
-  const html = files[m[1]];
-  const art = html.match(/<article[^>]*lang="da"[^>]*>([\s\S]*?)<\/article>/)?.[1] || '';
-  const blocks = [...art.matchAll(/<(h1|h2|h3|p|li)(\s[^>]*)?>([\s\S]*?)<\/\1>/g)].filter((b) => b[3].replace(/<[^>]+>/g, '').trim());
-  return /data-proofread="new"/.test(blocks[Number(m[2] ?? m[3]) - 1]?.[2] || '');
+  return /data-proofread="new"/.test(T.legalBlocks(files[m[1]], 'da')[Number(m[2] ?? m[3]) - 1]?.attrs || '');
 };
+const short = (s) => (s.length > 90 ? `${s.slice(0, 87)}...` : s);
+// The import's report, as sheet-sync prints it (and puts it in the commit message). What needs a
+// person's eyes comes first.
+export function report(result, dry = false) {
+  const out = [];
+  const lang = (c) => (c.lang === 'da' ? 'Dansk' : 'English');
+  for (const c of result.legalDeletions) {
+    out.push(`!! LEGAL: a paragraph of the ${c.key.startsWith('privacy') ? 'privacy policy' : 'terms'} was ${dry ? 'to be ' : ''}deleted (${c.key}, ${lang(c)}): "${short(c.from)}". Check with Alec that the page still says what the law requires.`);
+  }
+  for (const x of result.oneLanguage) out.push(`!! ONE LANGUAGE: ${x}`);
+  if (out.length) out.push('');
+  const describe = (c) => (c.to === T.DELETED ? `deleted (was "${short(c.from)}")` : c.from === T.DELETED ? `restored: "${short(c.to)}"` : `"${short(c.from)}" -> "${short(c.to)}"`);
+  if (result.changes.length) out.push(`${dry ? 'Would apply' : 'Applied'} ${result.changes.length} change(s) from the sheet:`, ...result.changes.map((c) => `- ${c.key} (${c.lang}): ${describe(c)}`));
+  if (result.rejected.length) out.push(`Rows not applied (${T.DELETED} on a text that cannot be deleted):`, ...result.rejected.map((x) => `- ${x}`));
+  if (result.conflicts.length) out.push('Conflicts, not applied (fix the sheet or the code so they agree):', ...result.conflicts.map((x) => `- ${x}`));
+  if (result.warnings.length) out.push('Warnings:', ...result.warnings.map((x) => `- ${x}`));
+  return out.join('\n');
+}
+
+// The owner's sheet as exported: one row per text, without the header.
+export const sheetRows = (entries = T.collect(readFiles())) => entries.map((e) => [e.where, e.key, e.da ?? '', e.en ?? '', e.help, '']);
 
 // A Google Sheet's address (…/spreadsheets/d/<id>/edit#gid=<tab>) as its CSV download address.
 export function csvUrl(url) {
@@ -96,6 +114,7 @@ function main(argv) {
       const entry = T.collect(files).find((e) => e.key === key);
       try {
         if (!entry) throw new T.TextError(`${key}: no such text any more`);
+        if (T.norm(entry.kind, fix) === T.DELETED) throw new T.TextError(`${key}: texts are deleted in the owner's Google Sheet, not here`);
         files = T.setText(files, entry, 'da', fix);
         applied.push(key);
       } catch (e) {
@@ -113,7 +132,7 @@ function main(argv) {
     // state stays, since a sheet made earlier may still be in use.
     const entries = T.collect(readFiles());
     const out = opt('out') || SHEET_OUT;
-    const rows = entries.map((e) => [e.where, e.key, e.da ?? '', e.en ?? '', e.help, '']);
+    const rows = sheetRows(entries);
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, T.toCsv([SHEET_HEAD, ...rows], ',', true));
     const state = readState();
@@ -139,12 +158,10 @@ function main(argv) {
       writeFiles(before, result.files);
       if (result.stateChanged) writeState(result.state);
     }
-    const summary = { changes: result.changes, conflicts: result.conflicts, warnings: result.warnings, stateChanged: result.stateChanged };
-    if (opt('summary')) writeFileSync(opt('summary'), JSON.stringify(summary, null, 1));
-    const short = (s) => (s.length > 90 ? `${s.slice(0, 87)}...` : s);
-    if (result.changes.length) console.log(`${dry ? 'Would apply' : 'Applied'} ${result.changes.length} change(s) from the sheet:\n${result.changes.map((c) => `- ${c.key} (${c.lang}): "${short(c.from)}" -> "${short(c.to)}"`).join('\n')}`);
-    if (result.conflicts.length) console.log(`Conflicts, not applied (fix the sheet or the code so they agree):\n${result.conflicts.map((x) => `- ${x}`).join('\n')}`);
-    if (result.warnings.length) console.log(`Warnings:\n${result.warnings.map((x) => `- ${x}`).join('\n')}`);
+    const { changes, conflicts, warnings, rejected, legalDeletions, oneLanguage, stateChanged } = result;
+    if (opt('summary')) writeFileSync(opt('summary'), JSON.stringify({ changes, conflicts, warnings, rejected, legalDeletions, oneLanguage, stateChanged }, null, 1));
+    const text = report(result, dry);
+    if (text) console.log(text);
     return 0;
   }
   if (cmd === 'sheet-url' && file) {

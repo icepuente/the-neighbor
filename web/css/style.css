@@ -17,6 +17,13 @@ h1, h2, h3, .logo { font-family: 'DM Serif Display', Georgia, serif; font-weight
 a { color: inherit; }
 .wrap { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
 [hidden] { display: none !important; }
+/* Texts deleted in the owner's sheet: hidden (js/i18n.js, and data-deleted on the legal pages), and a
+   list left with nothing to show goes too, so no gap is left behind. */
+[data-deleted] { display: none !important; }
+.flow:not(:has(> li:not([hidden]))), .points:not(:has(> li:not([hidden]))),
+.legal ul:not(:has(> li:not([hidden]))), .legal ol:not(:has(> li:not([hidden]))) { display: none; }
+.hero:has(> [hidden]), .split:has(> [hidden]) { grid-template-columns: 1fr; }
+.legal .form:not(:has(:is(h2, h3, p, li):not([hidden]))) { display: none; }
 .center { text-align: center; }
 
 /* Demo bar (CONFIG.demo in js/booking-rules.js) */
