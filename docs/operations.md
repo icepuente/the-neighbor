@@ -202,10 +202,91 @@ Analytics off, or the policy must mention it.
 - **Closed days** (holidays, sick days): `CONFIG.closedDates` in the same file, e.g.
   `['2026-12-24', '2026-12-31']`.
 - **Prices and services:** `SERVICES` in the same file. Texts: `web/js/i18n.js` (also the emails'
-  texts, the `mail.*` keys).
+  texts, the `mail.*` keys). The owner changes these, and the privacy policy and terms, in the
+  Google Sheet instead (next section).
 
 Then `npm test`, `npm run test:browser` and `npm run deploy`. The API uses the same files, so the
 emails follow (the deploy restarts it).
+
+## Texts from the Google Sheet
+
+The owner edits the site's texts, the services' names and prices, and the privacy policy and terms
+in a Google Sheet ([docs/review/README.md](review/README.md#4-the-owners-google-sheet)).
+`scripts/sheet-sync.sh` brings them to the site:
+
+1. reads the sheet: normally a **private sheet through the Google Sheets API**
+   (`scripts/sheet-google.js`), or as a fallback a sheet shared "anyone with the link: viewer"
+   (see below);
+2. applies it with `node scripts/texts.js sheet-import` (every cell checked; one refused cell and
+   nothing is applied, except `SLET` on a protected text, which rejects only that row);
+3. runs `npm test`; then commits `Texts from the sheet: <n> changes`, pushes to main and runs
+   `scripts/deploy.sh`.
+
+No change: silent, exit 0. Failure: a reason on stderr, exit 1, nothing deployed (a deploy that
+fails after the push is retried on the next run). Exit 3: done, but some cells were skipped
+(conflicts, empty cells, rows the site no longer has, or `SLET` on a text that cannot be deleted),
+listed in the output. Deleted privacy/terms paragraphs (`!! LEGAL: ...`) and texts deleted in only
+one language (`!! ONE LANGUAGE: ...`) are flagged on lines of their own at the top of the output and
+in the commit message.
+
+### The private sheet (Google API)
+
+Used when a spreadsheet ID is configured. Files on the machine that runs the job:
+
+| File | What | Override |
+|---|---|---|
+| `~/.config/the-neighbor/google-oauth.json` | `{"client_id": "...", "client_secret": "...", "refresh_token": "..."}` (a Google "Desktop app" OAuth client; the client fields may also sit under `"installed"`, as Google's download has them). Mode 600. | `$NEIGHBOR_SHEET_OAUTH` |
+| `~/.config/the-neighbor/sheet-id` | the spreadsheet ID; written by `npm run sheet-create` | `$NEIGHBOR_SHEET_ID` (the ID, or a file holding it) |
+
+The refresh token needs only the scope `https://www.googleapis.com/auth/drive.file`: the app sees
+only files it created, so the sheet must be made with `npm run sheet-create` (not by hand). Enable
+the Google Sheets API and the Google Drive API in the Cloud project. Tokens are never printed; a
+refused token shows Google's reason (e.g. `invalid_grant`) and exits 1.
+
+- `npm run sheet-create -- owner@example.dk` makes "The Neighbor – tekster" from the export (header
+  frozen, column widths, wrapping, warning-only protection on Hvor/Nøgle/Hjælp), writes the ID to
+  `sheet-id`, prints the ID and URL, and shares it with that address as editor (Google emails
+  them). Without an address it is not shared. It refuses if `sheet-id` already names a sheet
+  (`--force` makes a new one).
+- `npm run sheet-populate` refreshes the sheet from the export after texts changed in the code.
+  It refuses while the sheet has edits the sync has not taken (cells differing from both
+  `sheet-state.json` and the code: unsynced edits, conflicts, rejected `SLET`s), listing them;
+  `--force` overwrites them. Comments are kept. The next sync records the new contents in
+  `sheet-state.json` (a "bookkeeping" commit).
+
+With no spreadsheet ID configured, the job falls back to `SHEET_URL` (or
+`~/.config/the-neighbor/sheet-url`): the sheet's address, downloaded with curl, no credentials.
+An ID configured but no credentials is an error, not a fallback.
+
+### Deleting texts
+
+`SLET` (any case) in the Dansk or English cell deletes that language's text; in both, the text is
+gone from both sites; an empty cell changes nothing. A deleted site text is `null` in
+`web/js/i18n.js` and the page hides its element (`I18N.apply()`, `data-i18n-group` for blocks such
+as an FAQ card or the About block, CSS for lists left empty). A deleted legal paragraph stays as an
+empty `<p hidden data-deleted></p>`, so later paragraphs keep their keys. The export shows deleted
+texts as `SLET`; typing text over it brings the text back (as plain text: links or bold in a
+legal paragraph do not come back).
+
+Only the texts in `DELETABLE` (`scripts/texts-lib.js`) can be deleted: header links, hero text,
+selling points, the repairs section heading, service-card details, the steps, explanations in the
+form, About and FAQ, and every legal paragraph. Everything else is protected (form buttons, labels,
+placeholders and step headings, error messages, the price page, the sent/fallback screens, the
+request email and customer copy, links to the terms and privacy policy, any text with
+`{placeholders}`, repairs' names and prices; the DA/EN switcher is not in the sheet). It is an
+allowlist so that a new text is protected until someone checks that the page hides it cleanly.
+`test/sheet-delete.test.js` checks that every key a script reads is protected.
+
+**A stale sheet never reverts the code.** `docs/review/sheet-state.json` holds what the sheet
+contained at the last sync. Only cells that differ from it are edits, and an edit is applied only
+if the code still has the old text; if both changed, the cell is reported as a conflict and skipped
+until the sheet or the code agrees. So texts can still be changed in the code: the sheet keeps the
+old text, which is ignored, until the owner edits that cell (a conflict) or someone updates it.
+
+**Run it from a clone of its own**, on main, that nobody works in (it refuses a dirty clone or
+another branch), with a key `deploy@192.168.0.223` accepts and push access to GitHub. It deploys
+whatever main is, so commits others pushed without deploying go out with it. Suggested: every 15
+minutes, with its output sent to Alec when it is not empty.
 
 ## Earlier setups on this server
 

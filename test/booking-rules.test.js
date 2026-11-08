@@ -7,6 +7,8 @@ import * as R from '../web/js/booking-rules.js';
 const SAT = '2026-10-17';
 const TUE = '2026-10-20';
 const NEAR = { distanceKm: 5 }; // a Copenhagen postcode: 13 kr. travel
+// A service's price, as set in the Google Sheet (scripts/texts.js).
+const P = (id) => R.service(id).price;
 
 const okInput = (over = {}) => ({
   date: TUE, arrival: '10:00', street: 'Jagtvej 1, 2. tv.', postcode: '2200', name: 'Test', phone: '12345678', email: 'test@example.dk', note: '', ...over,
@@ -30,20 +32,25 @@ test('repairs only: five services and Other Repair', () => {
   assert.equal(R.service('bike-check'), undefined, 'no Bike Check');
   assert.equal(R.service('monthly'), undefined, 'no subscriptions');
   assert.equal(R.service('diagnostics'), undefined, 'Diagnostics became Bike Service');
-  assert.deepEqual([R.service('service').name, R.service('service').da, R.service('service').price], ['Bike Service', 'Eftersyn', 299]);
+  // Names and prices are the owner's to change in the Google Sheet (scripts/texts.js), so the tests
+  // check their shape, not their values.
+  for (const s of R.SERVICES) {
+    assert.ok(typeof s.name === 'string' && s.name && typeof s.da === 'string' && s.da, `${s.id} has a name in both languages`);
+    assert.ok(s.needsNote ? s.price === null : Number.isInteger(s.price) && s.price >= 0 && s.price <= 5000, `${s.id} has a price`);
+  }
   assert.equal(R.service('service').needsNote, undefined, 'a bike service needs no description');
   assert.equal(R.service('puncture').tubeIncluded, true);
-  assert.deepEqual([R.service('other').da, R.service('other').price, R.service('other').needsNote], ['Anden reparation', null, true]);
+  assert.deepEqual([R.service('other').price, R.service('other').needsNote], [null, true]);
 });
 
 test('prices and travel', () => {
   const q = R.quote(['puncture', 'chain'], NEAR);
-  assert.deepEqual([q.servicesTotal, q.travel, q.total], [348, 13, 361]);
+  assert.deepEqual([q.servicesTotal, q.travel, q.total], [P('puncture') + P('chain'), 13, P('puncture') + P('chain') + 13]);
   assert.equal(R.quote(['chain']).travel, null, 'no postcode, no travel fee');
-  assert.equal(R.quote(['chain']).total, 149);
+  assert.equal(R.quote(['chain']).total, P('chain'));
   assert.equal(R.travelFee(14), 35);
   const other = R.quote(['puncture', 'other'], NEAR);
-  assert.deepEqual([other.servicesTotal, other.total, other.byAgreement], [199, 212, true], 'an Other Repair is priced later, not in the total');
+  assert.deepEqual([other.servicesTotal, other.total, other.byAgreement], [P('puncture'), P('puncture') + 13, true], 'an Other Repair is priced later, not in the total');
   assert.equal(R.quote(['puncture'], NEAR).byAgreement, false);
 });
 
@@ -143,14 +150,14 @@ test('the request email and its mailto: link', () => {
   const fmt = { dkk: (n) => `${n} kr.`, date: (d) => d };
   const r = { ...okInput(), bike: 'Racer', note: 'Æble & "pære"?' };
   const q = R.quote(['puncture', 'chain'], NEAR);
-  const mail = R.requestEmail(r, q, { t, fmt, svcName: (s) => s.name });
-  assert.match(mail.subject, /Puncture Fix, Chain Service/);
+  const mail = R.requestEmail(r, q, { t, fmt, svcName: (s) => s.id });
+  assert.match(mail.subject, /puncture, chain/);
   const lines = mail.body.split('\r\n');
-  assert.ok(lines.includes('mail.services: Puncture Fix (199 kr.), Chain Service (149 kr.)'));
+  assert.ok(lines.includes(`mail.services: puncture (${P('puncture')} kr.), chain (${P('chain')} kr.)`));
   assert.ok(lines.includes('mail.address: Jagtvej 1, 2. tv., 2200'));
   assert.ok(lines.includes('mail.phone: 12345678'));
   assert.ok(lines.includes('mail.email: test@example.dk'), 'the customer\'s address, to reply to');
-  assert.ok(lines.some((l) => l.startsWith('mail.price') && l.includes('"total":"361 kr."')), 'the price with travel');
+  assert.ok(lines.some((l) => l.startsWith('mail.price') && l.includes(`"total":"${P('puncture') + P('chain') + 13} kr."`)), 'the price with travel');
   assert.ok(lines.includes('- co.acceptTerms.') && lines.includes('- co.earlyStart'), 'both ticked statements are in the email');
   assert.ok(!mail.body.includes('\n\n'), 'lines end in CRLF only');
 
@@ -167,12 +174,12 @@ test('an Other Repair in the request email: price by agreement', () => {
   const t = (k, v) => `${k}${v ? JSON.stringify(v) : ''}`;
   const fmt = { dkk: (n) => `${n} kr.`, date: (d) => d };
   const r = { ...okInput(), bike: 'Racer', note: 'Loose mudguard' };
-  let lines = R.requestEmail(r, R.quote(['puncture', 'other'], NEAR), { t, fmt, svcName: (s) => s.name }).body.split('\r\n');
-  assert.ok(lines.includes('mail.services: Puncture Fix (199 kr.), Other Repair (byAgreement)'));
-  assert.ok(lines.some((l) => l.startsWith('mail.price') && l.includes('"total":"212 kr."')), 'the total leaves the Other Repair out');
+  let lines = R.requestEmail(r, R.quote(['puncture', 'other'], NEAR), { t, fmt, svcName: (s) => s.id }).body.split('\r\n');
+  assert.ok(lines.includes(`mail.services: puncture (${P('puncture')} kr.), other (byAgreement)`));
+  assert.ok(lines.some((l) => l.startsWith('mail.price') && l.includes(`"total":"${P('puncture') + 13} kr."`)), 'the total leaves the Other Repair out');
   assert.ok(lines.includes('mail.other'), 'and says its price is agreed later');
   assert.ok(lines.includes('mail.note: Loose mudguard'), 'with the comment that describes it');
-  lines = R.requestEmail(r, R.quote(['other'], NEAR), { t, fmt, svcName: (s) => s.name }).body.split('\r\n');
+  lines = R.requestEmail(r, R.quote(['other'], NEAR), { t, fmt, svcName: (s) => s.id }).body.split('\r\n');
   assert.ok(lines.some((l) => l.startsWith('mail.priceTravel')) && !lines.some((l) => l.startsWith('mail.price{')), 'only an Other Repair: just the travel');
 });
 

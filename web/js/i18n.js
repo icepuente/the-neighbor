@@ -329,15 +329,31 @@
     },
   };
 
+  // A text deleted in the owner's sheet is null: '' in that language (no fallback to English), and
+  // apply() hides its element.
   function t(key, vars) {
-    let s = D[lang][key] ?? D.en[key] ?? key;
+    let s = D[lang][key] === null ? '' : D[lang][key] ?? D.en[key] ?? key;
     if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
     return s;
   }
 
+  // Fills in the texts. An element whose text was deleted is hidden (never unhidden here: some start
+  // hidden on purpose), and so is a data-i18n-group with nothing left to show: "all" when every text
+  // in it is gone, "any" when one is (a question without its answer). Inner groups go first.
   function apply(root = document) {
-    root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    root.querySelectorAll('[data-i18n]').forEach((el) => {
+      const s = t(el.dataset.i18n);
+      el.textContent = s;
+      if (!s) el.hidden = true;
+    });
     root.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+    const shown = (el, group) => { for (let n = el; n && n !== group; n = n.parentElement) if (n.hidden) return false; return true; };
+    [...root.querySelectorAll('[data-i18n-group]')].reverse().forEach((g) => {
+      const texts = [...g.querySelectorAll('[data-i18n]')];
+      if (!texts.length) return;
+      const visible = texts.filter((el) => shown(el, g));
+      if (g.dataset.i18nGroup === 'any' ? visible.length < texts.length : !visible.length) g.hidden = true;
+    });
   }
 
   // Prices and dates in the page language: "199 kr." and Danish dates, or "199 DKK" in English.

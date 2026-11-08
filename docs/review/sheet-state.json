@@ -1,0 +1,1006 @@
+{
+ "about": "What the Google Sheet held at the last sync, per text: scripts/texts.js sheet-import only applies cells that differ from this. Written by the sheet export and import; do not edit by hand.",
+ "texts": {
+  "about.quote": {
+   "da": "Du behøver ikke et værksted. Du har brug for en nabo, der kan sit håndværk med cykler.",
+   "en": "You don't need a workshop. You need a neighbor who knows bikes."
+  },
+  "about.sub": {
+   "da": "Ejeren udfører selv hvert job med værktøjet i varevognen.",
+   "en": "The owner does every job personally, with the tools in the van."
+  },
+  "about.title": {
+   "da": "Om os",
+   "en": "About"
+  },
+  "bike.cargo": {
+   "da": "Ladcykel / andet",
+   "en": "Cargo / other"
+  },
+  "bike.city": {
+   "da": "By / pendler",
+   "en": "City / commuter"
+  },
+  "bike.e": {
+   "da": "Elcykel",
+   "en": "E-bike"
+  },
+  "bike.mtb": {
+   "da": "Mountainbike",
+   "en": "Mountain"
+  },
+  "bike.road": {
+   "da": "Racer",
+   "en": "Road"
+  },
+  "bk.apartment": {
+   "da": "Etage og dør",
+   "en": "Floor and door"
+  },
+  "bk.apartmentPh": {
+   "da": "fx 2. tv.",
+   "en": "e.g. 2. tv."
+  },
+  "bk.arrival": {
+   "da": "Ønsket ankomst",
+   "en": "Preferred arrival"
+  },
+  "bk.arrivalSub": {
+   "da": "Vi bekræfter tiden, når vi svarer på din mail.",
+   "en": "We confirm the time when we reply to your email."
+  },
+  "bk.bike": {
+   "da": "Cykel",
+   "en": "Bike"
+  },
+  "bk.date": {
+   "da": "Ønsket dato",
+   "en": "Preferred date"
+  },
+  "bk.emailSub": {
+   "da": "(vi svarer hertil og sender dig en kopi)",
+   "en": "(we reply here and send you a copy)"
+  },
+  "bk.hours": {
+   "da": "Mandag til lørdag, 8.30–15.30.",
+   "en": "Monday to Saturday, 08:30–15:30."
+  },
+  "bk.hp": {
+   "da": "Lad dette felt være tomt",
+   "en": "Leave this field empty"
+  },
+  "bk.note": {
+   "da": "Kommentar",
+   "en": "Comment"
+  },
+  "bk.notePh": {
+   "da": "fx hvad der skal repareres, eller hvor cyklen står",
+   "en": "e.g. what needs fixing, or where the bike is"
+  },
+  "bk.noteSub": {
+   "da": "(skal udfyldes ved anden reparation)",
+   "en": "(required for other repair)"
+  },
+  "bk.postcode": {
+   "da": "Postnummer",
+   "en": "Postcode"
+  },
+  "bk.postcodePh": {
+   "da": "fx 2200",
+   "en": "e.g. 2200"
+  },
+  "bk.seePrice": {
+   "da": "Se pris",
+   "en": "See price"
+  },
+  "bk.selectDate": {
+   "da": "Vælg en dato",
+   "en": "Select a date"
+  },
+  "bk.selectServices": {
+   "da": "Vælg reparationer",
+   "en": "Select repairs"
+  },
+  "bk.street": {
+   "da": "Adresse",
+   "en": "Address"
+  },
+  "bk.streetPh": {
+   "da": "Begynd at skrive, fx Jagtvej 10",
+   "en": "Start typing, e.g. Jagtvej 10"
+  },
+  "bk.sub": {
+   "da": "Udfyld formularen, og se prisen. Send så forespørgslen herfra, så får du en kopi på mail. Vi svarer og bekræfter tiden.",
+   "en": "Fill in the form and see the price. Then send the request from here, and you get a copy by email. We reply to confirm the time."
+  },
+  "bk.suggestions": {
+   "da": "Adresseforslag",
+   "en": "Address suggestions"
+  },
+  "bk.title": {
+   "da": "Book et besøg",
+   "en": "Book a visit"
+  },
+  "bk.what": {
+   "da": "1. Hvad",
+   "en": "1. What"
+  },
+  "bk.whatSub": {
+   "da": "vælg én eller flere",
+   "en": "choose one or more"
+  },
+  "bk.when": {
+   "da": "2. Hvornår",
+   "en": "2. When"
+  },
+  "bk.where": {
+   "da": "3. Hvor og hvem",
+   "en": "3. Where & who"
+  },
+  "byAgreement": {
+   "da": "Pris efter aftale",
+   "en": "Price by agreement"
+  },
+  "cal.next": {
+   "da": "Næste måned",
+   "en": "Next month"
+  },
+  "cal.prev": {
+   "da": "Forrige måned",
+   "en": "Previous month"
+  },
+  "cal.unavailable": {
+   "da": "ikke ledig",
+   "en": "not available"
+  },
+  "co.acceptTerms": {
+   "da": "Jeg accepterer handelsbetingelserne",
+   "en": "I accept the terms and conditions"
+  },
+  "co.change": {
+   "da": "Ret",
+   "en": "Change"
+  },
+  "co.confirmNote": {
+   "da": "Kl. {time} er dit ønske. Vi svarer på mail og bekræfter tiden eller foreslår en anden.",
+   "en": "{time} is your preferred time. We reply by email to confirm it or suggest another."
+  },
+  "co.earlyStart": {
+   "da": "Jeg beder jer udføre arbejdet, også hvis besøget ligger inden for fortrydelsesfristen på 14 dage, og jeg ved, at min fortrydelsesret ophører, når arbejdet er fuldt udført.",
+   "en": "I ask you to do the work even if the visit falls within the 14-day withdrawal period, and I know that my right of withdrawal ends once the work is fully done."
+  },
+  "co.estimate": {
+   "da": "Kørslen er anslået ud fra postnummeret. Vi bekræfter den endelige pris i vores svar.",
+   "en": "Travel is estimated from the postcode. We confirm the final price in our reply."
+  },
+  "co.noteOther": {
+   "da": "Anden reparation: vi aftaler pris og tid, når vi har læst din kommentar, og altid før vi går i gang.",
+   "en": "Other repair: we agree the price and time once we have read your comment, and always before we start."
+  },
+  "co.privacy": {
+   "da": "Sådan behandler vi dine oplysninger",
+   "en": "How we handle your information"
+  },
+  "co.readTerms": {
+   "da": "Læs handelsbetingelserne",
+   "en": "Read the terms and conditions"
+  },
+  "co.send": {
+   "da": "Send forespørgsel",
+   "en": "Send request"
+  },
+  "co.sendSub": {
+   "da": "Vi sender forespørgslen til The Neighbor og en kopi til din e-mail. Tiden er først aftalt, når vi har svaret.",
+   "en": "We send the request to The Neighbor and a copy to your email. The time is agreed once we have replied."
+  },
+  "co.sending": {
+   "da": "Sender …",
+   "en": "Sending …"
+  },
+  "co.title": {
+   "da": "Din pris",
+   "en": "Your price"
+  },
+  "co.total": {
+   "da": "I alt",
+   "en": "Total"
+  },
+  "co.totalPlus": {
+   "da": "{total} + anden reparation",
+   "en": "{total} + other repair"
+  },
+  "co.travel": {
+   "da": "Kørsel",
+   "en": "Travel"
+  },
+  "co.travelVal": {
+   "da": "{amount} (ca. {km} km, én vej)",
+   "en": "{amount} (about {km} km, one way)"
+  },
+  "co.visit": {
+   "da": "Besøget tager op til {min} minutter. Dele kommer oveni, og vi spørger altid først.",
+   "en": "The visit takes up to {min} minutes. Parts are extra, and we always ask first."
+  },
+  "dateAt": {
+   "da": "{date} kl. {time}",
+   "en": "{date} at {time}"
+  },
+  "done.again": {
+   "da": "Ny forespørgsel",
+   "en": "New request"
+  },
+  "done.copied": {
+   "da": "Kopieret.",
+   "en": "Copied."
+  },
+  "done.copy": {
+   "da": "Kopiér teksten",
+   "en": "Copy the text"
+  },
+  "done.copySelf": {
+   "da": "Teksten er markeret. Kopiér den med Ctrl+C (eller ⌘+C).",
+   "en": "The text is selected. Copy it with Ctrl+C (or ⌘+C)."
+  },
+  "done.help": {
+   "da": "Åbnede der ikke noget? Kopiér teksten herunder, og send den til {email}.",
+   "en": "Nothing opened? Copy the text below and send it to {email}."
+  },
+  "done.helpPhone": {
+   "da": "Åbnede der ikke noget? Kopiér teksten herunder, og send den til {email}, eller ring på {phone}.",
+   "en": "Nothing opened? Copy the text below and send it to {email}, or call {phone}."
+  },
+  "done.msg": {
+   "da": "Vi kunne ikke sende forespørgslen herfra lige nu. Tryk på knappen, så åbner dit mailprogram med forespørgslen til {email}. Tryk send dér, så svarer vi og bekræfter tiden.",
+   "en": "We could not send the request from here just now. Press the button, and your mail program opens with the request to {email}. Press send there, and we will reply to confirm the time."
+  },
+  "done.openMail": {
+   "da": "Åbn mailprogrammet",
+   "en": "Open your mail program"
+  },
+  "done.subject": {
+   "da": "Emne",
+   "en": "Subject"
+  },
+  "done.text": {
+   "da": "Din forespørgsel",
+   "en": "Your request"
+  },
+  "done.title": {
+   "da": "Send forespørgslen på mail",
+   "en": "Send the request by email"
+  },
+  "done.to": {
+   "da": "Til",
+   "en": "To"
+  },
+  "err.accept.earlyStart": {
+   "da": "Sæt flueben ved fortrydelsesretten for at sende forespørgslen.",
+   "en": "Tick the box about the right of withdrawal."
+  },
+  "err.accept.terms": {
+   "da": "Sæt flueben ved handelsbetingelserne for at sende forespørgslen.",
+   "en": "Tick the box to accept the terms and conditions."
+  },
+  "err.arrival": {
+   "da": "Vælg et ønsket ankomsttidspunkt.",
+   "en": "Choose a preferred arrival time."
+  },
+  "err.closed": {
+   "da": "Vi har lukket den dag. Vælg en anden dato.",
+   "en": "We are closed that day. Please pick another date."
+  },
+  "err.contact": {
+   "da": "Udfyld adresse, postnummer, navn og telefon.",
+   "en": "Fill in your address, postcode, name and phone."
+  },
+  "err.date": {
+   "da": "Vælg en dato.",
+   "en": "Choose a date."
+  },
+  "err.email": {
+   "da": "Skriv din e-mailadresse, så vi kan svare dig (fx navn@eksempel.dk).",
+   "en": "Enter your email address so we can reply (e.g. name@example.com)."
+  },
+  "err.far": {
+   "da": "Adressen ligger mere end 18 km fra os. Skriv til os, så finder vi en løsning.",
+   "en": "That address is more than 18 km from us. Write to us and we will find a solution."
+  },
+  "err.lead": {
+   "da": "Book mindst 2 dage frem.",
+   "en": "Please book at least 2 days ahead."
+  },
+  "err.note": {
+   "da": "Beskriv den anden reparation i kommentarfeltet, så vi ved, hvad vi skal lave.",
+   "en": "Describe the other repair in the comment field so we know what to do."
+  },
+  "err.noteLong": {
+   "da": "Kommentaren er for lang (højst 300 tegn).",
+   "en": "The comment is too long (300 characters at most)."
+  },
+  "err.past": {
+   "da": "Vælg en dato fra i dag og frem.",
+   "en": "Choose a date from today onward."
+  },
+  "err.postcode": {
+   "da": "Skriv et postnummer med 4 cifre.",
+   "en": "Enter a 4-digit postcode."
+  },
+  "err.services": {
+   "da": "Vælg mindst én reparation.",
+   "en": "Choose at least one repair."
+  },
+  "err.sunday": {
+   "da": "Vi har lukket om søndagen. Vælg en anden dag.",
+   "en": "We are closed on Sundays. Please pick another day."
+  },
+  "err.tooLong": {
+   "da": "Det er mere, end der kan nås på ét besøg (højst 45 minutter). Fjern en reparation, eller book to besøg.",
+   "en": "That is more than fits in one visit (45 minutes at most). Remove a repair, or book two visits."
+  },
+  "f.email": {
+   "da": "E-mail",
+   "en": "Email"
+  },
+  "f.name": {
+   "da": "Navn",
+   "en": "Name"
+  },
+  "f.phone": {
+   "da": "Telefon",
+   "en": "Phone"
+  },
+  "faq.come": {
+   "da": "Kommer I ud til mig?",
+   "en": "Do you come to me?"
+  },
+  "faq.comeA": {
+   "da": "Ja. Alt arbejde foregår der, hvor cyklen står, op til 18 km fra os.",
+   "en": "Yes. All work is done where the bike is, up to 18 km from us."
+  },
+  "faq.confirm": {
+   "da": "Hvornår er min tid bekræftet?",
+   "en": "When is my time confirmed?"
+  },
+  "faq.confirmA": {
+   "da": "Når vi har svaret på din forespørgsel. Vi bekræfter dit ønskede tidspunkt eller foreslår et andet. Book mindst 2 dage frem.",
+   "en": "When we have replied to your request. We confirm your preferred time or suggest another. Book at least 2 days ahead."
+  },
+  "faq.data": {
+   "da": "Gemmer siden mine oplysninger?",
+   "en": "Does the site keep my details?"
+  },
+  "faq.dataA": {
+   "da": "Nej. Siden har ingen konti og gemmer intet. Din forespørgsel sendes som en mail til os med en kopi til dig, og selve siden gemmer den ikke.",
+   "en": "No. The site has no accounts and stores nothing. Your request is sent as an email to us with a copy to you, and the site itself keeps none of it."
+  },
+  "faq.hours": {
+   "da": "Hvornår har I åbent?",
+   "en": "When are you open?"
+  },
+  "faq.hoursA": {
+   "da": "Mandag til lørdag, 8.30–15.30. Søndag har vi lukket.",
+   "en": "Monday to Saturday, 08:30–15:30. Closed on Sundays."
+  },
+  "faq.parts": {
+   "da": "Er dele inkluderet?",
+   "en": "Are parts included?"
+  },
+  "faq.partsA": {
+   "da": "Nej, bortset fra slangen ved en punktering. Andre dele koster ekstra, og vi spørger altid først.",
+   "en": "No, except the inner tube for a puncture. Other parts are extra, and we always ask first."
+  },
+  "faq.pay": {
+   "da": "Hvordan betaler jeg?",
+   "en": "How do I pay?"
+  },
+  "faq.payA": {
+   "da": "Du kan betale på stedet, med Vipps MobilePay (#124895) eller via bankoverførsel.",
+   "en": "You can pay on the spot, with Vipps MobilePay (#124895) or by bank transfer."
+  },
+  "footer.privacy": {
+   "da": "Privatliv",
+   "en": "Privacy"
+  },
+  "footer.terms": {
+   "da": "Vilkår",
+   "en": "Terms"
+  },
+  "hero.lead": {
+   "da": "En mobil cykelmekaniker i København, der reparerer din cykel, hvor den står.",
+   "en": "A mobile bike mechanic in Copenhagen who repairs your bike where it is."
+  },
+  "hero.puncture": {
+   "da": "Jeg er punkteret",
+   "en": "I have a flat tyre"
+  },
+  "hero.repairs": {
+   "da": "Noget andet skal ordnes",
+   "en": "Something else needs fixing"
+  },
+  "hero.repairsSub": {
+   "da": "Bremser, gear, kæde, eftersyn og andre reparationer fra {price}",
+   "en": "Brakes, gears, chain, bike service and other repairs from {price}"
+  },
+  "hero.title": {
+   "da": "Punktering? Vi kommer til dig.",
+   "en": "Flat tyre? We come to you."
+  },
+  "how.1": {
+   "da": "Send en forespørgsel",
+   "en": "Send a request"
+  },
+  "how.2": {
+   "da": "Vi bekræfter tiden",
+   "en": "We confirm the time"
+  },
+  "how.3": {
+   "da": "Vi kommer",
+   "en": "We arrive"
+  },
+  "how.4": {
+   "da": "Kør videre",
+   "en": "Ride away"
+  },
+  "legal.back": {
+   "da": "Til forsiden",
+   "en": "Back to the front page"
+  },
+  "legal.privacyTitle": {
+   "da": "Privatlivspolitik · The Neighbor",
+   "en": "Privacy policy · The Neighbor"
+  },
+  "legal.termsTitle": {
+   "da": "Handelsbetingelser · The Neighbor",
+   "en": "Terms and conditions · The Neighbor"
+  },
+  "mail.address": {
+   "da": "Adresse",
+   "en": "Address"
+  },
+  "mail.bike": {
+   "da": "Cykel",
+   "en": "Bike"
+  },
+  "mail.bye": {
+   "da": "Venlig hilsen",
+   "en": "Kind regards"
+  },
+  "mail.copyHead": {
+   "da": "Din forespørgsel",
+   "en": "Your request"
+  },
+  "mail.copyIntro": {
+   "da": "Tak for din forespørgsel. Her er en kopi af det, du sendte til The Neighbor via theneighbor.dk, med de to punkter, du har sat flueben ved.",
+   "en": "Thank you for your request. Here is a copy of what you sent to The Neighbor through theneighbor.dk, with the two points you ticked."
+  },
+  "mail.copyNext": {
+   "da": "Tiden er ikke aftalt endnu: vi svarer på denne mail og bekræfter tid og pris eller foreslår en anden tid. Har du rettelser, så svar blot på denne mail.",
+   "en": "The time is not agreed yet: we will reply to this email to confirm the time and price, or suggest another time. If anything needs changing, just reply to this email."
+  },
+  "mail.copySubject": {
+   "da": "Kopi af din forespørgsel: {subject}",
+   "en": "Copy of your request: {subject}"
+  },
+  "mail.copyTerms": {
+   "da": "Handelsbetingelser og fortrydelsesret: {url}",
+   "en": "Terms and conditions, and the right of withdrawal: {url}"
+  },
+  "mail.date": {
+   "da": "Ønsket dato",
+   "en": "Preferred date"
+  },
+  "mail.email": {
+   "da": "E-mail",
+   "en": "Email"
+  },
+  "mail.hello": {
+   "da": "Hej The Neighbor",
+   "en": "Hello The Neighbor"
+  },
+  "mail.intro": {
+   "da": "Jeg vil gerne bede om et besøg:",
+   "en": "I'd like to book a visit:"
+  },
+  "mail.name": {
+   "da": "Navn",
+   "en": "Name"
+  },
+  "mail.note": {
+   "da": "Kommentar",
+   "en": "Comment"
+  },
+  "mail.other": {
+   "da": "Prisen for den anden reparation aftaler vi, når I har læst min kommentar.",
+   "en": "The price of the other repair is to be agreed once you have read my comment."
+  },
+  "mail.phone": {
+   "da": "Telefon",
+   "en": "Phone"
+  },
+  "mail.price": {
+   "da": "Pris ifølge hjemmesiden: ca. {total} i alt, heraf {services} for reparationerne og ca. {travel} for kørsel (anslået {km} km). Dele kommer oveni.",
+   "en": "Price according to the website: about {total} in total, of which {services} for the repairs and about {travel} for travel (estimated {km} km). Parts are extra."
+  },
+  "mail.priceTravel": {
+   "da": "Kørsel ifølge hjemmesiden: ca. {travel} (anslået {km} km). Dele kommer oveni.",
+   "en": "Travel according to the website: about {travel} (estimated {km} km). Parts are extra."
+  },
+  "mail.services": {
+   "da": "Reparationer",
+   "en": "Repairs"
+  },
+  "mail.subject": {
+   "da": "Bookingforespørgsel: {services}, {date} kl. {time}",
+   "en": "Booking request: {services}, {date} at {time}"
+  },
+  "mail.time": {
+   "da": "Ønsket ankomst",
+   "en": "Preferred arrival"
+  },
+  "mail.timeVal": {
+   "da": "kl. {time} (besøget tager op til {min} min.)",
+   "en": "{time} (the visit takes up to {min} min)"
+  },
+  "nav.book": {
+   "da": "Book besøg",
+   "en": "Book a visit"
+  },
+  "nav.faq": {
+   "da": "Spørgsmål",
+   "en": "FAQ"
+  },
+  "nav.repairs": {
+   "da": "Reparationer",
+   "en": "Repairs"
+  },
+  "privacy.html#1": {
+   "da": "Privatlivspolitik",
+   "en": "Privacy policy"
+  },
+  "privacy.html#10": {
+   "da": "Kan siden ikke sende forespørgslen, tilbyder den i stedet at åbne dit eget mailprogram med teksten. Så bestemmer du selv, om du vil sende den.",
+   "en": "If the site cannot send the request, it offers to open your own mail program with the text instead. You then decide whether to send it."
+  },
+  "privacy.html#11": {
+   "da": "Siden gemmer kun dit valg af sprog (dansk eller engelsk) i din egen browser.",
+   "en": "The site only keeps your choice of language (Danish or English), in your own browser."
+  },
+  "privacy.html#12": {
+   "da": "Siden leveres gennem Cloudflare, som behandler tekniske oplysninger som din IP-adresse for at vise siden og beskytte den mod angreb. Vores egen server fører ikke log over besøgende.",
+   "en": "The site is delivered through Cloudflare, which processes technical information such as your IP address to show the site and protect it from attacks. Our own server keeps no log of visitors."
+  },
+  "privacy.html#13": {
+   "da": "3. Når du sender os en forespørgsel",
+   "en": "3. When you send us a request"
+  },
+  "privacy.html#14": {
+   "da": "Vi modtager det, du skriver i formularen: dit navn, din adresse, dit telefonnummer, din e-mailadresse, de reparationer og det tidspunkt, du ønsker, din cykeltype, din kommentar og de to punkter, du har sat flueben ved. Sender du forespørgslen fra dit eget mailprogram, eller skriver du til os senere, modtager vi også det, der står i din mail, fx billeder, du selv vedhæfter. Vi bruger oplysningerne til at svare dig, udføre reparationen og tage imod din betaling. Kopien til dig viser, hvad du har bedt om og accepteret.",
+   "en": "We receive what you write in the form: your name, address, phone number and email address, the repairs and time you would like, your type of bike, your comment and the two points you ticked. If you send the request from your own mail program, or write to us later, we also receive what is in your email, such as photos you attach yourself. We use this to reply to you, carry out the repair and take your payment. The copy sent to you shows what you asked for and accepted."
+  },
+  "privacy.html#15": {
+   "da": "Retsgrundlag: Behandlingen er nødvendig for at indgå og opfylde aftalen med dig (databeskyttelsesforordningens artikel 6, stk. 1, litra b). Regnskabsbilag (fx kvitteringer og fakturaer) gemmer vi, fordi bogføringsloven kræver det (artikel 6, stk. 1, litra c).",
+   "en": "Legal basis: processing is necessary to enter into and perform our agreement with you (Article 6(1)(b) of the General Data Protection Regulation). We keep accounting records (such as receipts and invoices) because the Danish Bookkeeping Act requires it (Article 6(1)(c))."
+  },
+  "privacy.html#16": {
+   "da": "4. Hvem får oplysningerne?",
+   "en": "4. Who receives the information?"
+  },
+  "privacy.html#17": {
+   "da": "Resend (Plus Five Five, Inc., USA) sender mailene fra hjemmesiden for os, som vores databehandler efter en databehandleraftale. Mailene sendes fra Resends servere i Irland, men Resend opbevarer dem og deres leveringslog i USA i 30 dage. Overførslen til USA sker efter EU-U.S. Data Privacy Framework, som Resend er certificeret under, og EU-Kommissionens standardkontraktbestemmelser i databehandleraftalen.",
+   "en": "Resend (Plus Five Five, Inc., USA) sends the emails from the website for us, as our processor under a data processing agreement. The emails are sent from Resend's servers in Ireland, but Resend stores them and their delivery log in the United States for 30 days. The transfer to the US is made under the EU-U.S. Data Privacy Framework, under which Resend is certified, and the European Commission's standard contractual clauses in the data processing agreement."
+  },
+  "privacy.html#18": {
+   "da": "Google (Gmail) opbevarer vores mails.",
+   "en": "Google (Gmail) stores our email."
+  },
+  "privacy.html#19": {
+   "da": "Klimadatastyrelsen (Adressevælger) modtager den adressetekst, du skriver, for at finde adresseforslag (se afsnit 2).",
+   "en": "Klimadatastyrelsen (Adressevælger) receives the address text you type, to find address suggestions (see section 2)."
+  },
+  "privacy.html#2": {
+   "da": "Senest opdateret: 7. november 2026",
+   "en": "Last updated: 7 November 2026"
+  },
+  "privacy.html#20": {
+   "da": "Betaling: betaler du med Vipps MobilePay eller via bankoverførsel, behandler Vipps MobilePay eller din bank betalingen som selvstændig dataansvarlig, og vi ser dit navn og beløbet.",
+   "en": "Payment: if you pay with Vipps MobilePay or by bank transfer, Vipps MobilePay or your bank processes the payment as an independent controller, and we see your name and the amount."
+  },
+  "privacy.html#21": {
+   "da": "Regnskab: vi fører selv regnskabet, så ingen andre får oplysningerne på regnskabsbilagene.",
+   "en": "Accounts: we keep our own books, so no one else receives the information in the accounting records."
+  },
+  "privacy.html#22": {
+   "da": "Vi sælger aldrig dine oplysninger og bruger dem ikke til markedsføring.",
+   "en": "We never sell your information, and we do not use it for marketing."
+  },
+  "privacy.html#23": {
+   "da": "5. Hvor længe gemmer vi dem?",
+   "en": "5. How long do we keep it?"
+  },
+  "privacy.html#24": {
+   "da": "Mails om en booking: sletter vi 12 måneder efter besøget.",
+   "en": "Emails about a booking: deleted 12 months after the visit."
+  },
+  "privacy.html#25": {
+   "da": "Hos Resend slettes mailene fra hjemmesiden automatisk efter 30 dage.",
+   "en": "At Resend, the emails from the website are deleted automatically after 30 days."
+  },
+  "privacy.html#26": {
+   "da": "Regnskabsbilag (fx kvitteringer og fakturaer): 5 år fra udgangen af det regnskabsår, de vedrører, som bogføringsloven kræver.",
+   "en": "Accounting records (such as receipts and invoices): 5 years from the end of the financial year they relate to, as the Bookkeeping Act requires."
+  },
+  "privacy.html#27": {
+   "da": "6. Dine rettigheder",
+   "en": "6. Your rights"
+  },
+  "privacy.html#28": {
+   "da": "Du har ret til at få indsigt i de oplysninger, vi har om dig, få forkerte oplysninger rettet, få oplysninger slettet, få behandlingen begrænset og få dine oplysninger udleveret. Skriv til os, så svarer vi inden for en måned. Regnskabsbilag skal vi dog gemme, som bogføringsloven kræver.",
+   "en": "You have the right to see the information we hold about you, have incorrect information corrected, have information deleted, have processing restricted and receive your information. Write to us and we will reply within one month. Accounting records, however, we must keep, as the Bookkeeping Act requires."
+  },
+  "privacy.html#29": {
+   "da": "Du kan klage til Datatilsynet, datatilsynet.dk, hvis du er utilfreds med vores behandling af dine oplysninger.",
+   "en": "You can complain to the Danish Data Protection Agency (Datatilsynet), datatilsynet.dk, if you are unhappy with how we handle your information."
+  },
+  "privacy.html#3": {
+   "da": "Kort fortalt: hjemmesiden gemmer ingen oplysninger om dig. Når du sender en forespørgsel, sender siden den som en mail til os, med en kopi til dig, og vi bruger kun det, du skriver, til at aftale og udføre reparationen.",
+   "en": "In short: the website keeps no information about you. When you send a request, the site sends it to us as an email, with a copy to you, and we use only what you write to arrange and carry out the repair."
+  },
+  "privacy.html#30": {
+   "da": "7. Ændringer",
+   "en": "7. Changes"
+  },
+  "privacy.html#31": {
+   "da": "Ændrer vi denne politik, opdaterer vi datoen øverst.",
+   "en": "If we change this policy, we update the date at the top."
+  },
+  "privacy.html#4": {
+   "da": "1. Hvem er ansvarlig?",
+   "en": "1. Who is responsible?"
+  },
+  "privacy.html#5": {
+   "da": "Dataansvarlig er: The Neighbor v/ Volodymyr Taran, enkeltmandsvirksomhed Rørsangervej 45, 2400 København NV CVR-nr. 46840291 E-mail: t.volodymyr22@gmail.com · Telefon: 29 61 93 72",
+   "en": "The data controller is: The Neighbor v/ Volodymyr Taran, sole proprietorship (enkeltmandsvirksomhed) Rørsangervej 45, 2400 København NV CVR no. 46840291 Email: t.volodymyr22@gmail.com · Phone: 29 61 93 72"
+  },
+  "privacy.html#6": {
+   "da": "2. Hjemmesiden",
+   "en": "2. The website"
+  },
+  "privacy.html#7": {
+   "da": "Hjemmesiden har ingen konti, ingen cookies, ingen statistik og intet indhold fra andre tjenester. Det, du skriver i bookingformularen, bliver i din egen browser, indtil du trykker på »Send forespørgsel«. Så sender siden det til vores server, som med det samme sender det videre som to mails: én til os og en kopi til dig (se afsnit 4 om Resend, der sender mailene for os). Serveren gemmer ikke din forespørgsel.",
+   "en": "The website has no accounts, no cookies, no statistics and no content from other services. What you type in the booking form stays in your own browser until you press \"Send request\". The site then sends it to our server, which straight away passes it on as two emails: one to us and a copy to you (see section 4 on Resend, which sends the emails for us). The server does not keep your request."
+  },
+  "privacy.html#8": {
+   "da": "Desuden: mens du skriver gadenavnet, sender siden teksten via vores server til Klimadatastyrelsens Adressevælger (Danmarks officielle adresseregister) for at vise adresseforslag. Der sendes kun adresseteksten – ikke dit navn, din IP-adresse eller andet – og vi gemmer den ikke.",
+   "en": "Also: while you type the street, the site sends that text through our server to Klimadatastyrelsen's Adressevælger (Denmark's official address register) to show address suggestions. Only the address text is sent – not your name, your IP address or anything else – and we do not keep it."
+  },
+  "privacy.html#9": {
+   "da": "For at forhindre misbrug, fx at nogen sender hundredvis af forespørgsler, tæller serveren, hvor mange forespørgsler der kommer fra den samme IP-adresse. Adressen holdes kun i serverens hukommelse, i en form der ikke kan læses tilbage (en hash), og glemmes igen senest efter en time. Det sker for at beskytte siden og vores indbakke, som er vores legitime interesse (databeskyttelsesforordningens artikel 6, stk. 1, litra f).",
+   "en": "To prevent misuse, such as someone sending hundreds of requests, the server counts how many requests come from the same IP address. The address is held only in the server's memory, in a form that cannot be read back (a hash), and is forgotten within an hour. This protects the site and our inbox, which is our legitimate interest (Article 6(1)(f) of the General Data Protection Regulation)."
+  },
+  "pt.come": {
+   "da": "Vi kommer til dig",
+   "en": "We come to you"
+  },
+  "pt.comeSub": {
+   "da": "Intet slæb med cyklen til værkstedet.",
+   "en": "No hauling your bike to a workshop."
+  },
+  "pt.mail": {
+   "da": "Ingen konto",
+   "en": "No account"
+  },
+  "pt.mailSub": {
+   "da": "Du sender en forespørgsel, og vi svarer på mail.",
+   "en": "You send a request, and we reply by email."
+  },
+  "pt.one": {
+   "da": "Én person",
+   "en": "One person"
+  },
+  "pt.oneSub": {
+   "da": "Tal direkte med din mekaniker.",
+   "en": "Talk directly to your mechanic."
+  },
+  "pt.prices": {
+   "da": "Klare priser",
+   "en": "Clear prices"
+  },
+  "pt.pricesSub": {
+   "da": "Du ser prisen, før du booker. Dele kun efter dit ja.",
+   "en": "You see the price before you book. Parts only after you say yes."
+  },
+  "rep.sub": {
+   "da": "Vi reparerer din cykel, hvor den står. Dele koster ekstra.",
+   "en": "We repair your bike where it is. Parts are extra."
+  },
+  "rep.title": {
+   "da": "Reparationer",
+   "en": "Repairs"
+  },
+  "rules.estimate": {
+   "da": "Indtil videre anslår vi afstanden ud fra postnummeret og bekræfter prisen i vores svar.",
+   "en": "For now, we estimate the distance from the postcode and confirm the price in our reply."
+  },
+  "rules.max": {
+   "da": "Op til {max} km væk.",
+   "en": "Up to {max} km away."
+  },
+  "rules.ok": {
+   "da": "Forstået",
+   "en": "Got it"
+  },
+  "rules.rate": {
+   "da": "{rate} kr. pr. km fra {base}, kun den ene vej.",
+   "en": "{rate} DKK per km from {base}, one way only."
+  },
+  "rules.title": {
+   "da": "Kørsel",
+   "en": "Travel"
+  },
+  "sent.msg": {
+   "da": "Tak. Vi har fået din forespørgsel, og en kopi er på vej til {email}. Vi svarer og bekræfter tiden.",
+   "en": "Thank you. We have your request, and a copy is on its way to {email}. We will reply to confirm the time."
+  },
+  "sent.noCopy": {
+   "da": "Vi kunne ikke sende en kopi til {email}. Her er teksten, så du har den selv.",
+   "en": "We could not send a copy to {email}. Here is the text, so you have it yourself."
+  },
+  "sent.spam": {
+   "da": "Kan du ikke finde kopien, så kig i din spam-mappe.",
+   "en": "If you cannot find the copy, look in your spam folder."
+  },
+  "sent.title": {
+   "da": "Forespørgslen er sendt",
+   "en": "Request sent"
+  },
+  "service.brakes.name": {
+   "da": "Bremsejustering",
+   "en": "Brake Adjustment"
+  },
+  "service.brakes.price": {
+   "da": "129"
+  },
+  "service.chain.name": {
+   "da": "Kædeservice",
+   "en": "Chain Service"
+  },
+  "service.chain.price": {
+   "da": "149"
+  },
+  "service.gears.name": {
+   "da": "Gearjustering",
+   "en": "Gear Adjustment"
+  },
+  "service.gears.price": {
+   "da": "129"
+  },
+  "service.other.name": {
+   "da": "Anden reparation",
+   "en": "Other Repair"
+  },
+  "service.other.price": {
+   "da": "aftale"
+  },
+  "service.puncture.name": {
+   "da": "Punkteringsreparation",
+   "en": "Puncture Fix"
+  },
+  "service.puncture.price": {
+   "da": "199"
+  },
+  "service.service.name": {
+   "da": "Eftersyn",
+   "en": "Bike Service"
+  },
+  "service.service.price": {
+   "da": "299"
+  },
+  "svc.brakes.what": {
+   "da": "justering, funktionstjek og test",
+   "en": "adjustment, performance check and test"
+  },
+  "svc.chain.what": {
+   "da": "tjek, smøring og justering",
+   "en": "inspection, lubrication and adjustment"
+  },
+  "svc.gears.what": {
+   "da": "justering af gear og kabler, test",
+   "en": "shifting and cable adjustment, test"
+  },
+  "svc.other.what": {
+   "da": "beskriv den i kommentarfeltet",
+   "en": "describe it in the comment field"
+  },
+  "svc.service.what": {
+   "da": "vi gennemgår hele cyklen; dele betales separat",
+   "en": "we go over the whole bike; parts are extra"
+  },
+  "svc.time": {
+   "da": "ca. {m} min.",
+   "en": "~{m} min"
+  },
+  "svc.tubeIncl": {
+   "da": "slange inkluderet",
+   "en": "tube included"
+  },
+  "terms.html#1": {
+   "da": "Handelsbetingelser",
+   "en": "Terms and conditions"
+  },
+  "terms.html#2": {
+   "da": "Gælder for privatkunder · Senest opdateret: 6. november 2026",
+   "en": "For private customers · Last updated: 6 November 2026"
+  },
+  "terms.html#d10-e11": {
+   "da": "Kørsel koster 2,50 kr. pr. km én vej fra vores base. Vi kører højst 18 km. Hjemmesiden anslår kørslen ud fra postnummeret; vi oplyser den endelige pris, når vi bekræfter besøget.",
+   "en": "Travel costs 2.50 DKK per km, one way, from our base. We travel at most 18 km. The website estimates travel from the postcode; we give the final price when we confirm the visit."
+  },
+  "terms.html#d11-e12": {
+   "da": "Andre reservedele og større reparationer er ikke inkluderet. Vi fortæller dig altid prisen og spørger, før vi går i gang.",
+   "en": "Other spare parts and major repairs are not included. We always tell you the price and ask before we start."
+  },
+  "terms.html#d12-e13": {
+   "da": "3. Booking",
+   "en": "3. Booking"
+  },
+  "terms.html#d13-e14": {
+   "da": "Du booker ved at sende os en forespørgsel fra bookingformularen på hjemmesiden eller på mail. Sender du den fra hjemmesiden, får du en kopi på mail. Aftalen er indgået, når vi har bekræftet tidspunktet og prisen i vores svar. Du skal være fyldt 18 år for at booke.",
+   "en": "You book by sending us a request from the booking form on the website, or by email. If you send it from the website, you get a copy by email. The agreement is made when we have confirmed the time and price in our reply. You must be at least 18 to book."
+  },
+  "terms.html#d14-e15": {
+   "da": "Vi skal kunne komme til cyklen på adressen. Er du der ikke selv, så skriv i beskeden, hvor cyklen står.",
+   "en": "We must be able to reach the bike at the address. If you will not be there yourself, say in your message where the bike is."
+  },
+  "terms.html#d15-e16": {
+   "da": "4. Ændring og afbud",
+   "en": "4. Changes and cancellations"
+  },
+  "terms.html#d16-e17": {
+   "da": "Du kan ændre eller aflyse gratis indtil 24 timer før besøget ved at skrive eller ringe til os. Vi tager heller ikke gebyr for senere afbud, eller hvis vi ikke kan komme til cyklen, men giv os gerne besked så tidligt som muligt.",
+   "en": "You can change or cancel free of charge until 24 hours before the visit by writing to us or calling. We charge no fee for later cancellation either, or if we cannot reach the bike, but please let us know as early as you can."
+  },
+  "terms.html#d17-e18": {
+   "da": "Må vi aflyse, fx ved sygdom, giver vi besked hurtigst muligt og finder en ny tid med dig. Du betaler intet for et aflyst besøg.",
+   "en": "If we have to cancel, for example because of illness, we tell you as soon as possible and find a new time with you. You pay nothing for a cancelled visit."
+  },
+  "terms.html#d18-e19": {
+   "da": "5. Fortrydelsesret",
+   "en": "5. Right of withdrawal"
+  },
+  "terms.html#d19-e20": {
+   "da": "Du har 14 dages fortrydelsesret. Fristen løber fra den dag, aftalen er indgået (se punkt 3).",
+   "en": "You have a 14-day right of withdrawal. The period runs from the day the agreement is made (see section 3)."
+  },
+  "terms.html#d20-e21": {
+   "da": "Ligger besøget inden for de 14 dage, beder du os om at udføre arbejdet, før fristen udløber. Det betyder:",
+   "en": "If the visit falls within those 14 days, you are asking us to do the work before the period ends. This means:"
+  },
+  "terms.html#d21-e22": {
+   "da": "Fortryder du, før vi er gået i gang, betaler du intet.",
+   "en": "If you withdraw before we start, you pay nothing."
+  },
+  "terms.html#d22-e23": {
+   "da": "Fortryder du, mens arbejdet er i gang, betaler du for den del, der er udført, i forhold til den samlede pris.",
+   "en": "If you withdraw while the work is under way, you pay for the part that has been done, in proportion to the total price."
+  },
+  "terms.html#d23-e24": {
+   "da": "Når arbejdet er fuldt udført, har du ikke længere fortrydelsesret.",
+   "en": "Once the work is fully done, you no longer have a right of withdrawal."
+  },
+  "terms.html#d24-e25": {
+   "da": "Du beder om dette og bekræfter, at du kender reglerne, ved at sætte flueben, før du sender forespørgslen. Begge dele står i forespørgslen til os og i den kopi, du får på mail.",
+   "en": "You ask for this, and confirm that you know these rules, by ticking a box before you send the request. Both are written in the request to us and in the copy you get by email."
+  },
+  "terms.html#d25-e26": {
+   "da": "Du fortryder ved at give os en tydelig besked, fx på e-mail. Du kan bruge formularen nedenfor, men det er ikke et krav. Vi tilbagebetaler et eventuelt beløb senest 14 dage efter, at vi har fået din besked.",
+   "en": "To withdraw, send us a clear statement, for example by email. You may use the form below, but you do not have to. We refund any amount within 14 days of receiving your statement."
+  },
+  "terms.html#d26-e27": {
+   "da": "Standardfortrydelsesformular",
+   "en": "Model withdrawal form"
+  },
+  "terms.html#d27-e28": {
+   "da": "(Denne formular udfyldes og returneres kun, hvis fortrydelsesretten gøres gældende)",
+   "en": "(Complete and return this form only if you wish to withdraw from the contract)"
+  },
+  "terms.html#d28-e29": {
+   "da": "Til The Neighbor v/ Volodymyr Taran, Rørsangervej 45, 2400 København NV, t.volodymyr22@gmail.com:",
+   "en": "To The Neighbor v/ Volodymyr Taran, Rørsangervej 45, 2400 København NV, t.volodymyr22@gmail.com:"
+  },
+  "terms.html#d29-e30": {
+   "da": "Jeg/vi (*) meddeler herved, at jeg/vi (*) ønsker at gøre fortrydelsesretten gældende i forbindelse med min/vores (*) købsaftale om følgende varer (*)/levering af følgende tjenesteydelser (*)",
+   "en": "I/We (*) hereby give notice that I/We (*) withdraw from my/our (*) contract of sale of the following goods (*)/for the provision of the following service (*),"
+  },
+  "terms.html#d3-e4": {
+   "da": "1. Om os",
+   "en": "1. About us"
+  },
+  "terms.html#d30-e31": {
+   "da": "Bestilt den (*)/modtaget den (*)",
+   "en": "Ordered on (*)/received on (*),"
+  },
+  "terms.html#d31-e32": {
+   "da": "Forbrugerens/forbrugernes navn",
+   "en": "Name of consumer(s),"
+  },
+  "terms.html#d32-e33": {
+   "da": "Forbrugerens/forbrugernes adresse",
+   "en": "Address of consumer(s),"
+  },
+  "terms.html#d33-e34": {
+   "da": "Forbrugerens/forbrugernes underskrift (kun hvis formularens indhold meddeles på papir)",
+   "en": "Signature of consumer(s) (only if this form is notified on paper),"
+  },
+  "terms.html#d34-e35": {
+   "da": "Dato",
+   "en": "Date"
+  },
+  "terms.html#d35-e36": {
+   "da": "(*) Det ikke-relevante udstreges.",
+   "en": "(*) Delete as appropriate."
+  },
+  "terms.html#d36-e37": {
+   "da": "6. Betaling",
+   "en": "6. Payment"
+  },
+  "terms.html#d37-e38": {
+   "da": "Du kan betale på stedet, med Vipps MobilePay (#124895) eller via bankoverførsel. Ved bankoverførsel er betalingsfristen 5 dage efter besøget.",
+   "en": "You can pay on the spot, with Vipps MobilePay (#124895) or by bank transfer. By bank transfer, payment is due within 5 days of the visit."
+  },
+  "terms.html#d38-e39": {
+   "da": "7. Reklamation",
+   "en": "7. Complaints about our work"
+  },
+  "terms.html#d39-e40": {
+   "da": "Er du utilfreds med vores arbejde, så kontakt os hurtigst muligt, så vi kan rette det. Fejl i vores arbejde udbedrer vi uden beregning. For reservedele har du 2 års reklamationsret efter købeloven.",
+   "en": "If you are not happy with our work, contact us as soon as possible so we can put it right. We fix faults in our work free of charge. For spare parts, you have 2 years to complain under the Danish Sale of Goods Act."
+  },
+  "terms.html#d4-e5": {
+   "da": "The Neighbor v/ Volodymyr Taran, enkeltmandsvirksomhed, Rørsangervej 45, 2400 København NV, CVR-nr. 46840291. E-mail: t.volodymyr22@gmail.com, telefon: 29 61 93 72.",
+   "en": "The Neighbor v/ Volodymyr Taran, sole proprietorship (enkeltmandsvirksomhed), Rørsangervej 45, 2400 København NV, CVR no. 46840291. Email: t.volodymyr22@gmail.com, phone: 29 61 93 72."
+  },
+  "terms.html#d40-e41": {
+   "da": "8. Ansvar",
+   "en": "8. Liability"
+  },
+  "terms.html#d41-e42": {
+   "da": "Vi er ansvarlige efter dansk rets almindelige regler.",
+   "en": "We are liable under the general rules of Danish law."
+  },
+  "terms.html#d42-e43": {
+   "da": "9. Klager",
+   "en": "9. Disputes"
+  },
+  "terms.html#d43-e44": {
+   "da": "Kontakt os først, så finder vi som regel en løsning. Hvis ikke, kan du klage til Nævnenes Hus, Center for Klageløsning, via naevneneshus.dk.",
+   "en": "Contact us first; we can usually find a solution. If not, you can complain to the Danish Board of Appeals (Nævnenes Hus, Center for Klageløsning) at naevneneshus.dk."
+  },
+  "terms.html#d44-e45": {
+   "da": "Aftalen er underlagt dansk ret.",
+   "en": "The agreement is governed by Danish law."
+  },
+  "terms.html#d5-e6": {
+   "da": "Vi er en mobil cykelmekaniker i København og reparerer din cykel, hvor den står.",
+   "en": "We are a mobile bike mechanic in Copenhagen and repair your bike where it is."
+  },
+  "terms.html#d6-e7": {
+   "da": "2. Priser",
+   "en": "2. Prices"
+  },
+  "terms.html#d7-e8": {
+   "da": "Alle priser er i danske kroner. Virksomheden er ikke momsregistreret, så der lægges ikke moms på.",
+   "en": "All prices are in Danish kroner. The business is not VAT registered, so no VAT is added."
+  },
+  "terms.html#d8-e9": {
+   "da": "Prisen for hver reparation står på siden. Ved en punktering er slangen inkluderet.",
+   "en": "The price of each repair is shown on the site. For a puncture, the inner tube is included."
+  },
+  "terms.html#d9-e10": {
+   "da": "Vælger du Anden reparation, beskriver du den i kommentarfeltet. Vi aftaler prisen med dig, før vi går i gang.",
+   "en": "If you choose Other repair, you describe it in the comment field. We agree the price with you before we start."
+  },
+  "terms.html#e3": {
+   "en": "This is a translation for convenience. If the two versions differ, the Danish version applies."
+  }
+ }
+}
