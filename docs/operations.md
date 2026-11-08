@@ -202,10 +202,39 @@ Analytics off, or the policy must mention it.
 - **Closed days** (holidays, sick days): `CONFIG.closedDates` in the same file, e.g.
   `['2026-12-24', '2026-12-31']`.
 - **Prices and services:** `SERVICES` in the same file. Texts: `web/js/i18n.js` (also the emails'
-  texts, the `mail.*` keys).
+  texts, the `mail.*` keys). The owner changes these, and the privacy policy and terms, in the
+  Google Sheet instead (next section).
 
 Then `npm test`, `npm run test:browser` and `npm run deploy`. The API uses the same files, so the
 emails follow (the deploy restarts it).
+
+## Texts from the Google Sheet
+
+The owner edits the site's texts, the services' names and prices, and the privacy policy and terms
+in a Google Sheet ([docs/review/README.md](review/README.md#4-the-owners-google-sheet)).
+`scripts/sheet-sync.sh` brings them to the site:
+
+1. downloads the sheet as CSV (`SHEET_URL`, or `~/.config/the-neighbor/sheet-url`; the sheet is
+   shared as "anyone with the link: viewer", so no Google credentials are needed);
+2. applies it with `node scripts/texts.js sheet-import` (every cell checked; one refused cell and
+   nothing is applied);
+3. runs `npm test`; then commits `Texts from the sheet: <n> changes`, pushes to main and runs
+   `scripts/deploy.sh`.
+
+No change: silent, exit 0. Failure: a reason on stderr, exit 1, nothing deployed (a deploy that
+fails after the push is retried on the next run). Exit 3: done, but some cells were skipped
+(conflicts, or rows the site no longer has), listed in the output.
+
+**A stale sheet never reverts the code.** `docs/review/sheet-state.json` holds what the sheet
+contained at the last sync. Only cells that differ from it are edits, and an edit is applied only
+if the code still has the old text; if both changed, the cell is reported as a conflict and skipped
+until the sheet or the code agrees. So texts can still be changed in the code: the sheet keeps the
+old text, which is ignored, until the owner edits that cell (a conflict) or someone updates it.
+
+**Run it from a clone of its own**, on main, that nobody works in (it refuses a dirty clone or
+another branch), with a key `deploy@192.168.0.223` accepts and push access to GitHub. It deploys
+whatever main is, so commits others pushed without deploying go out with it. Suggested: every 15
+minutes, with its output sent to Alec when it is not empty.
 
 ## Earlier setups on this server
 

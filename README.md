@@ -48,6 +48,8 @@ npm run test:browser   # the whole booking in headless Chrome, on a local server
 npm run deploy         # to the home server (theneighbor.dk)
 npm run test:live      # the browser test against theneighbor.dk
 npm run build:pages    # dist/ for Cloudflare Pages, if the site moves
+npm run sheet-export   # docs/review/sheet.csv, to make the owner's Google Sheet from
+npm run sheet-sync     # the Google Sheet -> commit, push, deploy (SHEET_URL=...; docs/operations.md)
 ```
 
 Chrome is needed for the browser tests (set `CHROME_PATH` if it is not in the usual place). The
@@ -69,7 +71,9 @@ api/                      The booking API: POST /api/request -> two emails throu
                           no dependencies). app.js (the endpoint), validate.js, mail.js, limits.js,
                           resend.js, texts.js (runs web/js/i18n.js for the email texts), server.js
 deploy/                   nginx, the api container and Cloudflare Tunnel on the home server
-scripts/                  serve.js, deploy.sh, vendor.js (fonts), texts.js (proofreading sheet)
+scripts/                  serve.js, deploy.sh, vendor.js (fonts), texts.js and texts-lib.js (the
+                          proofreading sheet and the owner's Google Sheet), sheet-sync.sh (the
+                          Google Sheet to the live site)
 docs/                     operations.md (the server), legal-checklist.md, review/ (proofreading)
 ```
 

@@ -96,10 +96,13 @@ test('a good request: one email to the owner, one copy to the customer', async (
   const expected = R.requestEmail({ ...body }, q, L);
   assert.deepEqual(owner.email, { from: 'The Neighbor <booking@theneighbor.dk>', to: [OWNER], reply_to: 'soren@example.dk', subject: expected.subject, text: expected.body });
   assert.equal(owner.key, `${body.id}-owner`);
-  assert.match(owner.email.subject, /^Bookingforespørgsel: Punkteringsreparation, Kædeservice, .* kl\. 10:00$/);
+  // The texts and prices are the owner's to change in the Google Sheet (scripts/texts.js): the
+  // checks below take them from the site's own files rather than spelling them out.
+  assert.ok(owner.email.subject.includes(`${R.service('puncture').da}, ${R.service('chain').da}, `) && owner.email.subject.endsWith('10:00'), owner.email.subject);
   const lines = owner.email.text.split('\r\n');
-  for (const l of ['Navn: Søren Ødegård', 'Telefon: 12345678', 'E-mail: soren@example.dk', 'Adresse: Jagtvej 10, 2. tv., 2200', 'Kommentar: Cyklen står i gården.']) assert.ok(lines.includes(l), l);
-  assert.ok(owner.email.text.includes('ca. 361 kr. i alt'), 'the price is worked out by the server: 199 + 149 + 13 travel');
+  for (const l of [`${L.t('mail.name')}: Søren Ødegård`, `${L.t('mail.phone')}: 12345678`, `${L.t('mail.email')}: soren@example.dk`, `${L.t('mail.address')}: Jagtvej 10, 2. tv., 2200`, `${L.t('mail.note')}: Cyklen står i gården.`]) assert.ok(lines.includes(l), l);
+  const total = R.service('puncture').price + R.service('chain').price + 13;
+  assert.ok(owner.email.text.includes(L.fmt.dkk(total)), 'the price is worked out by the server: the two repairs + 13 travel');
 
   // The customer's copy: Reply-To the owner, with both ticked statements and the terms.
   assert.equal(copy.key, `${body.id}-copy`);
@@ -119,7 +122,7 @@ test('floor and door, from their own field, are in the owner\'s email', async ()
   const api = await start();
   const res = await api.post(good({ street: 'Jagtvej 10', apartment: '2. tv.' }));
   assert.equal(res.status, 200);
-  assert.ok(api.sent[0].email.text.split('\r\n').includes('Adresse: Jagtvej 10, 2. tv., 2200'));
+  assert.ok(api.sent[0].email.text.split('\r\n').includes(`${TEXTS.da.t('mail.address')}: Jagtvej 10, 2. tv., 2200`));
   await api.close();
 });
 
@@ -128,10 +131,12 @@ test('in English, both emails are in English', async () => {
   const res = await api.post(good({ lang: 'en', bike: TEXTS.en.bikes[1], serviceIds: ['other'], note: 'Loose mudguard' }));
   assert.equal(res.status, 200);
   const [owner, copy] = api.sent;
-  assert.match(owner.email.subject, /^Booking request: Other Repair, /);
-  assert.ok(owner.email.text.includes('Other Repair (Price by agreement)') && owner.email.text.includes('Email: soren@example.dk'));
-  assert.ok(copy.email.subject.startsWith('Copy of your request: Booking request:'));
-  assert.ok(copy.email.text.includes('- I accept the terms and conditions.') && copy.email.text.includes('my right of withdrawal ends'));
+  const E = TEXTS.en;
+  assert.ok(owner.email.subject.startsWith(E.t('mail.subject', { services: R.service('other').name, date: 'X', time: 'X' }).split('X')[0]), owner.email.subject);
+  assert.ok(owner.email.text.includes(`${R.service('other').name} (${E.t('byAgreement')})`) && owner.email.text.includes(`${E.t('mail.email')}: soren@example.dk`));
+  assert.equal(copy.email.subject, E.t('mail.copySubject', { subject: owner.email.subject }));
+  assert.ok(copy.email.text.includes(`- ${E.t('co.acceptTerms')}.`) && copy.email.text.includes(E.t('co.earlyStart')));
+  assert.notEqual(E.t('co.earlyStart'), TEXTS.da.t('co.earlyStart'), 'in English, not Danish');
   await api.close();
 });
 
@@ -452,6 +457,8 @@ test('the texts: Danish dates and prices, as on the page', () => {
   assert.equal(TEXTS.da.fmt.dkk(1234), '1.234 kr.');
   assert.equal(TEXTS.en.fmt.dkk(199), '199 DKK');
   assert.match(TEXTS.da.fmt.date(TUE), /20\. okt\. 2026/);
-  assert.equal(TEXTS.da.t('mail.subject', { services: 'X', date: 'D', time: '10:00' }), 'Bookingforespørgsel: X, D kl. 10:00');
-  assert.deepEqual(TEXTS.da.bikes, ['By / pendler', 'Racer', 'Mountainbike', 'Elcykel', 'Ladcykel / andet']);
+  const subject = TEXTS.da.t('mail.subject', { services: 'Xq', date: 'Dq', time: '10:00' });
+  assert.ok(subject.includes('Xq') && subject.includes('Dq') && subject.includes('10:00'), subject);
+  assert.equal(TEXTS.da.bikes.length, 5);
+  assert.ok(TEXTS.da.bikes.every((b) => b && typeof b === 'string'));
 });
