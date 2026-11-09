@@ -10,6 +10,10 @@ import { report } from '../scripts/texts.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = Object.fromEntries(Object.entries(T.FILES).map(([k, f]) => [k, readFileSync(join(root, f), 'utf8')]));
+
+// The legal-page tests need particular paragraphs (a link, bold text, a data-if paragraph), which the
+// owner may edit or delete in the live pages; they run on a pinned copy in test/fixtures instead.
+const LEGAL_FILES = { ...FILES, privacy: readFileSync(join(root, 'test/fixtures/privacy.html'), 'utf8'), terms: readFileSync(join(root, 'test/fixtures/terms.html'), 'utf8') };
 const HEAD = ['Hvor', 'Nøgle', 'Dansk', 'English', 'Hjælp', 'Kommentar'];
 const sheet = (files, edits = {}) => [HEAD, ...T.collect(files).map((e) => [e.where, e.key, edits[e.key]?.da ?? e.da ?? '', edits[e.key]?.en ?? e.en ?? '', e.help, ''])];
 const fresh = (files = FILES) => T.stateFrom(T.collect(files));
@@ -128,6 +132,8 @@ test('the protected list: whatever the scripts use is protected, and the deletab
 });
 
 test('legal paragraphs: deleted, emptied and hidden; the keys after it stay; flagged; brought back', () => {
+  const FILES = LEGAL_FILES;
+  const fresh = (files = FILES) => T.stateFrom(T.collect(files));
   const p = legal(FILES, 'privacy', 'Kan siden ikke sende forespørgslen');
   const before = T.collect(FILES).map((e) => e.key);
   const r = T.importSheet(FILES, sheet(FILES, { [p.key]: { da: 'slet', en: 'SLET' } }), fresh());
@@ -161,6 +167,8 @@ test('legal paragraphs: deleted, emptied and hidden; the keys after it stay; fla
 });
 
 test('a deleted data-if paragraph stays hidden when brought back (privacy.js shows it), and privacy.js skips deleted ones', () => {
+  const FILES = LEGAL_FILES;
+  const fresh = (files = FILES) => T.stateFrom(T.collect(files));
   const p = T.collect(FILES).find((e) => e.kind === 'legal' && (e.da ?? '').startsWith('Desuden: mens du skriver gadenavnet'));
   const r = T.importSheet(FILES, sheet(FILES, { [p.key]: { da: 'SLET' } }), fresh());
   assert.ok(r.files.privacy.includes('<p data-if="addressSuggest" data-proofread="new" hidden data-deleted></p>'));

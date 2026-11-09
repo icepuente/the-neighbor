@@ -12,6 +12,10 @@ import { csvUrl } from '../scripts/texts.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FILES = Object.fromEntries(Object.entries(T.FILES).map(([k, f]) => [k, readFileSync(join(root, f), 'utf8')]));
+
+// The legal-page tests need particular paragraphs (a link, bold text, a data-if paragraph), which the
+// owner may edit or delete in the live pages; they run on a pinned copy in test/fixtures instead.
+const LEGAL_FILES = { ...FILES, privacy: readFileSync(join(root, 'test/fixtures/privacy.html'), 'utf8'), terms: readFileSync(join(root, 'test/fixtures/terms.html'), 'utf8') };
 const HEAD = ['Hvor', 'Nøgle', 'Dansk', 'English', 'Hjælp', 'Kommentar'];
 // The sheet as exported from `files`, with `edits` ({ key: { da?, en? } }) typed in.
 const sheet = (files, edits = {}) => [HEAD, ...T.collect(files).map((e) => [e.where, e.key, edits[e.key]?.da ?? e.da ?? '', edits[e.key]?.en ?? e.en ?? '', e.help, ''])];
@@ -84,6 +88,8 @@ test('services: names in both languages, prices as whole kroner', () => {
 });
 
 test('legal paragraphs: plain text replaced and escaped; links and bold stay as they are', () => {
+  const FILES = LEGAL_FILES;
+  const fresh = (files = FILES) => T.stateFrom(T.collect(files));
   const plain = T.collect(FILES).find((e) => e.kind === 'legal' && e.key.startsWith('privacy') && e.da.startsWith('Siden gemmer kun'));
   const r = T.importSheet(FILES, sheet(FILES, { [plain.key]: { da: 'Siden gemmer kun dit sprogvalg <script>alert(1)</script> & intet andet.' } }), fresh());
   assert.ok(r.files.privacy.includes('<p>Siden gemmer kun dit sprogvalg &lt;script&gt;alert(1)&lt;/script&gt; &amp; intet andet.</p>'), 'HTML from the sheet is escaped');
