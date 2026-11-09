@@ -167,7 +167,7 @@
       // About and FAQ
       'about.title': 'Om os',
       'about.quote': 'Du behøver ikke et værksted. Du har brug for en nabo, der kan sit håndværk med cykler.',
-      'about.sub': 'Ejeren udfører selv hvert job med værktøjet i varevognen.',
+      'about.sub': 'Ejeren udfører selv hvert job med værktøjet.',
       'faq.parts': 'Er dele inkluderet?', 'faq.partsA': 'Nej, bortset fra slangen ved en punktering. Andre dele koster ekstra, og vi spørger altid først.',
       'faq.come': 'Kommer I ud til mig?', 'faq.comeA': 'Ja. Alt arbejde foregår der, hvor cyklen står, op til 18 km fra os.',
       'faq.hours': 'Hvornår har I åbent?', 'faq.hoursA': 'Mandag til lørdag, 8.30\u201315.30. Søndag har vi lukket.',
@@ -319,7 +319,7 @@
 
       'about.title': 'About',
       'about.quote': "You don't need a workshop. You need a neighbor who knows bikes.",
-      'about.sub': 'The owner does every job personally, with the tools in the van.',
+      'about.sub': 'The owner does every job personally, with the tools.',
       'faq.parts': 'Are parts included?', 'faq.partsA': 'No, except the inner tube for a puncture. Other parts are extra, and we always ask first.',
       'faq.come': 'Do you come to me?', 'faq.comeA': 'Yes. All work is done where the bike is, up to 18 km from us.',
       'faq.hours': 'When are you open?', 'faq.hoursA': 'Monday to Saturday, 08:30\u201315:30. Closed on Sundays.',

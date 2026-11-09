@@ -6,8 +6,8 @@
    "en": "You don't need a workshop. You need a neighbor who knows bikes."
   },
   "about.sub": {
-   "da": "Ejeren udfører selv hvert job med værktøjet i varevognen.",
-   "en": "The owner does every job personally, with the tools in the van."
+   "da": "Ejeren udfører selv hvert job med værktøjet.",
+   "en": "The owner does every job personally, with the tools."
   },
   "about.title": {
    "da": "Om os",
@@ -638,8 +638,8 @@
    "en": "You have the right to see the information we hold about you, have incorrect information corrected, have information deleted, have processing restricted and receive your information. Write to us and we will reply within one month. Accounting records, however, we must keep, as the Bookkeeping Act requires."
   },
   "privacy.html#29": {
-   "da": "Du kan klage til Datatilsynet, datatilsynet.dk, hvis du er utilfreds med vores behandling af dine oplysninger.",
-   "en": "You can complain to the Danish Data Protection Agency (Datatilsynet), datatilsynet.dk, if you are unhappy with how we handle your information."
+   "da": "SLET",
+   "en": "SLET"
   },
   "privacy.html#3": {
    "da": "Kort fortalt: hjemmesiden gemmer ingen oplysninger om dig. Når du sender en forespørgsel, sender siden den som en mail til os, med en kopi til dig, og vi bruger kun det, du skriver, til at aftale og udføre reparationen.",
@@ -758,7 +758,7 @@
    "en": "Brake Adjustment"
   },
   "service.brakes.price": {
-   "da": "129"
+   "da": "149"
   },
   "service.chain.name": {
    "da": "Kædeservice",
@@ -772,7 +772,7 @@
    "en": "Gear Adjustment"
   },
   "service.gears.price": {
-   "da": "129"
+   "da": "149"
   },
   "service.other.name": {
    "da": "Anden reparation",
@@ -832,8 +832,8 @@
    "en": "For private customers · Last updated: 6 November 2026"
   },
   "terms.html#d10-e11": {
-   "da": "Kørsel koster 2,50 kr. pr. km én vej fra vores base. Vi kører højst 18 km. Hjemmesiden anslår kørslen ud fra postnummeret; vi oplyser den endelige pris, når vi bekræfter besøget.",
-   "en": "Travel costs 2.50 DKK per km, one way, from our base. We travel at most 18 km. The website estimates travel from the postcode; we give the final price when we confirm the visit."
+   "da": "SLET",
+   "en": "SLET"
   },
   "terms.html#d11-e12": {
    "da": "Andre reservedele og større reparationer er ikke inkluderet. Vi fortæller dig altid prisen og spørger, før vi går i gang.",
@@ -952,8 +952,8 @@
    "en": "7. Complaints about our work"
   },
   "terms.html#d39-e40": {
-   "da": "Er du utilfreds med vores arbejde, så kontakt os hurtigst muligt, så vi kan rette det. Fejl i vores arbejde udbedrer vi uden beregning. For reservedele har du 2 års reklamationsret efter købeloven.",
-   "en": "If you are not happy with our work, contact us as soon as possible so we can put it right. We fix faults in our work free of charge. For spare parts, you have 2 years to complain under the Danish Sale of Goods Act."
+   "da": "Er du utilfreds med vores arbejde, så kontakt os hurtigst muligt, så vi kan rette det. For reservedele har du 2 års reklamationsret efter købeloven.",
+   "en": "If you are not happy with our work, contact us as soon as possible so we can put it right. For spare parts, you have 2 years to complain under the Danish Sale of Goods Act."
   },
   "terms.html#d4-e5": {
    "da": "The Neighbor v/ Volodymyr Taran, enkeltmandsvirksomhed, Rørsangervej 45, 2400 København NV, CVR-nr. 46840291. E-mail: volodymyr@theneighbor.dk, telefon: +45 29 61 93 72.",
@@ -988,8 +988,8 @@
    "en": "2. Prices"
   },
   "terms.html#d7-e8": {
-   "da": "Alle priser er i danske kroner. Virksomheden er ikke momsregistreret, så der lægges ikke moms på.",
-   "en": "All prices are in Danish kroner. The business is not VAT registered, so no VAT is added."
+   "da": "Alle priser er i danske kroner.",
+   "en": "All prices are in Danish kroner."
   },
   "terms.html#d8-e9": {
    "da": "Prisen for hver reparation står på siden. Ved en punktering er slangen inkluderet.",

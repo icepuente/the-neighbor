@@ -49,8 +49,8 @@ export const CONFIG = {
 // owner's range, so a visit never runs short; `mins` is the range shown to customers.
 export const SERVICES = [
   { id: 'puncture', name: 'Puncture Fix', da: 'Punkteringsreparation', price: 199, durationMin: 20, mins: '15–20', tubeIncluded: true },
-  { id: 'brakes', name: 'Brake Adjustment', da: 'Bremsejustering', price: 129, durationMin: 15, mins: '15' },
-  { id: 'gears', name: 'Gear Adjustment', da: 'Gearjustering', price: 129, durationMin: 15, mins: '15' },
+  { id: 'brakes', name: 'Brake Adjustment', da: 'Bremsejustering', price: 149, durationMin: 15, mins: '15' },
+  { id: 'gears', name: 'Gear Adjustment', da: 'Gearjustering', price: 149, durationMin: 15, mins: '15' },
   { id: 'chain', name: 'Chain Service', da: 'Kædeservice', price: 149, durationMin: 15, mins: '15' },
   { id: 'service', name: 'Bike Service', da: 'Eftersyn', price: 299, durationMin: 20, mins: '15–20' },
   // Anything else: the customer describes it in the comment field, and the owner gives the price
