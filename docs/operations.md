@@ -15,7 +15,7 @@ below (the API would not move with it).
 | Server | Proxmox LXC 114 (`192.168.0.223`), managed through Jarvis; SSH as `deploy` |
 | Folder | `/opt/the-neighbor-demo` (the name is from the demo days; owned by `deploy`) |
 | Containers | Docker compose project `the-neighbor-demo`: `nginx` (port 8088 on localhost only), `api` (no port; nginx reaches it as `api:8080`) and `cloudflared` |
-| API | [`api/`](../api/): Node 22 (`node:22.23.4-alpine3.24`), no npm packages, read-only container, non-root; code and `web/js` mounted read-only |
+| API | [`api/`](../api/): Node 22 (`node:22.23.5-alpine3.24`), no npm packages, read-only container, non-root; code and `web/js` mounted read-only |
 | Email | [Resend](https://resend.com), from `booking@theneighbor.dk`, domain region Ireland (`eu-west-1`); see [Booking emails](#booking-emails-resend) |
 | Secret | `/opt/the-neighbor-demo/secrets/resend.env` (`RESEND_API_KEY=...`), mode 600, owned by `deploy`; never in git, never touched by the deploy |
 | Tunnel | the existing tunnel `bike-booking` (id `7535fdd6-…`); config in [`deploy/cloudflared-config.yml`](../deploy/cloudflared-config.yml), credentials in `cloudflared/` on the server only |
